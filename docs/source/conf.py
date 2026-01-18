@@ -31,6 +31,11 @@ extensions = [
     "sphinxcontrib.bibtex",
 ]
 
+
+bibtex_bibfiles = ["references.bib"]
+bibtex_reference_style = "author_year"
+bibtex_default_style = "plain"
+
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
