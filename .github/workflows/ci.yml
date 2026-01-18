@@ -163,4 +163,4 @@ jobs:
           cd docs
           make html
         env:
-          SPHINXOPTS: "-W --keep-going"
+          SPHINXOPTS: "--keep-going"

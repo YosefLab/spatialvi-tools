@@ -4,7 +4,11 @@
 
 .. add toctree option to make autodoc generate the pages
 
-.. autoclass:: {{ objname }}
+.. autoclass:: {{ fullname }}
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :no-index:
 
 {% block attributes %}
 {% if attributes %}
