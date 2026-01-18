@@ -37,34 +37,35 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
-optional-dependencies.all = [
-  "spatialvi-tools[dev,doc,jax,test]",
-]
-optional-dependencies.dependencies = [
+dependencies = [
   # Core dependencies
-  "anndata>=0.10",
+  "anndata>=0.11",
   "h5py>=3.7",
   "lightning>=2",
   # Visualization
   "matplotlib>=3.6",
   "mudata>=0.2",
   "numpy>=1.21",
-  "pandas>=1.5",
-  "pyro-ppl>=1.8",
+  "pandas",
+  "pyro-ppl",
   # Utilities
-  "rich>=13",
-  "scanpy>=1.9",
-  "scikit-learn>=1",
-  "scipy>=1.9",
+  "rich",
+  "scanpy[skmisc]>=1.10",
+  "scikit-learn",
+  "scipy",
   # scvi-tools base (for shared utilities)
-  "scvi-tools>=1.1",
-  "seaborn>=0.12",
+  "scvi-tools",
+  "seaborn",
   # For debug logging (referenced from the issue template)
   "session-info2",
   # Deep learning
-  "torch>=2",
-  "tqdm>=4.64",
-  "xarray>=2023.1",
+  "torch",
+  "torchmetrics",
+  "tqdm",
+  "xarray",
+]
+optional-dependencies.all = [
+  "spatialvi-tools[dev,doc,jax,test]",
 ]
 optional-dependencies.dev = [
   "pre-commit",

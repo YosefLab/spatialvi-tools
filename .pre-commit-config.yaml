@@ -37,12 +37,10 @@ repos:
       - id: check-merge-conflict
         args: [--assume-in-merge]
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
-        additional_dependencies:
-          - tomli
-        args: [-I, .codespell-ignore-words]
+        exclude: \.ipynb$
 
 ci:
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
