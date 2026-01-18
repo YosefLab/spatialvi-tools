@@ -66,6 +66,7 @@ jobs:
           path: dist/
 
       - name: Install package (wheel)
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           pip install dist/*.whl

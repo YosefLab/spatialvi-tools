@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3fb75dcb-497d-40a1-b05a-3556b5b1dde7" name="Changes" comment="updates to pyrpjoect">
+    <list default="true" id="3fb75dcb-497d-40a1-b05a-3556b5b1dde7" name="Changes" comment="updates to py313">
+      <change afterPath="$PROJECT_DIR$/docs/Makefile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.github/workflows/build.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/build.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/ci.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/ci.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/test_linux.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/test_linux.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/test_macos.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/test_macos.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.github/workflows/test_windows.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/test_windows.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.github/workflows/codeql.yml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -116,13 +114,22 @@
       <option name="project" value="LOCAL" />
       <updated>1768740649347</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="updates to py313">
+      <option name="closed" value="true" />
+      <created>1768745644327</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1768745644327</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Add 1st commit to spatialvi-tools repo" />
     <MESSAGE value="updates with pre-commits errors" />
     <MESSAGE value="updates to pyrpjoect" />
-    <option name="LAST_COMMIT_MESSAGE" value="updates to pyrpjoect" />
+    <MESSAGE value="updates to py313" />
+    <option name="LAST_COMMIT_MESSAGE" value="updates to py313" />
   </component>
 </project>
