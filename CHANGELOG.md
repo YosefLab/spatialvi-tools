@@ -85,11 +85,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `plot_niche_composition()` - Niche composition plots
 
 ### Dependencies
-- Python >= 3.10
+- Python >= 3.11
 - PyTorch >= 2.0
-- scvi-tools >= 1.1.0
-- AnnData >= 0.10
-- Scanpy >= 1.9
+- scvi-tools >= 1.2.0
+- AnnData >= 0.11
+- Scanpy >= 1.10
 
 ---
 

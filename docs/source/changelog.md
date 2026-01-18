@@ -28,6 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive test suite with 295+ tests
 
 ### Dependencies
-- Requires Python >= 3.10
+- Requires Python >= 3.11
 - Requires scvi-tools >= 1.1.0
 - Requires PyTorch >= 2.0
