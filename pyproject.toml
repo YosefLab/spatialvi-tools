@@ -83,6 +83,7 @@ optional-dependencies.doc = [
   "sphinx-book-theme>=1",
   "sphinx-copybutton",
   "sphinx-design",
+  "sphinx-paramlinks",
   "sphinx-tabs",
   "sphinxcontrib-bibtex>=1",
   "sphinxext-opengraph",

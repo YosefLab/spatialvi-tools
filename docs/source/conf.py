@@ -13,6 +13,8 @@ copyright = f"{datetime.now().year}, Yosef Lab"
 author = "Yosef Lab"
 release = "0.1.0"
 
+default_role = "obj"
+
 # General configuration
 extensions = [
     "sphinx.ext.autodoc",
@@ -25,6 +27,7 @@ extensions = [
     "myst_nb",
     "sphinx_copybutton",
     "sphinx_design",
+    "sphinx_paramlinkssphinxcontrib.bibtex",
 ]
 
 templates_path = ["_templates"]
@@ -80,4 +83,10 @@ myst_enable_extensions = [
 nb_execution_mode = "off"
 
 # Suppress warnings
-suppress_warnings = ["myst.header"]
+suppress_warnings = [
+    "toc.not_included",
+    "toc.not_readable",
+    "ref.doc",
+    "myst.header",
+    "myst.directive_unknown",
+]
