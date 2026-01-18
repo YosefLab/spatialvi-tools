@@ -27,7 +27,8 @@ extensions = [
     "myst_nb",
     "sphinx_copybutton",
     "sphinx_design",
-    "sphinx_paramlinkssphinxcontrib.bibtex",
+    "sphinx_paramlinks",
+    "sphinxcontrib.bibtex",
 ]
 
 templates_path = ["_templates"]
