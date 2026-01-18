@@ -70,8 +70,6 @@ def compute_fdr(p_values: NDArray, alpha: float = 0.05) -> tuple[NDArray, NDArra
     -------
     Tuple of (fdr_values, significant_mask).
     """
-    from scipy import stats
-
     n = len(p_values)
     sorted_idx = np.argsort(p_values)
     sorted_p = p_values[sorted_idx]

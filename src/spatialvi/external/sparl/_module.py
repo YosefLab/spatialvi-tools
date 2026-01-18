@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import torch
-from torch import nn
-from torch.distributions import Normal
-
 from scvi.module.base import BaseModuleClass, LossOutput, auto_move_data
 from scvi.nn import FCLayers
+from torch import nn
+from torch.distributions import Normal
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -156,10 +155,7 @@ class SPARLModule(BaseModuleClass):
             else:
                 # If spatial is None, use zeros
                 batch_size = x.shape[0]
-                spatial_features = torch.zeros(
-                    batch_size, self.spatial_dim,
-                    device=x.device, dtype=x.dtype
-                )
+                spatial_features = torch.zeros(batch_size, self.spatial_dim, device=x.device, dtype=x.dtype)
             encoder_input = torch.cat([x_log, spatial_features], dim=-1)
         else:
             encoder_input = x_log
@@ -277,15 +273,11 @@ class SPARLModule(BaseModuleClass):
         inference_inputs = self._get_inference_input(tensors, **get_inference_input_kwargs)
         inference_outputs = self.inference(**inference_inputs, **inference_kwargs)
 
-        generative_inputs = self._get_generative_input(
-            tensors, inference_outputs, **get_generative_input_kwargs
-        )
+        generative_inputs = self._get_generative_input(tensors, inference_outputs, **get_generative_input_kwargs)
         generative_outputs = self.generative(**generative_inputs, **generative_kwargs)
 
         if compute_loss:
-            losses = self.loss(
-                tensors, inference_outputs, generative_outputs, **loss_kwargs
-            )
+            losses = self.loss(tensors, inference_outputs, generative_outputs, **loss_kwargs)
             return inference_outputs, generative_outputs, losses
 
         return inference_outputs, generative_outputs

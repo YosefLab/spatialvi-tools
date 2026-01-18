@@ -6,10 +6,9 @@ import logging
 from typing import TYPE_CHECKING, Literal
 
 import torch
+from scvi.nn import FCLayers
 from torch import nn
 from torch.distributions import Normal
-
-from scvi.nn import FCLayers, Encoder
 
 if TYPE_CHECKING:
     pass
@@ -253,10 +252,7 @@ class GraphEncoder(nn.Module):
         self.input_proj = nn.Linear(n_input, n_hidden)
 
         # Graph convolution layers
-        self.convs = nn.ModuleList([
-            GraphConvLayer(n_hidden, n_hidden, dropout_rate)
-            for _ in range(n_layers)
-        ])
+        self.convs = nn.ModuleList([GraphConvLayer(n_hidden, n_hidden, dropout_rate) for _ in range(n_layers)])
 
         # Output layers
         self.mean_layer = nn.Linear(n_hidden, n_output)

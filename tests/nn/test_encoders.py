@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from spatialvi.nn import SpatialEncoder, GraphEncoder, AttentionEncoder
+from spatialvi.nn import AttentionEncoder, GraphEncoder, SpatialEncoder
 
 
 class TestSpatialEncoderInitialization:
@@ -64,7 +64,6 @@ class TestSpatialEncoderInitialization:
         assert encoder_ln is not None
 
 
-
 class TestSpatialEncoderForward:
     """Tests for SpatialEncoder forward pass."""
 
@@ -105,9 +104,7 @@ class TestSpatialEncoderForward:
 class TestSpatialEncoderForwardSpatial:
     """Tests for SpatialEncoder forward_spatial method."""
 
-    def test_forward_spatial_mean_aggregation(
-        self, batch_size, n_genes, n_latent, n_hidden, n_neighbors, device
-    ):
+    def test_forward_spatial_mean_aggregation(self, batch_size, n_genes, n_latent, n_hidden, n_neighbors, device):
         """Test forward_spatial with mean aggregation."""
         encoder = SpatialEncoder(
             n_input=n_genes,
@@ -130,9 +127,7 @@ class TestSpatialEncoderForwardSpatial:
         assert var.shape == (batch_size, n_latent)
         assert z.shape == (batch_size, n_latent)
 
-    def test_forward_spatial_attention_aggregation(
-        self, batch_size, n_genes, n_latent, n_hidden, n_neighbors, device
-    ):
+    def test_forward_spatial_attention_aggregation(self, batch_size, n_genes, n_latent, n_hidden, n_neighbors, device):
         """Test forward_spatial with attention aggregation."""
         encoder = SpatialEncoder(
             n_input=n_genes,
@@ -155,9 +150,7 @@ class TestSpatialEncoderForwardSpatial:
         assert mean.shape == (batch_size, n_latent)
         assert z.shape == (batch_size, n_latent)
 
-    def test_forward_spatial_gat_aggregation(
-        self, batch_size, n_genes, n_latent, n_hidden, n_neighbors, device
-    ):
+    def test_forward_spatial_gat_aggregation(self, batch_size, n_genes, n_latent, n_hidden, n_neighbors, device):
         """Test forward_spatial with GAT aggregation."""
         encoder = SpatialEncoder(
             n_input=n_genes,
@@ -179,9 +172,7 @@ class TestSpatialEncoderForwardSpatial:
 
         assert mean.shape == (batch_size, n_latent)
 
-    def test_forward_spatial_without_neighbors(
-        self, batch_size, n_genes, n_latent, n_hidden, device
-    ):
+    def test_forward_spatial_without_neighbors(self, batch_size, n_genes, n_latent, n_hidden, device):
         """Test forward_spatial without neighbor information."""
         encoder = SpatialEncoder(
             n_input=n_genes,
@@ -296,9 +287,7 @@ class TestAttentionEncoder:
 class TestEncoderGradients:
     """Tests for encoder gradient computation."""
 
-    def test_spatial_encoder_gradients(
-        self, batch_size, n_genes, n_latent, n_hidden, n_neighbors, device
-    ):
+    def test_spatial_encoder_gradients(self, batch_size, n_genes, n_latent, n_hidden, n_neighbors, device):
         """Test gradient flow through SpatialEncoder."""
         encoder = SpatialEncoder(
             n_input=n_genes,
@@ -322,9 +311,7 @@ class TestEncoderGradients:
         assert x.grad is not None
         assert encoder.mean_layer.weight.grad is not None
 
-    def test_graph_encoder_gradients(
-        self, batch_size, n_genes, n_latent, n_hidden, edge_index, device
-    ):
+    def test_graph_encoder_gradients(self, batch_size, n_genes, n_latent, n_hidden, edge_index, device):
         """Test gradient flow through GraphEncoder."""
         encoder = GraphEncoder(
             n_input=n_genes,
@@ -342,9 +329,7 @@ class TestEncoderGradients:
 
         assert x.grad is not None
 
-    def test_attention_encoder_gradients(
-        self, batch_size, n_genes, n_latent, n_hidden, device
-    ):
+    def test_attention_encoder_gradients(self, batch_size, n_genes, n_latent, n_hidden, device):
         """Test gradient flow through AttentionEncoder."""
         seq_len = 5
         encoder = AttentionEncoder(

@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import torch
-from torch import nn
-from torch.distributions import Normal, Dirichlet
-
 from scvi.module.base import BaseModuleClass, LossOutput, auto_move_data
 from scvi.nn import FCLayers
+from torch import nn
+from torch.distributions import Dirichlet
 
 if TYPE_CHECKING:
     from torch import Tensor
@@ -81,9 +80,7 @@ class StarfyshModule(BaseModuleClass):
         )
 
         # Cell type-specific factor loadings
-        self.factor_loadings = nn.Parameter(
-            torch.randn(n_cell_types, n_factors, n_genes)
-        )
+        self.factor_loadings = nn.Parameter(torch.randn(n_cell_types, n_factors, n_genes))
 
         # Factor weights encoder
         self.factor_encoder = nn.Sequential(
@@ -293,15 +290,11 @@ class StarfyshModule(BaseModuleClass):
         inference_inputs = self._get_inference_input(tensors, **get_inference_input_kwargs)
         inference_outputs = self.inference(**inference_inputs, **inference_kwargs)
 
-        generative_inputs = self._get_generative_input(
-            tensors, inference_outputs, **get_generative_input_kwargs
-        )
+        generative_inputs = self._get_generative_input(tensors, inference_outputs, **get_generative_input_kwargs)
         generative_outputs = self.generative(**generative_inputs, **generative_kwargs)
 
         if compute_loss:
-            losses = self.loss(
-                tensors, inference_outputs, generative_outputs, **loss_kwargs
-            )
+            losses = self.loss(tensors, inference_outputs, generative_outputs, **loss_kwargs)
             return inference_outputs, generative_outputs, losses
 
         return inference_outputs, generative_outputs

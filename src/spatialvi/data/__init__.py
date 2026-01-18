@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
+from ._datasets import (
+    synthetic_scrna,
+    synthetic_spatial,
+)
 from ._fields import (
-    SpatialCoordinatesField,
-    NeighborIndexField,
     NeighborDistanceField,
+    NeighborIndexField,
     NicheCompositionField,
+    SpatialCoordinatesField,
 )
 from ._preprocessing import (
-    compute_spatial_neighbors,
-    compute_niche_composition,
-    normalize_spatial,
-    filter_by_spatial_density,
     add_spatial_noise,
+    compute_niche_composition,
+    compute_spatial_neighbors,
+    filter_by_spatial_density,
     get_neighbor_expression,
-)
-from ._datasets import (
-    synthetic_spatial,
-    synthetic_scrna,
+    normalize_spatial,
 )
 
 __all__ = [

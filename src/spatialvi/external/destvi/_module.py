@@ -10,19 +10,16 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import torch
-from torch.distributions import (
-    Categorical,
-    Exponential,
-    Independent,
-    MixtureSameFamily,
-    Normal,
-)
-from torch.distributions import kl_divergence as kl
-
 from scvi import REGISTRY_KEYS
 from scvi.distributions import NegativeBinomial
 from scvi.module.base import BaseModuleClass, EmbeddingModuleMixin, LossOutput, auto_move_data
 from scvi.nn import Encoder, FCLayers
+from torch.distributions import (
+    Categorical,
+    Independent,
+    MixtureSameFamily,
+    Normal,
+)
 
 if TYPE_CHECKING:
     from collections import OrderedDict
@@ -104,8 +101,8 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
         n_layers: int,
         n_latent: int,
         n_genes: int,
-        decoder_state_dict: "OrderedDict",
-        px_decoder_state_dict: "OrderedDict",
+        decoder_state_dict: OrderedDict,
+        px_decoder_state_dict: OrderedDict,
         px_r: torch.Tensor,
         per_ct_bias: torch.Tensor,
         dropout_decoder: float,
@@ -127,8 +124,7 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
         super().__init__()
         if prior_mode == "mog":
             assert amortization in ["both", "latent"], (
-                "Amortization must be active for latent variables to use mixture "
-                "of gaussians generation"
+                "Amortization must be active for latent variables to use mixture of gaussians generation"
             )
         self.n_spots = n_spots
         self.n_batch = n_batch
@@ -205,9 +201,7 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
         # Create amortization neural nets
         _extra_encoder_kwargs = extra_encoder_kwargs or {}
         if self.prior_mode == "mog":
-            return_dist = (
-                self.n_states_per_label * n_labels * n_latent + self.n_states_per_label * n_labels
-            )
+            return_dist = self.n_states_per_label * n_labels * n_latent + self.n_states_per_label * n_labels
         else:
             return_dist = n_labels * n_latent
 

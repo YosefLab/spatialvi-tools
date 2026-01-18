@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import torch
-
 from anndata import AnnData
 from scvi.data import AnnDataManager
 from scvi.data.fields import (
@@ -105,9 +104,7 @@ class SpatialVAE(SpatialTrainingMixin, SpatialMixin, BaseSpatialModel):
         super().__init__(adata)
 
         n_cats_per_cov = (
-            self.adata_manager.get_state_registry(
-                REGISTRY_KEYS.CAT_COVS_KEY
-            ).n_cats_per_key
+            self.adata_manager.get_state_registry(REGISTRY_KEYS.CAT_COVS_KEY).n_cats_per_key
             if REGISTRY_KEYS.CAT_COVS_KEY in self.adata_manager.data_registry
             else None
         )
@@ -115,9 +112,7 @@ class SpatialVAE(SpatialTrainingMixin, SpatialMixin, BaseSpatialModel):
 
         library_log_means, library_log_vars = None, None
         if not self.summary_stats.get("use_size_factor", False):
-            library_log_means, library_log_vars = _init_library_size(
-                self.adata_manager, n_batch
-            )
+            library_log_means, library_log_vars = _init_library_size(self.adata_manager, n_batch)
 
         self.module = self._module_cls(
             n_input=self.summary_stats.n_vars,
@@ -138,9 +133,11 @@ class SpatialVAE(SpatialTrainingMixin, SpatialMixin, BaseSpatialModel):
             **model_kwargs,
         )
 
-        self._spatial_key = self.adata_manager.get_state_registry(
-            SPATIAL_REGISTRY_KEYS.SPATIAL_KEY
-        ).get("attr_key", "spatial") if SPATIAL_REGISTRY_KEYS.SPATIAL_KEY in self.adata_manager.data_registry else None
+        self._spatial_key = (
+            self.adata_manager.get_state_registry(SPATIAL_REGISTRY_KEYS.SPATIAL_KEY).get("attr_key", "spatial")
+            if SPATIAL_REGISTRY_KEYS.SPATIAL_KEY in self.adata_manager.data_registry
+            else None
+        )
 
         self.init_params_ = self._get_init_params(locals())
 
@@ -214,9 +211,7 @@ class SpatialVAE(SpatialTrainingMixin, SpatialMixin, BaseSpatialModel):
             inference_inputs = self.module._get_inference_input(tensors)
             outputs = self.module.inference(**inference_inputs)
 
-            generative_inputs = self.module._get_generative_input(
-                tensors, outputs
-            )
+            generative_inputs = self.module._get_generative_input(tensors, outputs)
 
             for _ in range(n_samples):
                 generative_outputs = self.module.generative(**generative_inputs)
@@ -339,12 +334,8 @@ class SpatialVAE(SpatialTrainingMixin, SpatialMixin, BaseSpatialModel):
                 size_factor_key,
                 required=False,
             ),
-            CategoricalJointObsField(
-                REGISTRY_KEYS.CAT_COVS_KEY, categorical_covariate_keys
-            ),
-            NumericalJointObsField(
-                REGISTRY_KEYS.CONT_COVS_KEY, continuous_covariate_keys
-            ),
+            CategoricalJointObsField(REGISTRY_KEYS.CAT_COVS_KEY, categorical_covariate_keys),
+            NumericalJointObsField(REGISTRY_KEYS.CONT_COVS_KEY, continuous_covariate_keys),
             ObsmField(
                 SPATIAL_REGISTRY_KEYS.SPATIAL_KEY,
                 spatial_key,
@@ -370,8 +361,6 @@ class SpatialVAE(SpatialTrainingMixin, SpatialMixin, BaseSpatialModel):
                 )
             )
 
-        adata_manager = AnnDataManager(
-            fields=anndata_fields, setup_method_args=setup_method_args
-        )
+        adata_manager = AnnDataManager(fields=anndata_fields, setup_method_args=setup_method_args)
         adata_manager.register_fields(adata, **kwargs)
         cls.register_manager(adata_manager)

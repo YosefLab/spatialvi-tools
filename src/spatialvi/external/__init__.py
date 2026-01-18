@@ -24,32 +24,32 @@ from __future__ import annotations
 
 # AMICI - Cell-cell interaction
 from spatialvi.external.amici import AMICI
-
-# VIVS - Variable importance
-from spatialvi.external.vivs import VIVS
-
-# Starfysh - Spatial deconvolution with histology
-from spatialvi.external.starfysh import Starfysh
+from spatialvi.external.destvi import DestVI
 
 # Harreman - Metabolic exchange
 from spatialvi.external.harreman import Harreman
 
-# Nolan - Spatial niche detection (NicheExplorer)
-from spatialvi.external.nolan import Nolan
-
 # Lambda - LLM-based annotation
 from spatialvi.external.lambda_model import Lambda
 
+# Nolan - Spatial niche detection (NicheExplorer)
+from spatialvi.external.nolan import Nolan
+
 # PPI - Prediction-powered inference
 from spatialvi.external.ppi import PPIInference
+from spatialvi.external.resolvi import ResolVI
+
+# scvi-tools integrations (wrappers for consistency)
+from spatialvi.external.scviva import scVIVA
 
 # SPARL - Spatial proteomics
 from spatialvi.external.sparl import SPARL
 
-# scvi-tools integrations (wrappers for consistency)
-from spatialvi.external.scviva import scVIVA
-from spatialvi.external.resolvi import ResolVI
-from spatialvi.external.destvi import DestVI
+# Starfysh - Spatial deconvolution with histology
+from spatialvi.external.starfysh import Starfysh
+
+# VIVS - Variable importance
+from spatialvi.external.vivs import VIVS
 
 __all__ = [
     # External models

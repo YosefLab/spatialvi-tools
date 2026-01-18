@@ -1,8 +1,5 @@
 """Tests for DestVI module classes."""
 
-import pytest
-import torch
-
 
 class TestDestVIModuleImports:
     """Tests for DestVI module imports."""

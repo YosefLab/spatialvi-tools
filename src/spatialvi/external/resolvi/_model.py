@@ -9,8 +9,9 @@ import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from anndata import AnnData
     from collections.abc import Sequence
+
+    from anndata import AnnData
     from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
@@ -20,12 +21,12 @@ def _check_scvi_import():
     """Check if scvi-tools is available with ResolVI."""
     try:
         from scvi.external import RESOLVI as _RESOLVI
+
         return _RESOLVI
     except ImportError:
         raise ImportError(
-            "ResolVI requires scvi-tools>=1.1.0 with ResolVI support. "
-            "Install with: pip install scvi-tools"
-        )
+            "ResolVI requires scvi-tools>=1.1.0 with ResolVI support. Install with: pip install scvi-tools"
+        ) from None
 
 
 class ResolVI:
@@ -65,7 +66,7 @@ class ResolVI:
 
     def __init__(
         self,
-        adata: "AnnData",
+        adata: AnnData,
         n_hidden: int = 128,
         n_latent: int = 10,
         n_layers: int = 1,
@@ -87,7 +88,7 @@ class ResolVI:
     @classmethod
     def setup_anndata(
         cls,
-        adata: "AnnData",
+        adata: AnnData,
         layer: str | None = None,
         batch_key: str | None = None,
         labels_key: str | None = None,
@@ -153,11 +154,11 @@ class ResolVI:
 
     def get_latent_representation(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         give_mean: bool = True,
         batch_size: int | None = None,
-    ) -> "NDArray":
+    ) -> NDArray:
         """Get latent representation.
 
         Parameters
@@ -184,11 +185,11 @@ class ResolVI:
 
     def get_denoised_expression(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         n_samples: int = 1,
         batch_size: int | None = None,
-    ) -> "NDArray":
+    ) -> NDArray:
         """Get denoised expression.
 
         Parameters
@@ -223,10 +224,10 @@ class ResolVI:
 
     def get_background_fraction(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         batch_size: int | None = None,
-    ) -> "NDArray":
+    ) -> NDArray:
         """Get estimated background fraction per cell.
 
         Parameters
@@ -254,8 +255,8 @@ class ResolVI:
 
     def predict(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         batch_size: int | None = None,
     ) -> pd.DataFrame:
         """Predict cell types.
@@ -287,7 +288,7 @@ class ResolVI:
         self._model.save(dir_path, **kwargs)
 
     @classmethod
-    def load(cls, dir_path: str, adata: "AnnData" | None = None, **kwargs) -> "ResolVI":
+    def load(cls, dir_path: str, adata: AnnData | None = None, **kwargs) -> ResolVI:
         """Load model from disk."""
         _RESOLVI = _check_scvi_import()
         instance = cls.__new__(cls)

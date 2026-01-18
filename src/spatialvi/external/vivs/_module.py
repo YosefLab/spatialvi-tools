@@ -48,9 +48,7 @@ class VIVSModule(nn.Module):
         self.n_neighbors_base = n_neighbors_base
 
         # Compute scales
-        self.scales = torch.tensor(
-            np.linspace(n_neighbors_base, n_neighbors_base * n_scales, n_scales, dtype=int)
-        )
+        self.scales = torch.tensor(np.linspace(n_neighbors_base, n_neighbors_base * n_scales, n_scales, dtype=int))
 
         # Device
         self.device = torch.device("cuda" if use_gpu and torch.cuda.is_available() else "cpu")

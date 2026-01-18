@@ -1,8 +1,5 @@
 """Tests for external model wrappers."""
 
-import pytest
-import torch
-
 
 class TestDestVIWrapper:
     """Tests for DestVI wrapper."""
@@ -124,6 +121,7 @@ class TestPPIInferenceWrapper:
     def test_classical_mean_ci(self):
         """Test classical mean CI computation (no external dependency)."""
         import numpy as np
+
         from spatialvi.external import PPIInference
 
         y = np.array([1.0, 1.1, 0.9, 1.05, 0.95])

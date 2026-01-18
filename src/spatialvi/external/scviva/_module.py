@@ -11,21 +11,19 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
 import torch
-from torch.nn.functional import one_hot
-
 from scvi import REGISTRY_KEYS
 from scvi.module import VAE, Classifier
 from scvi.module._constants import MODULE_KEYS
 from scvi.module.base import LossOutput, auto_move_data
+from torch.nn.functional import one_hot
 
 from ._components import DirichletDecoder, Encoder, NicheDecoder
 from ._constants import SCVIVA_MODULE_KEYS, SCVIVA_REGISTRY_KEYS
 
 if TYPE_CHECKING:
     import numpy as np
-    from torch.distributions import Distribution
-
     from scvi._types import LossRecord
+    from torch.distributions import Distribution
 
 logger = logging.getLogger(__name__)
 
@@ -157,8 +155,8 @@ class nicheVAE(VAE):
         use_layer_norm: Literal["encoder", "decoder", "none", "both"] = "both",
         use_size_factor_key: bool = False,
         use_observed_lib_size: bool = True,
-        library_log_means: "np.ndarray | None" = None,
-        library_log_vars: "np.ndarray | None" = None,
+        library_log_means: np.ndarray | None = None,
+        library_log_vars: np.ndarray | None = None,
         batch_embedding_kwargs: dict | None = None,
         extra_decoder_kwargs: dict | None = None,
         extra_encoder_kwargs: dict | None = None,
@@ -219,16 +217,12 @@ class nicheVAE(VAE):
                 self.prior_mixture_k = prior_mixture_k
 
                 self.prior_means = torch.nn.Parameter(torch.zeros([prior_mixture_k, n_latent]))
-                self.prior_log_scales = torch.nn.Parameter(
-                    torch.zeros([prior_mixture_k, n_latent])
-                )
+                self.prior_log_scales = torch.nn.Parameter(torch.zeros([prior_mixture_k, n_latent]))
                 self.prior_logits = torch.nn.Parameter(torch.ones([prior_mixture_k]))
             else:
                 self.prior_mixture_k = prior_mixture_k
                 self.prior_means = torch.nn.Parameter(torch.randn([prior_mixture_k, n_latent]))
-                self.prior_log_scales = torch.nn.Parameter(
-                    torch.zeros([prior_mixture_k, n_latent]) - 1.0
-                )
+                self.prior_log_scales = torch.nn.Parameter(torch.zeros([prior_mixture_k, n_latent]) - 1.0)
                 self.prior_logits = torch.nn.Parameter(torch.ones([prior_mixture_k]))
 
         n_input_encoder = n_input + n_continuous_cov * encode_covariates
@@ -315,7 +309,7 @@ class nicheVAE(VAE):
         size_factor: torch.Tensor | None = None,
         y: torch.Tensor | None = None,
         transform_batch: torch.Tensor | None = None,
-    ) -> dict[str, "Distribution | None"]:
+    ) -> dict[str, Distribution | None]:
         """Run the generative process.
 
         Parameters
@@ -341,17 +335,14 @@ class nicheVAE(VAE):
         -------
         Dictionary of generative outputs including distributions.
         """
+        from scvi.distributions import NegativeBinomial, Poisson, ZeroInflatedNegativeBinomial
         from torch.distributions import Categorical, Independent, MixtureSameFamily, Normal
         from torch.nn.functional import linear
-
-        from scvi.distributions import NegativeBinomial, Poisson, ZeroInflatedNegativeBinomial
 
         if cont_covs is None:
             decoder_input = z
         elif z.dim() != cont_covs.dim():
-            decoder_input = torch.cat(
-                [z, cont_covs.unsqueeze(0).expand(z.size(0), -1, -1)], dim=-1
-            )
+            decoder_input = torch.cat([z, cont_covs.unsqueeze(0).expand(z.size(0), -1, -1)], dim=-1)
         else:
             decoder_input = torch.cat([z, cont_covs], dim=-1)
 
@@ -438,20 +429,14 @@ class nicheVAE(VAE):
                 u_prior_means = u_prior_means.expand(y.shape[0], -1, -1)
                 u_prior_scales = u_prior_scales.expand(y.shape[0], -1, -1)
             cats = Categorical(logits=u_prior_logits)
-            normal_dists = Independent(
-                Normal(u_prior_means, u_prior_scales), reinterpreted_batch_ndims=1
-            )
+            normal_dists = Independent(Normal(u_prior_means, u_prior_scales), reinterpreted_batch_ndims=1)
             pz = MixtureSameFamily(cats, normal_dists)
         else:
             pz = Normal(torch.zeros_like(z), torch.ones_like(z))
 
-        niche_composition = self.composition_decoder(
-            decoder_input, batch_index, *categorical_input
-        )
+        niche_composition = self.composition_decoder(decoder_input, batch_index, *categorical_input)
 
-        niche_mean, niche_variance = self.niche_decoder(
-            decoder_input, batch_index, *categorical_input
-        )
+        niche_mean, niche_variance = self.niche_decoder(decoder_input, batch_index, *categorical_input)
 
         if self.niche_likelihood == "poisson":
             niche_expression = torch.distributions.Poisson(niche_variance)
@@ -471,13 +456,13 @@ class nicheVAE(VAE):
     def loss(
         self,
         tensors: dict[str, torch.Tensor],
-        inference_outputs: dict[str, "torch.Tensor | Distribution | None"],
-        generative_outputs: dict[str, "torch.Tensor | Distribution | None"],
+        inference_outputs: dict[str, torch.Tensor | Distribution | None],
+        generative_outputs: dict[str, torch.Tensor | Distribution | None],
         kl_weight: float = 1.0,
         classification_ratio: float = 50,
         epsilon: float = 1e-6,
         n_samples_mixture: int = 10,
-    ) -> "NicheLossOutput":
+    ) -> NicheLossOutput:
         """Compute the loss.
 
         Parameters
@@ -546,9 +531,7 @@ class nicheVAE(VAE):
         z1_mean_niche = tensors[SCVIVA_REGISTRY_KEYS.Z1_MEAN_CT_KEY]
 
         reconst_loss_niche = (
-            -generative_outputs[SCVIVA_MODULE_KEYS.P_NICHE_EXPRESSION]
-            .log_prob(z1_mean_niche)
-            .sum(dim=(-1))
+            -generative_outputs[SCVIVA_MODULE_KEYS.P_NICHE_EXPRESSION].log_prob(z1_mean_niche).sum(dim=(-1))
         )
 
         masked_reconst_loss_niche = (reconst_loss_niche * niche_weights).sum(dim=-1)
@@ -569,10 +552,7 @@ class nicheVAE(VAE):
         _weighted_kl_local = self.latent_kl_weight * weighted_kl_local
 
         loss = torch.mean(
-            _weighted_reconst_loss_cell
-            + _weighted_reconst_loss_niche
-            + _weighted_kl_local
-            + _weighted_composition_loss
+            _weighted_reconst_loss_cell + _weighted_reconst_loss_niche + _weighted_kl_local + _weighted_composition_loss
         )
 
         return NicheLossOutput(
@@ -598,8 +578,8 @@ class nicheVAE(VAE):
 class NicheLossOutput(LossOutput):
     """Modify loss output to record niche losses."""
 
-    composition_loss: "LossRecord | None" = None
-    niche_loss: "LossRecord | None" = None
+    composition_loss: LossRecord | None = None
+    niche_loss: LossRecord | None = None
 
     def __post_init__(self):
         """Initialize with default values."""

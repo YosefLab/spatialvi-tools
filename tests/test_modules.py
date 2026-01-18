@@ -9,7 +9,6 @@ This file contains basic smoke tests for quick validation.
 """
 
 import torch
-import pytest
 
 
 class TestSpatialVAEModule:
@@ -30,7 +29,6 @@ class TestSpatialVAEModule:
         assert module.n_input == n_genes
         assert module.n_latent == n_latent
 
-    
     def test_forward(self, batch_size, n_genes, n_latent, device):
         """Test forward pass."""
         from spatialvi.module import SpatialVAEModule
@@ -49,9 +47,7 @@ class TestSpatialVAEModule:
 
         tensors = {"X": x, "batch": batch_index}
 
-        inference_outputs, generative_outputs, loss = module(
-            tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(tensors, compute_loss=True)
 
         assert "z" in inference_outputs
         assert "px" in generative_outputs
@@ -76,7 +72,6 @@ class TestNicheModule:
         assert module.n_labels == 5
         assert module.n_latent == n_latent
 
-    
     def test_forward(self, batch_size, n_genes, n_latent, device):
         """Test forward pass."""
         from spatialvi.module import NicheModule
@@ -92,9 +87,7 @@ class TestNicheModule:
 
         x = torch.randn(batch_size, n_genes).abs().to(device)
         batch_index = torch.randint(0, 2, (batch_size, 1)).to(device)
-        niche_composition = torch.softmax(
-            torch.randn(batch_size, n_labels), dim=-1
-        ).to(device)
+        niche_composition = torch.softmax(torch.randn(batch_size, n_labels), dim=-1).to(device)
 
         tensors = {
             "X": x,
@@ -102,9 +95,7 @@ class TestNicheModule:
             "niche_composition": niche_composition,
         }
 
-        inference_outputs, generative_outputs, loss = module(
-            tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(tensors, compute_loss=True)
 
         assert "z" in inference_outputs
         assert "niche_z" in inference_outputs
@@ -146,9 +137,7 @@ class TestDeconvolutionModule:
 
         tensors = {"X": x, "batch": batch_index}
 
-        inference_outputs, generative_outputs, loss = module(
-            tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(tensors, compute_loss=True)
 
         assert "proportions" in inference_outputs
         assert inference_outputs["proportions"].shape == (batch_size, n_cell_types)

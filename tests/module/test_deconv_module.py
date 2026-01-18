@@ -1,6 +1,5 @@
 """Comprehensive tests for DeconvolutionModule."""
 
-import pytest
 import torch
 
 from spatialvi.module import DeconvolutionModule
@@ -88,9 +87,7 @@ class TestDeconvolutionModuleForward:
             n_latent=n_latent,
         ).to(device)
 
-        inference_outputs, generative_outputs, loss = module(
-            deconv_tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(deconv_tensors, compute_loss=True)
 
         assert "proportions" in inference_outputs
         assert "px_rate" in generative_outputs
@@ -112,9 +109,7 @@ class TestDeconvolutionModuleForward:
         inference_outputs, generative_outputs = result
         assert "proportions" in inference_outputs
 
-    def test_forward_with_subcell_variation(
-        self, deconv_tensors, n_genes, n_latent, n_cell_types, device
-    ):
+    def test_forward_with_subcell_variation(self, deconv_tensors, n_genes, n_latent, n_cell_types, device):
         """Test forward pass with subcell variation."""
         module = DeconvolutionModule(
             n_input=n_genes,
@@ -126,9 +121,7 @@ class TestDeconvolutionModuleForward:
             n_subcell_factors=5,
         ).to(device)
 
-        inference_outputs, generative_outputs, loss = module(
-            deconv_tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(deconv_tensors, compute_loss=True)
 
         assert "subcell_factors" in inference_outputs
         assert loss.loss.numel() == 1
@@ -137,9 +130,7 @@ class TestDeconvolutionModuleForward:
 class TestDeconvolutionModuleInference:
     """Tests for DeconvolutionModule inference method."""
 
-    def test_inference_output_shapes(
-        self, batch_size, n_genes, n_latent, n_cell_types, device
-    ):
+    def test_inference_output_shapes(self, batch_size, n_genes, n_latent, n_cell_types, device):
         """Test inference output shapes."""
         module = DeconvolutionModule(
             n_input=n_genes,
@@ -158,9 +149,7 @@ class TestDeconvolutionModuleInference:
         assert outputs["library"].shape == (batch_size, 1)
         assert "qc" in outputs  # Dirichlet distribution
 
-    def test_proportions_sum_to_one(
-        self, batch_size, n_genes, n_latent, n_cell_types, device
-    ):
+    def test_proportions_sum_to_one(self, batch_size, n_genes, n_latent, n_cell_types, device):
         """Test that inferred proportions sum to 1."""
         module = DeconvolutionModule(
             n_input=n_genes,
@@ -176,9 +165,7 @@ class TestDeconvolutionModuleInference:
         prop_sums = outputs["proportions"].sum(dim=-1)
         assert torch.allclose(prop_sums, torch.ones_like(prop_sums), atol=1e-5)
 
-    def test_proportions_non_negative(
-        self, batch_size, n_genes, n_latent, n_cell_types, device
-    ):
+    def test_proportions_non_negative(self, batch_size, n_genes, n_latent, n_cell_types, device):
         """Test that inferred proportions are non-negative."""
         module = DeconvolutionModule(
             n_input=n_genes,
@@ -197,9 +184,7 @@ class TestDeconvolutionModuleInference:
 class TestDeconvolutionModuleGenerative:
     """Tests for DeconvolutionModule generative method."""
 
-    def test_generative_output_shapes(
-        self, batch_size, n_genes, n_latent, n_cell_types, device
-    ):
+    def test_generative_output_shapes(self, batch_size, n_genes, n_latent, n_cell_types, device):
         """Test generative output shapes."""
         module = DeconvolutionModule(
             n_input=n_genes,
@@ -217,9 +202,7 @@ class TestDeconvolutionModuleGenerative:
         assert outputs["px_scale"].shape == (batch_size, n_genes)
         assert outputs["cell_type_profiles"].shape == (batch_size, n_cell_types, n_genes)
 
-    def test_px_rate_non_negative(
-        self, batch_size, n_genes, n_latent, n_cell_types, device
-    ):
+    def test_px_rate_non_negative(self, batch_size, n_genes, n_latent, n_cell_types, device):
         """Test that px_rate is non-negative."""
         module = DeconvolutionModule(
             n_input=n_genes,
@@ -273,9 +256,7 @@ class TestDeconvolutionModuleLoss:
 class TestDeconvolutionModuleCellTypeExpression:
     """Tests for cell type-specific expression retrieval."""
 
-    def test_get_cell_type_expression_shape(
-        self, deconv_tensors, n_genes, n_latent, n_cell_types, batch_size, device
-    ):
+    def test_get_cell_type_expression_shape(self, deconv_tensors, n_genes, n_latent, n_cell_types, batch_size, device):
         """Test cell type expression output shape."""
         module = DeconvolutionModule(
             n_input=n_genes,
@@ -289,9 +270,7 @@ class TestDeconvolutionModuleCellTypeExpression:
 
         assert ct_expr.shape == (batch_size, n_cell_types, n_genes)
 
-    def test_get_cell_type_expression_non_negative(
-        self, deconv_tensors, n_genes, n_latent, n_cell_types, device
-    ):
+    def test_get_cell_type_expression_non_negative(self, deconv_tensors, n_genes, n_latent, n_cell_types, device):
         """Test that cell type expression is non-negative."""
         module = DeconvolutionModule(
             n_input=n_genes,
@@ -325,9 +304,7 @@ class TestDeconvolutionModuleGradients:
         assert module.cell_type_profiles.grad is not None
         assert module.px_r.grad is not None
 
-    def test_gradients_with_subcell_variation(
-        self, deconv_tensors, n_genes, n_latent, n_cell_types, device
-    ):
+    def test_gradients_with_subcell_variation(self, deconv_tensors, n_genes, n_latent, n_cell_types, device):
         """Test gradients flow with subcell variation."""
         module = DeconvolutionModule(
             n_input=n_genes,

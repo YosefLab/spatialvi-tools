@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -53,9 +53,7 @@ class SpatialMixin:
         nn_dist = adata.obsm.get("nn_dist", None)
 
         if nn_index is None or nn_dist is None:
-            raise ValueError(
-                "Spatial neighbors not computed. Run `compute_spatial_neighbors` first."
-            )
+            raise ValueError("Spatial neighbors not computed. Run `compute_spatial_neighbors` first.")
 
         return nn_index[indices], nn_dist[indices]
 
@@ -145,9 +143,7 @@ class NicheMixin:
                 compositions.append(comp.cpu().numpy())
 
         if not compositions:
-            raise NotImplementedError(
-                "This model does not support neighborhood prediction."
-            )
+            raise NotImplementedError("This model does not support neighborhood prediction.")
 
         return np.concatenate(compositions, axis=0)
 
@@ -194,9 +190,7 @@ class NicheMixin:
                 activations.append(act.cpu().numpy())
 
         if not activations:
-            raise NotImplementedError(
-                "This model does not support niche activation prediction."
-            )
+            raise NotImplementedError("This model does not support niche activation prediction.")
 
         return np.concatenate(activations, axis=0)
 
@@ -231,9 +225,7 @@ class NicheMixin:
         DataFrame with differential expression results.
         """
         # This is a placeholder - actual implementation depends on the model
-        raise NotImplementedError(
-            "Niche-aware differential expression not implemented for this model."
-        )
+        raise NotImplementedError("Niche-aware differential expression not implemented for this model.")
 
 
 class DeconvolutionMixin:
@@ -298,9 +290,7 @@ class DeconvolutionMixin:
                 proportions.append(prop.cpu().numpy())
 
         if not proportions:
-            raise NotImplementedError(
-                "This model does not support proportion estimation."
-            )
+            raise NotImplementedError("This model does not support proportion estimation.")
 
         result = np.concatenate(proportions, axis=0)
 
@@ -342,6 +332,4 @@ class DeconvolutionMixin:
         Gene expression scale array.
         """
         # Placeholder - implementation depends on model architecture
-        raise NotImplementedError(
-            "Cell type-specific expression not implemented for this model."
-        )
+        raise NotImplementedError("Cell type-specific expression not implemented for this model.")

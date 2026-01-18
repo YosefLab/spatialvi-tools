@@ -114,7 +114,6 @@ class TestSpatialVAEModuleInitialization:
         assert module.n_cats_per_cov == [3, 5]
 
 
-
 class TestSpatialVAEModuleForward:
     """Tests for SpatialVAEModule forward pass."""
 
@@ -155,9 +154,7 @@ class TestSpatialVAEModuleForward:
             use_spatial=True,
         ).to(device)
 
-        inference_outputs, generative_outputs, loss = module(
-            spatial_vae_tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(spatial_vae_tensors, compute_loss=True)
 
         assert "z" in inference_outputs
         assert inference_outputs["z"].shape[-1] == n_latent
@@ -186,7 +183,6 @@ class TestSpatialVAEModuleForward:
         assert "px" in generative_outputs
 
 
-
 class TestSpatialVAEModuleInference:
     """Tests for SpatialVAEModule inference method."""
 
@@ -210,9 +206,7 @@ class TestSpatialVAEModuleInference:
         assert outputs["qz_v"].shape == (batch_size, n_latent)
         assert outputs["library"].shape == (batch_size, 1)
 
-    def test_inference_with_spatial_context(
-        self, batch_size, n_genes, n_latent, n_neighbors, device
-    ):
+    def test_inference_with_spatial_context(self, batch_size, n_genes, n_latent, n_neighbors, device):
         """Test inference with spatial context."""
         module = SpatialVAEModule(
             n_input=n_genes,
@@ -260,9 +254,7 @@ class TestSpatialVAEModuleGenerative:
         assert "px" in outputs
 
     @pytest.mark.parametrize("gene_likelihood", ["zinb", "nb", "poisson"])
-    def test_generative_distributions(
-        self, batch_size, n_genes, n_latent, gene_likelihood, device
-    ):
+    def test_generative_distributions(self, batch_size, n_genes, n_latent, gene_likelihood, device):
         """Test generative produces correct distributions."""
         module = SpatialVAEModule(
             n_input=n_genes,
@@ -281,7 +273,6 @@ class TestSpatialVAEModuleGenerative:
         # Check we can sample from the distribution
         sample = outputs["px"].sample()
         assert sample.shape == (batch_size, n_genes)
-
 
 
 class TestSpatialVAEModuleLoss:
@@ -350,7 +341,6 @@ class TestSpatialVAEModuleLoss:
         assert "spatial_loss" in loss.extra_metrics
 
 
-
 class TestSpatialVAEModuleSampling:
     """Tests for SpatialVAEModule sampling."""
 
@@ -394,7 +384,6 @@ class TestSpatialVAEModuleSampling:
         assert (samples >= 0).all()
 
 
-
 class TestSpatialVAEModuleGradients:
     """Tests for gradient computation."""
 
@@ -419,10 +408,7 @@ class TestSpatialVAEModuleGradients:
         # Check gradients exist for key parameters
         assert module.px_r.grad is not None
         # Check decoder has gradients (DecoderSCVI has px_decoder.fc_layers structure)
-        has_decoder_grads = any(
-            p.grad is not None for name, p in module.decoder.named_parameters()
-            if p.requires_grad
-        )
+        has_decoder_grads = any(p.grad is not None for name, p in module.decoder.named_parameters() if p.requires_grad)
         assert has_decoder_grads, "No gradients for decoder parameters"
 
     def test_gradients_with_spatial(self, spatial_vae_tensors, n_genes, n_latent, device):

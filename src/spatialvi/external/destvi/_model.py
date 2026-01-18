@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from anndata import AnnData
     from collections.abc import Sequence
+
+    from anndata import AnnData
     from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
@@ -20,24 +21,20 @@ def _check_scvi_import():
     """Check if scvi-tools is available with DestVI."""
     try:
         from scvi.model import DestVI as _DestVI
+
         return _DestVI
     except ImportError:
-        raise ImportError(
-            "DestVI requires scvi-tools>=1.0.0. "
-            "Install with: pip install scvi-tools"
-        )
+        raise ImportError("DestVI requires scvi-tools>=1.0.0. Install with: pip install scvi-tools") from None
 
 
 def _check_condscvi_import():
     """Check if CondSCVI is available."""
     try:
         from scvi.model import CondSCVI as _CondSCVI
+
         return _CondSCVI
     except ImportError:
-        raise ImportError(
-            "CondSCVI requires scvi-tools>=1.0.0. "
-            "Install with: pip install scvi-tools"
-        )
+        raise ImportError("CondSCVI requires scvi-tools>=1.0.0. Install with: pip install scvi-tools") from None
 
 
 class DestVI:
@@ -76,7 +73,7 @@ class DestVI:
 
     def __init__(
         self,
-        st_adata: "AnnData",
+        st_adata: AnnData,
         sc_model,
         **kwargs,
     ):
@@ -92,7 +89,7 @@ class DestVI:
     @classmethod
     def setup_anndata(
         cls,
-        adata: "AnnData",
+        adata: AnnData,
         layer: str | None = None,
         labels_key: str | None = None,
         **kwargs,
@@ -121,10 +118,10 @@ class DestVI:
     @classmethod
     def from_rna_model(
         cls,
-        st_adata: "AnnData",
+        st_adata: AnnData,
         sc_model,
         **kwargs,
-    ) -> "DestVI":
+    ) -> DestVI:
         """Create DestVI from a trained CondSCVI model.
 
         Parameters
@@ -179,11 +176,11 @@ class DestVI:
 
     def get_proportions(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         batch_size: int | None = None,
         return_dataframe: bool = True,
-    ) -> "NDArray" | pd.DataFrame:
+    ) -> NDArray | pd.DataFrame:
         """Get estimated cell type proportions.
 
         Parameters
@@ -221,10 +218,10 @@ class DestVI:
 
     def get_gamma(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         batch_size: int | None = None,
-    ) -> dict[str, "NDArray"]:
+    ) -> dict[str, NDArray]:
         """Get sub-cell-type variation (gamma) per cell type.
 
         Parameters
@@ -249,10 +246,10 @@ class DestVI:
     def get_scale_for_ct(
         self,
         cell_type: str,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         batch_size: int | None = None,
-    ) -> "NDArray":
+    ) -> NDArray:
         """Get cell type-specific expression scale.
 
         Parameters
@@ -279,10 +276,10 @@ class DestVI:
 
     def get_latent_representation(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         batch_size: int | None = None,
-    ) -> "NDArray":
+    ) -> NDArray:
         """Get latent representation.
 
         Parameters
@@ -318,7 +315,7 @@ class DestVI:
         self._model.save(dir_path, **kwargs)
 
     @classmethod
-    def load(cls, dir_path: str, adata: "AnnData" | None = None, **kwargs) -> "DestVI":
+    def load(cls, dir_path: str, adata: AnnData | None = None, **kwargs) -> DestVI:
         """Load model from disk."""
         _DestVI = _check_scvi_import()
         instance = cls.__new__(cls)
@@ -336,7 +333,7 @@ class CondSCVI:
 
     def __init__(
         self,
-        adata: "AnnData",
+        adata: AnnData,
         n_hidden: int = 128,
         n_latent: int = 10,
         n_layers: int = 2,
@@ -357,7 +354,7 @@ class CondSCVI:
     @classmethod
     def setup_anndata(
         cls,
-        adata: "AnnData",
+        adata: AnnData,
         layer: str | None = None,
         labels_key: str | None = None,
         **kwargs,
@@ -375,7 +372,7 @@ class CondSCVI:
         """Train the model."""
         self._model.train(max_epochs=max_epochs, **kwargs)
 
-    def get_latent_representation(self, **kwargs) -> "NDArray":
+    def get_latent_representation(self, **kwargs) -> NDArray:
         """Get latent representation."""
         return self._model.get_latent_representation(**kwargs)
 
@@ -384,7 +381,7 @@ class CondSCVI:
         self._model.save(dir_path, **kwargs)
 
     @classmethod
-    def load(cls, dir_path: str, adata: "AnnData" | None = None, **kwargs) -> "CondSCVI":
+    def load(cls, dir_path: str, adata: AnnData | None = None, **kwargs) -> CondSCVI:
         """Load model from disk."""
         _CondSCVI = _check_condscvi_import()
         instance = cls.__new__(cls)

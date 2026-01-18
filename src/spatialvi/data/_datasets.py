@@ -65,10 +65,7 @@ def synthetic_spatial(
     """
     rng = np.random.default_rng(seed)
 
-    logger.info(
-        f"Generating synthetic spatial data: "
-        f"{n_cells} cells, {n_genes} genes, {n_cell_types} cell types"
-    )
+    logger.info(f"Generating synthetic spatial data: {n_cells} cells, {n_genes} genes, {n_cell_types} cell types")
 
     # Generate cell type assignments
     cell_types = rng.integers(0, n_cell_types, size=n_cells)
@@ -119,9 +116,7 @@ def synthetic_spatial(
         center = rng.uniform(0, spatial_scale, size=spatial_dims)
 
         # Cells around center
-        spatial_coords[ct_mask] = (
-            center + rng.normal(0, spatial_scale / 10, size=(n_ct_cells, spatial_dims))
-        )
+        spatial_coords[ct_mask] = center + rng.normal(0, spatial_scale / 10, size=(n_ct_cells, spatial_dims))
 
     # Clip to [0, spatial_scale]
     spatial_coords = np.clip(spatial_coords, 0, spatial_scale)
@@ -135,20 +130,20 @@ def synthetic_spatial(
     # Create AnnData
     adata = AnnData(
         X=csr_matrix(counts.astype(np.float32)),
-        obs=pd.DataFrame({
-            "cell_type": pd.Categorical(
-                [f"CellType_{i}" for i in cell_types],
-                categories=[f"CellType_{i}" for i in range(n_cell_types)],
-            ),
-            "batch": pd.Categorical(
-                [f"Batch_{i}" for i in batch_labels],
-                categories=[f"Batch_{i}" for i in range(n_batches)],
-            ),
-            "library_size": library_sizes,
-        }),
-        var=pd.DataFrame(
-            index=[f"Gene_{i}" for i in range(n_genes)]
+        obs=pd.DataFrame(
+            {
+                "cell_type": pd.Categorical(
+                    [f"CellType_{i}" for i in cell_types],
+                    categories=[f"CellType_{i}" for i in range(n_cell_types)],
+                ),
+                "batch": pd.Categorical(
+                    [f"Batch_{i}" for i in batch_labels],
+                    categories=[f"Batch_{i}" for i in range(n_batches)],
+                ),
+                "library_size": library_sizes,
+            }
         ),
+        var=pd.DataFrame(index=[f"Gene_{i}" for i in range(n_genes)]),
         obsm={
             "spatial": spatial_coords.astype(np.float32),
         },
@@ -206,10 +201,7 @@ def synthetic_scrna(
     """
     rng = np.random.default_rng(seed)
 
-    logger.info(
-        f"Generating synthetic scRNA-seq data: "
-        f"{n_cells} cells, {n_genes} genes, {n_cell_types} cell types"
-    )
+    logger.info(f"Generating synthetic scRNA-seq data: {n_cells} cells, {n_genes} genes, {n_cell_types} cell types")
 
     # Generate cell type assignments with roughly equal proportions
     cell_types = rng.integers(0, n_cell_types, size=n_cells)
@@ -257,20 +249,20 @@ def synthetic_scrna(
     # Create AnnData
     adata = AnnData(
         X=csr_matrix(counts.astype(np.float32)),
-        obs=pd.DataFrame({
-            "cell_type": pd.Categorical(
-                [f"CellType_{i}" for i in cell_types],
-                categories=[f"CellType_{i}" for i in range(n_cell_types)],
-            ),
-            "batch": pd.Categorical(
-                [f"Batch_{i}" for i in batch_labels],
-                categories=[f"Batch_{i}" for i in range(n_batches)],
-            ),
-            "library_size": library_sizes,
-        }),
-        var=pd.DataFrame(
-            index=[f"Gene_{i}" for i in range(n_genes)]
+        obs=pd.DataFrame(
+            {
+                "cell_type": pd.Categorical(
+                    [f"CellType_{i}" for i in cell_types],
+                    categories=[f"CellType_{i}" for i in range(n_cell_types)],
+                ),
+                "batch": pd.Categorical(
+                    [f"Batch_{i}" for i in batch_labels],
+                    categories=[f"Batch_{i}" for i in range(n_batches)],
+                ),
+                "library_size": library_sizes,
+            }
         ),
+        var=pd.DataFrame(index=[f"Gene_{i}" for i in range(n_genes)]),
     )
 
     # Add marker gene information
@@ -365,15 +357,15 @@ def synthetic_visium(
     # Create AnnData
     adata = AnnData(
         X=csr_matrix(counts.astype(np.float32)),
-        obs=pd.DataFrame({
-            "n_cells": cells_per_spot,
-            "library_size": library_sizes,
-            "row": row_indices,
-            "col": col_indices,
-        }),
-        var=pd.DataFrame(
-            index=[f"Gene_{i}" for i in range(n_genes)]
+        obs=pd.DataFrame(
+            {
+                "n_cells": cells_per_spot,
+                "library_size": library_sizes,
+                "row": row_indices,
+                "col": col_indices,
+            }
         ),
+        var=pd.DataFrame(index=[f"Gene_{i}" for i in range(n_genes)]),
         obsm={
             "spatial": spatial_coords.astype(np.float32),
             "true_proportions": proportions.astype(np.float32),

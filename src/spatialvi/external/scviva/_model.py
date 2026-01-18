@@ -5,12 +5,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
-    from anndata import AnnData
     from collections.abc import Sequence
+
+    from anndata import AnnData
     from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
@@ -20,12 +20,12 @@ def _check_scvi_import():
     """Check if scvi-tools is available with scVIVA."""
     try:
         from scvi.external import SCVIVA as _SCVIVA
+
         return _SCVIVA
     except ImportError:
         raise ImportError(
-            "scVIVA requires scvi-tools>=1.1.0 with scVIVA support. "
-            "Install with: pip install scvi-tools[scviva]"
-        )
+            "scVIVA requires scvi-tools>=1.1.0 with scVIVA support. Install with: pip install scvi-tools[scviva]"
+        ) from None
 
 
 class scVIVA:
@@ -65,7 +65,7 @@ class scVIVA:
 
     def __init__(
         self,
-        adata: "AnnData",
+        adata: AnnData,
         n_hidden: int = 128,
         n_latent: int = 10,
         n_layers: int = 1,
@@ -87,7 +87,7 @@ class scVIVA:
     @classmethod
     def setup_anndata(
         cls,
-        adata: "AnnData",
+        adata: AnnData,
         layer: str | None = None,
         batch_key: str | None = None,
         labels_key: str | None = None,
@@ -153,11 +153,11 @@ class scVIVA:
 
     def get_latent_representation(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         give_mean: bool = True,
         batch_size: int | None = None,
-    ) -> "NDArray":
+    ) -> NDArray:
         """Get latent representation.
 
         Parameters
@@ -184,10 +184,10 @@ class scVIVA:
 
     def get_niche_effects(
         self,
-        adata: "AnnData" | None = None,
-        indices: "Sequence[int]" | None = None,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
         batch_size: int | None = None,
-    ) -> "NDArray":
+    ) -> NDArray:
         """Get niche effects for each cell.
 
         Parameters
@@ -261,7 +261,7 @@ class scVIVA:
         self._model.save(dir_path, **kwargs)
 
     @classmethod
-    def load(cls, dir_path: str, adata: "AnnData" | None = None, **kwargs) -> "scVIVA":
+    def load(cls, dir_path: str, adata: AnnData | None = None, **kwargs) -> scVIVA:
         """Load model from disk."""
         _SCVIVA = _check_scvi_import()
         instance = cls.__new__(cls)

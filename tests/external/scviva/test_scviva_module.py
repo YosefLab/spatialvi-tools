@@ -1,6 +1,5 @@
 """Tests for scVIVA module classes."""
 
-import pytest
 import torch
 
 

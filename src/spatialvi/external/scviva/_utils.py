@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 def compute_niche_composition(
-    adata: "AnnData",
+    adata: AnnData,
     labels_key: str,
     spatial_key: str = "spatial",
     n_neighbors: int = 20,
-) -> "NDArray":
+) -> NDArray:
     """Compute cell type composition of spatial niches.
 
     Parameters
@@ -68,11 +68,11 @@ def compute_niche_composition(
 
 
 def identify_niche_clusters(
-    niche_composition: "NDArray",
+    niche_composition: NDArray,
     n_clusters: int | None = None,
     resolution: float = 1.0,
     method: str = "leiden",
-) -> "NDArray":
+) -> NDArray:
     """Cluster cells by niche composition.
 
     Parameters
@@ -98,8 +98,8 @@ def identify_niche_clusters(
         return kmeans.fit_predict(niche_composition)
 
     elif method == "leiden":
-        import scanpy as sc
         import anndata
+        import scanpy as sc
 
         # Create temporary AnnData for clustering
         temp_adata = anndata.AnnData(niche_composition)
@@ -112,7 +112,7 @@ def identify_niche_clusters(
 
 
 def compute_niche_heterogeneity(
-    adata: "AnnData",
+    adata: AnnData,
     niche_key: str,
     expression_key: str | None = None,
 ) -> dict[str, float]:
@@ -151,11 +151,11 @@ def compute_niche_heterogeneity(
 
 
 def compute_niche_interaction_strength(
-    adata: "AnnData",
+    adata: AnnData,
     labels_key: str,
     spatial_key: str = "spatial",
     n_neighbors: int = 20,
-) -> "NDArray":
+) -> NDArray:
     """Compute cell type interaction strength matrix.
 
     Parameters
@@ -206,12 +206,12 @@ def compute_niche_interaction_strength(
 
 
 def identify_boundary_cells(
-    adata: "AnnData",
+    adata: AnnData,
     labels_key: str,
     spatial_key: str = "spatial",
     n_neighbors: int = 10,
     threshold: float = 0.3,
-) -> "NDArray":
+) -> NDArray:
     """Identify cells at boundaries between cell types.
 
     Parameters
@@ -258,7 +258,7 @@ def identify_boundary_cells(
 
 
 def compute_niche_differential_genes(
-    adata: "AnnData",
+    adata: AnnData,
     niche_key: str,
     reference_niche: str | None = None,
     n_genes: int = 50,
@@ -302,11 +302,11 @@ def compute_niche_differential_genes(
 
 
 def compute_spatial_entropy(
-    adata: "AnnData",
+    adata: AnnData,
     labels_key: str,
     spatial_key: str = "spatial",
     n_neighbors: int = 20,
-) -> "NDArray":
+) -> NDArray:
     """Compute local spatial entropy of cell type diversity.
 
     Parameters
@@ -326,9 +326,7 @@ def compute_spatial_entropy(
     """
     from scipy.stats import entropy
 
-    composition = compute_niche_composition(
-        adata, labels_key, spatial_key, n_neighbors
-    )
+    composition = compute_niche_composition(adata, labels_key, spatial_key, n_neighbors)
 
     # Compute entropy per cell
     entropies = np.array([entropy(comp + 1e-10) for comp in composition])
@@ -337,12 +335,12 @@ def compute_spatial_entropy(
 
 
 def visualize_niche_embedding(
-    adata: "AnnData",
-    niche_effects: "NDArray",
+    adata: AnnData,
+    niche_effects: NDArray,
     labels_key: str | None = None,
     method: str = "umap",
     n_components: int = 2,
-) -> "NDArray":
+) -> NDArray:
     """Create 2D embedding of niche effects.
 
     Parameters

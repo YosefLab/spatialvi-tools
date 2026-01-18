@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import torch
 from torch import nn
@@ -59,7 +59,7 @@ class NolanModule(nn.Module):
         # Build encoder
         layers = []
         in_dim = input_dim
-        for i in range(n_layers):
+        for _ in range(n_layers):
             layers.append(nn.Linear(in_dim, hidden_dim))
             if use_batch_norm:
                 layers.append(nn.BatchNorm1d(hidden_dim))
@@ -147,11 +147,13 @@ class NolanModule(nn.Module):
             p = self.predictor(z)
             p_neighbor = self.predictor(z_neighbor)
 
-            outputs.update({
-                "z_neighbor": z_neighbor,
-                "prediction": p,
-                "prediction_neighbor": p_neighbor,
-            })
+            outputs.update(
+                {
+                    "z_neighbor": z_neighbor,
+                    "prediction": p,
+                    "prediction_neighbor": p_neighbor,
+                }
+            )
 
         return outputs
 

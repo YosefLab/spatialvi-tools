@@ -93,10 +93,7 @@ class Nolan:
     @staticmethod
     def _require_nolan() -> None:
         if nolan is None:
-            raise ImportError(
-                "The 'nolan' package is not installed. "
-                "Install it with ``pip install nolan``."
-            )
+            raise ImportError("The 'nolan' package is not installed. Install it with ``pip install nolan``.")
 
     def train(
         self,
@@ -126,7 +123,6 @@ class Nolan:
 
         # Determine embedding and spatial matrices
         emb = self.adata.obsm[self.emb_key]
-        spatial = self.adata.obsm[self.spatial_key]
 
         # Determine grid size per batch (if batch_key provided) or global
         batch_key = None

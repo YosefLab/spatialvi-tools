@@ -1,7 +1,6 @@
 """Comprehensive tests for VIVS model, module, and utilities."""
 
 import numpy as np
-import pytest
 import torch
 
 
@@ -133,9 +132,7 @@ class TestVIVSUtils:
         adata = small_spatial_adata.copy()
         scales = [5, 10, 15]
 
-        neighbor_indices = compute_multiscale_neighbors(
-            adata, scales=scales, spatial_key="spatial"
-        )
+        neighbor_indices = compute_multiscale_neighbors(adata, scales=scales, spatial_key="spatial")
 
         assert len(neighbor_indices) == len(scales)
         for i, idx_array in enumerate(neighbor_indices):
@@ -175,9 +172,7 @@ class TestVIVSUtils:
         # Add mock scores to var
         adata.var["vivs_importance"] = np.random.rand(adata.n_vars)
 
-        ranked = rank_genes_by_spatial_variance(
-            adata, scores_key="vivs_importance", n_top=10
-        )
+        ranked = rank_genes_by_spatial_variance(adata, scores_key="vivs_importance", n_top=10)
 
         assert isinstance(ranked, list)
         assert len(ranked) == 10

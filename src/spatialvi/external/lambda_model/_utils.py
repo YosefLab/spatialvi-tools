@@ -6,7 +6,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
-import pandas as pd
 
 if TYPE_CHECKING:
     from anndata import AnnData
@@ -46,9 +45,7 @@ def compute_marker_genes(
 
         markers = {}
         for group in adata.obs[groupby].unique():
-            markers[str(group)] = (
-                adata.uns["rank_genes_groups"]["names"][group][:n_genes].tolist()
-            )
+            markers[str(group)] = adata.uns["rank_genes_groups"]["names"][group][:n_genes].tolist()
         return markers
     else:
         # Return highly variable genes
@@ -87,7 +84,7 @@ def format_gene_list_for_llm(
         expression_values = expression_values[sorted_idx]
 
         lines = []
-        for gene, expr in zip(genes, expression_values):
+        for gene, expr in zip(genes, expression_values, strict=False):
             lines.append(f"- {gene} (expression: {expr:.2f})")
         return "\n".join(lines)
     else:

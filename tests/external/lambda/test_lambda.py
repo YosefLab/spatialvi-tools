@@ -1,7 +1,6 @@
 """Tests for Lambda (LLM annotation) model."""
 
 import pytest
-import numpy as np
 
 
 class TestLambdaInitialization:
@@ -74,7 +73,7 @@ class TestLambdaMethods:
             model.train()
         except ImportError:
             pytest.skip("LAMBDA package not installed")
-        except Exception:
+        except (ValueError, RuntimeError, OSError):
             # Other errors are acceptable if dependency is installed
             pass
 
@@ -90,7 +89,7 @@ class TestLambdaMethods:
             model.predict()
         except ImportError:
             pytest.skip("LAMBDA package not installed")
-        except Exception:
+        except (ValueError, RuntimeError, OSError):
             pass
 
     def test_get_annotations_before_train_raises(self, small_spatial_adata):

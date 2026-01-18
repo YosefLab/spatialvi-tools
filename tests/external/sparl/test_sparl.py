@@ -1,7 +1,6 @@
 """Tests for SPARL (Spatial Proteomics Analysis with Representation Learning)."""
 
 import pytest
-import numpy as np
 
 
 class TestSPARLInitialization:
@@ -69,7 +68,7 @@ class TestSPARLMethods:
             model.train(max_epochs=1)
         except ImportError:
             pytest.skip("sparl package not installed")
-        except Exception:
+        except (ValueError, RuntimeError, OSError):
             # Other errors are acceptable if dependency is installed
             pass
 

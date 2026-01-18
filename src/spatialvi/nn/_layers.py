@@ -7,8 +7,8 @@ import math
 from typing import TYPE_CHECKING, Literal
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 if TYPE_CHECKING:
     pass
@@ -94,7 +94,6 @@ class SpatialConv(nn.Module):
         -------
         Output features of shape (n_nodes, out_channels).
         """
-        n_nodes = x.shape[0]
         n_neighbors = neighbor_indices.shape[1]
 
         # Transform features
@@ -276,9 +275,7 @@ class PositionalEncoding(nn.Module):
 
         pe = torch.zeros(max_len, d_per_dim)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(
-            torch.arange(0, d_per_dim, 2).float() * (-math.log(10000.0) / d_per_dim)
-        )
+        div_term = torch.exp(torch.arange(0, d_per_dim, 2).float() * (-math.log(10000.0) / d_per_dim))
 
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)

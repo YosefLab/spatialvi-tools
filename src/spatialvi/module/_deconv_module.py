@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import torch
-from torch import nn
-from torch.distributions import Normal, Dirichlet
-from torch.distributions import kl_divergence as kl
-
 from scvi.distributions import NegativeBinomial
-from scvi.module.base import LossOutput, auto_move_data
+from scvi.module.base import LossOutput
 from scvi.nn import FCLayers
+from torch import nn
+from torch.distributions import Dirichlet
+from torch.distributions import kl_divergence as kl
 
 from spatialvi.module._base import BaseSpatialModule
 
@@ -99,10 +98,7 @@ class DeconvolutionModule(BaseSpatialModule):
                 n_hidden=n_hidden,
                 dropout_rate=dropout_rate,
             )
-            self.subcell_decoder = nn.ModuleList([
-                nn.Linear(n_subcell_factors, n_input)
-                for _ in range(n_cell_types)
-            ])
+            self.subcell_decoder = nn.ModuleList([nn.Linear(n_subcell_factors, n_input) for _ in range(n_cell_types)])
 
         # Dispersion
         self.px_r = nn.Parameter(torch.randn(n_input))
@@ -175,9 +171,7 @@ class DeconvolutionModule(BaseSpatialModule):
         # Subcell variation
         if self.use_subcell_variation:
             subcell_h = self.subcell_encoder(x_)
-            subcell_factors = subcell_h.view(
-                x.shape[0], self.n_cell_types, self.n_subcell_factors
-            )
+            subcell_factors = subcell_h.view(x.shape[0], self.n_cell_types, self.n_subcell_factors)
             result["subcell_factors"] = subcell_factors
 
         return result

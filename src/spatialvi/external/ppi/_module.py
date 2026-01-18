@@ -12,7 +12,7 @@ estimator classes and result containers.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -116,9 +116,9 @@ class MeanEstimator:
 
     def fit(
         self,
-        y_labeled: "NDArray",
-        yhat_labeled: "NDArray",
-        yhat_unlabeled: "NDArray",
+        y_labeled: NDArray,
+        yhat_labeled: NDArray,
+        yhat_unlabeled: NDArray,
     ) -> PPIResult:
         """Compute PPI estimate for the mean.
 
@@ -139,9 +139,8 @@ class MeanEstimator:
             from ppi_py import ppi_mean_ci, ppi_mean_pointestimate
         except ImportError:
             raise ImportError(
-                "The 'ppi_py' package is not installed. "
-                "Install it with: pip install ppi-python"
-            )
+                "The 'ppi_py' package is not installed. Install it with: pip install ppi-python"
+            ) from None
 
         y = np.asarray(y_labeled).ravel()
         yhat = np.asarray(yhat_labeled).ravel()
@@ -190,11 +189,11 @@ class OLSEstimator:
 
     def fit(
         self,
-        X_labeled: "NDArray",
-        y_labeled: "NDArray",
-        yhat_labeled: "NDArray",
-        X_unlabeled: "NDArray",
-        yhat_unlabeled: "NDArray",
+        X_labeled: NDArray,
+        y_labeled: NDArray,
+        yhat_labeled: NDArray,
+        X_unlabeled: NDArray,
+        yhat_unlabeled: NDArray,
     ) -> list[PPIResult]:
         """Compute PPI estimates for OLS coefficients.
 
@@ -219,9 +218,8 @@ class OLSEstimator:
             from ppi_py import ppi_ols_ci, ppi_ols_pointestimate
         except ImportError:
             raise ImportError(
-                "The 'ppi_py' package is not installed. "
-                "Install it with: pip install ppi-python"
-            )
+                "The 'ppi_py' package is not installed. Install it with: pip install ppi-python"
+            ) from None
 
         X = np.asarray(X_labeled)
         y = np.asarray(y_labeled).ravel()
@@ -233,7 +231,7 @@ class OLSEstimator:
         cis = ppi_ols_ci(X, y, yhat, X_unlab, yhat_unlab, alpha=self.config.alpha)
 
         results = []
-        for i, (est, ci) in enumerate(zip(estimates, cis)):
+        for est, ci in zip(estimates, cis, strict=False):
             results.append(
                 PPIResult(
                     estimate=float(est),
@@ -287,9 +285,9 @@ class SpatialMeanEstimator:
 
     def fit(
         self,
-        expression_labeled: "NDArray",
-        predicted_labeled: "NDArray",
-        predicted_unlabeled: "NDArray",
+        expression_labeled: NDArray,
+        predicted_labeled: NDArray,
+        predicted_unlabeled: NDArray,
         genes: list[str] | None = None,
     ) -> dict[str, PPIResult]:
         """Compute PPI estimates for each gene.
@@ -326,7 +324,7 @@ class SpatialMeanEstimator:
                     pred_unlab[:, i],
                 )
                 results[gene] = result
-            except Exception as e:
+            except (ValueError, RuntimeError) as e:
                 logger.warning(f"Could not compute PPI for gene {gene}: {e}")
 
         return results

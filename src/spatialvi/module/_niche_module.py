@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import torch
-from torch import nn
-from torch.distributions import Normal, Categorical, Dirichlet
-from torch.distributions import kl_divergence as kl
-
-from scvi.module.base import LossOutput, auto_move_data
+from scvi.module.base import LossOutput
 from scvi.nn import Encoder, FCLayers
+from torch import nn
+from torch.distributions import Normal
+from torch.distributions import kl_divergence as kl
 
 from spatialvi.module._base import BaseSpatialModule
 
@@ -200,7 +199,7 @@ class NicheModule(BaseSpatialModule):
             neighbor_h = self.neighbor_proj(torch.log1p(neighbor_expr))
             query = self.neighbor_proj(x_).unsqueeze(1)
             attn_out, _ = self.neighbor_attention(query, neighbor_h, neighbor_h)
-            niche_z = attn_out.squeeze(1)[:, :self.n_niche_factors]
+            niche_z = attn_out.squeeze(1)[:, : self.n_niche_factors]
         else:
             niche_z = torch.zeros(x.shape[0], self.n_niche_factors, device=x.device)
 
@@ -289,6 +288,7 @@ class NicheModule(BaseSpatialModule):
 
         # Reconstruction loss (negative binomial)
         from scvi.distributions import NegativeBinomial
+
         px = NegativeBinomial(mu=px_rate, theta=px_r)
         reconst_loss = -px.log_prob(x).sum(dim=-1)
 
@@ -303,9 +303,7 @@ class NicheModule(BaseSpatialModule):
         if "labels" in tensors:
             labels = tensors["labels"].squeeze(-1).long()
             logits = inference_outputs["logits"]
-            classification_loss = nn.functional.cross_entropy(
-                logits, labels, reduction="none"
-            )
+            classification_loss = nn.functional.cross_entropy(logits, labels, reduction="none")
 
         # Total loss
         loss = torch.mean(reconst_loss + kl_weight * kl_z + classification_loss)

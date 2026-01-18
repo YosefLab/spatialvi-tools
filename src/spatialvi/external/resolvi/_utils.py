@@ -15,11 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 def compute_background_signal(
-    adata: "AnnData",
+    adata: AnnData,
     spatial_key: str = "spatial",
     n_neighbors: int = 50,
     method: str = "local_median",
-) -> "NDArray":
+) -> NDArray:
     """Estimate local background signal levels.
 
     Parameters
@@ -72,10 +72,10 @@ def compute_background_signal(
 
 
 def compute_segmentation_confidence(
-    adata: "AnnData",
+    adata: AnnData,
     area_key: str | None = None,
     n_transcripts_key: str | None = None,
-) -> "NDArray":
+) -> NDArray:
     """Estimate segmentation confidence per cell.
 
     Parameters
@@ -120,10 +120,10 @@ def compute_segmentation_confidence(
 
 
 def identify_contaminated_cells(
-    adata: "AnnData",
-    background_fraction: "NDArray",
+    adata: AnnData,
+    background_fraction: NDArray,
     threshold: float = 0.5,
-) -> "NDArray":
+) -> NDArray:
     """Identify cells with high background contamination.
 
     Parameters
@@ -143,9 +143,9 @@ def identify_contaminated_cells(
 
 
 def compute_signal_to_noise(
-    raw_expression: "NDArray",
-    denoised_expression: "NDArray",
-) -> "NDArray":
+    raw_expression: NDArray,
+    denoised_expression: NDArray,
+) -> NDArray:
     """Compute signal-to-noise improvement from denoising.
 
     Parameters
@@ -170,12 +170,12 @@ def compute_signal_to_noise(
 
 
 def filter_low_quality_cells(
-    adata: "AnnData",
+    adata: AnnData,
     min_counts: int | None = None,
     min_genes: int | None = None,
     max_background: float | None = None,
     background_key: str = "background_fraction",
-) -> "NDArray":
+) -> NDArray:
     """Filter low quality cells based on multiple criteria.
 
     Parameters
@@ -216,8 +216,8 @@ def filter_low_quality_cells(
 
 
 def compute_spatial_smoothness(
-    adata: "AnnData",
-    expression: "NDArray",
+    adata: AnnData,
+    expression: NDArray,
     spatial_key: str = "spatial",
     n_neighbors: int = 10,
 ) -> float:
@@ -266,9 +266,9 @@ def compute_spatial_smoothness(
 
 
 def compare_denoising_quality(
-    raw: "NDArray",
-    denoised: "NDArray",
-    adata: "AnnData",
+    raw: NDArray,
+    denoised: NDArray,
+    adata: AnnData,
     spatial_key: str = "spatial",
 ) -> dict[str, float]:
     """Compare quality metrics before and after denoising.
@@ -305,11 +305,7 @@ def compare_denoising_quality(
     metrics["denoised_mean_cv"] = float(np.mean(denoised_cv))
 
     # Spatial smoothness
-    metrics["raw_spatial_var"] = compute_spatial_smoothness(
-        adata, raw, spatial_key
-    )
-    metrics["denoised_spatial_var"] = compute_spatial_smoothness(
-        adata, denoised, spatial_key
-    )
+    metrics["raw_spatial_var"] = compute_spatial_smoothness(adata, raw, spatial_key)
+    metrics["denoised_spatial_var"] = compute_spatial_smoothness(adata, denoised, spatial_key)
 
     return metrics

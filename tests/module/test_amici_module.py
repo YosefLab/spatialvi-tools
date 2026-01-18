@@ -34,9 +34,7 @@ class TestAMICIModule:
         assert module.n_latent == 10
         assert module.gene_likelihood == "nb"
 
-    def test_inference_without_neighbors(
-        self, module, random_expression, random_batch_index, random_labels
-    ):
+    def test_inference_without_neighbors(self, module, random_expression, random_batch_index, random_labels):
         """Test inference without neighbor information."""
         outputs = module.inference(
             x=random_expression,
@@ -104,9 +102,7 @@ class TestAMICIModule:
             "labels": random_labels,
         }
 
-        inference_outputs, generative_outputs, losses = module(
-            tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, losses = module(tensors, compute_loss=True)
 
         assert losses.loss is not None
         assert losses.reconstruction_loss is not None
@@ -126,9 +122,7 @@ class TestAMICIModule:
             "labels": random_labels,
         }
 
-        inference_outputs, generative_outputs, losses = module(
-            tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, losses = module(tensors, compute_loss=True)
 
         # Loss should be a scalar
         assert losses.loss.dim() == 0

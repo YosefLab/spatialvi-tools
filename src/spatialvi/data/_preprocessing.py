@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 def compute_spatial_neighbors(
-    adata: "AnnData",
+    adata: AnnData,
     spatial_key: str = "spatial",
     n_neighbors: int = 20,
     index_key: str = "nn_index",
     dist_key: str = "nn_dist",
     metric: Literal["euclidean", "manhattan", "cosine"] = "euclidean",
     copy: bool = False,
-) -> "AnnData" | None:
+) -> AnnData | None:
     """Compute spatial nearest neighbors.
 
     Parameters
@@ -79,12 +79,12 @@ def compute_spatial_neighbors(
 
 
 def compute_niche_composition(
-    adata: "AnnData",
+    adata: AnnData,
     labels_key: str,
     index_key: str = "nn_index",
     composition_key: str = "niche_composition",
     copy: bool = False,
-) -> "AnnData" | None:
+) -> AnnData | None:
     """Compute neighborhood cell type composition.
 
     Parameters
@@ -107,10 +107,7 @@ def compute_niche_composition(
     adata = adata.copy() if copy else adata
 
     if index_key not in adata.obsm:
-        raise ValueError(
-            f"Neighbor indices not found at obsm['{index_key}']. "
-            "Run compute_spatial_neighbors first."
-        )
+        raise ValueError(f"Neighbor indices not found at obsm['{index_key}']. Run compute_spatial_neighbors first.")
 
     labels = adata.obs[labels_key].values
     if hasattr(labels, "cat"):
@@ -145,11 +142,11 @@ def compute_niche_composition(
 
 
 def normalize_spatial(
-    adata: "AnnData",
+    adata: AnnData,
     spatial_key: str = "spatial",
     method: Literal["minmax", "zscore", "center"] = "minmax",
     copy: bool = False,
-) -> "AnnData" | None:
+) -> AnnData | None:
     """Normalize spatial coordinates.
 
     Parameters
@@ -201,13 +198,13 @@ def normalize_spatial(
 
 
 def filter_by_spatial_density(
-    adata: "AnnData",
+    adata: AnnData,
     spatial_key: str = "spatial",
     min_density: float | None = None,
     max_density: float | None = None,
     n_neighbors: int = 10,
     copy: bool = False,
-) -> "AnnData" | None:
+) -> AnnData | None:
     """Filter cells by local spatial density.
 
     Parameters
@@ -269,12 +266,12 @@ def filter_by_spatial_density(
 
 
 def add_spatial_noise(
-    adata: "AnnData",
+    adata: AnnData,
     spatial_key: str = "spatial",
     noise_scale: float = 0.01,
     seed: int | None = None,
     copy: bool = False,
-) -> "AnnData" | None:
+) -> AnnData | None:
     """Add small noise to spatial coordinates.
 
     Useful for breaking ties in coordinates that are on a regular grid.
@@ -322,11 +319,11 @@ def add_spatial_noise(
 
 
 def get_neighbor_expression(
-    adata: "AnnData",
+    adata: AnnData,
     index_key: str = "nn_index",
     layer: str | None = None,
     aggregation: Literal["mean", "sum", "max"] = "mean",
-) -> "NDArray":
+) -> NDArray:
     """Get aggregated expression of neighboring cells.
 
     Parameters
@@ -345,10 +342,7 @@ def get_neighbor_expression(
     Aggregated neighbor expression array of shape (n_cells, n_genes).
     """
     if index_key not in adata.obsm:
-        raise ValueError(
-            f"Neighbor indices not found at obsm['{index_key}']. "
-            "Run compute_spatial_neighbors first."
-        )
+        raise ValueError(f"Neighbor indices not found at obsm['{index_key}']. Run compute_spatial_neighbors first.")
 
     nn_indices = adata.obsm[index_key]
     n_obs, n_neighbors = nn_indices.shape

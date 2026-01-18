@@ -1,7 +1,6 @@
 """Comprehensive tests for Lambda (LLM annotation) utilities."""
 
 import numpy as np
-import pytest
 
 
 class TestLambdaUtils:
@@ -12,17 +11,13 @@ class TestLambdaUtils:
         from spatialvi.external.lambda_model import compute_marker_genes
 
         adata = small_spatial_adata.copy()
-        adata.obs["cluster"] = np.random.choice(
-            ["Cluster1", "Cluster2", "Cluster3"], adata.n_obs
-        )
+        adata.obs["cluster"] = np.random.choice(["Cluster1", "Cluster2", "Cluster3"], adata.n_obs)
 
-        markers = compute_marker_genes(
-            adata, groupby="cluster", n_genes=10
-        )
+        markers = compute_marker_genes(adata, groupby="cluster", n_genes=10)
 
         assert isinstance(markers, dict)
         assert len(markers) == 3
-        for cluster, genes in markers.items():
+        for _cluster, genes in markers.items():
             assert isinstance(genes, list)
             assert len(genes) <= 10
 

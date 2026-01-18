@@ -36,12 +36,6 @@ def compute_rectifier(
     -------
     Optimal rectifier value.
     """
-    n = len(y)
-    N = len(yhat_unlabeled)
-
-    # Estimate bias
-    bias = np.mean(yhat) - np.mean(y)
-
     # Estimate variance reduction
     var_yhat = np.var(yhat_unlabeled)
     cov_y_yhat = np.cov(y, yhat)[0, 1]
@@ -164,11 +158,11 @@ def compute_power_analysis(
     z_beta = stats.norm.ppf(power)
 
     # Classical sample size
-    n_classical = int(np.ceil((z_alpha + z_beta) ** 2 * var_y / effect_size ** 2))
+    n_classical = int(np.ceil((z_alpha + z_beta) ** 2 * var_y / effect_size**2))
 
     # PPI sample size (accounting for variance reduction)
-    var_reduction = 1 - corr_y_yhat ** 2
-    n_ppi = int(np.ceil((z_alpha + z_beta) ** 2 * var_y * var_reduction / effect_size ** 2))
+    var_reduction = 1 - corr_y_yhat**2
+    n_ppi = int(np.ceil((z_alpha + z_beta) ** 2 * var_y * var_reduction / effect_size**2))
 
     return {
         "n_classical": n_classical,

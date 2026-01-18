@@ -1,6 +1,5 @@
 """Comprehensive tests for NicheModule."""
 
-import pytest
 import torch
 
 from spatialvi.module import NicheModule
@@ -86,13 +85,10 @@ class TestNicheModuleInitialization:
         assert module.classifier.in_features == n_latent
 
 
-
 class TestNicheModuleForward:
     """Tests for NicheModule forward pass."""
 
-    def test_forward_with_niche_composition(
-        self, niche_tensors, n_genes, n_latent, n_labels, device
-    ):
+    def test_forward_with_niche_composition(self, niche_tensors, n_genes, n_latent, n_labels, device):
         """Test forward pass with niche composition."""
         module = NicheModule(
             n_input=n_genes,
@@ -102,18 +98,14 @@ class TestNicheModuleForward:
             n_latent=n_latent,
         ).to(device)
 
-        inference_outputs, generative_outputs, loss = module(
-            niche_tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(niche_tensors, compute_loss=True)
 
         assert "z" in inference_outputs
         assert "niche_z" in inference_outputs
         assert "logits" in inference_outputs
         assert loss.loss.numel() == 1
 
-    def test_forward_without_niche_composition(
-        self, batch_size, n_genes, n_latent, n_labels, device
-    ):
+    def test_forward_without_niche_composition(self, batch_size, n_genes, n_latent, n_labels, device):
         """Test forward pass without niche composition."""
         module = NicheModule(
             n_input=n_genes,
@@ -154,13 +146,10 @@ class TestNicheModuleForward:
         assert "niche_z" in inference_outputs
 
 
-
 class TestNicheModuleInference:
     """Tests for NicheModule inference method."""
 
-    def test_inference_output_shapes(
-        self, batch_size, n_genes, n_latent, n_labels, device
-    ):
+    def test_inference_output_shapes(self, batch_size, n_genes, n_latent, n_labels, device):
         """Test inference output shapes."""
         n_niche_factors = 5
         module = NicheModule(
@@ -176,9 +165,7 @@ class TestNicheModuleInference:
         batch_index = torch.randint(0, 2, (batch_size, 1)).to(device)
         niche_comp = torch.softmax(torch.randn(batch_size, n_labels), dim=-1).to(device)
 
-        outputs = module.inference(
-            x=x, batch_index=batch_index, niche_composition=niche_comp
-        )
+        outputs = module.inference(x=x, batch_index=batch_index, niche_composition=niche_comp)
 
         assert outputs["z"].shape == (batch_size, n_latent)
         assert outputs["niche_z"].shape == (batch_size, n_niche_factors)
@@ -209,9 +196,7 @@ class TestNicheModuleInference:
 class TestNicheModuleGenerative:
     """Tests for NicheModule generative method."""
 
-    def test_generative_output_shapes(
-        self, batch_size, n_genes, n_latent, n_labels, device
-    ):
+    def test_generative_output_shapes(self, batch_size, n_genes, n_latent, n_labels, device):
         """Test generative output shapes."""
         n_niche_factors = 5
         module = NicheModule(
@@ -231,9 +216,7 @@ class TestNicheModuleGenerative:
         assert outputs["px_rate"].shape == (batch_size, n_genes)
         assert outputs["px_scale"].shape == (batch_size, n_genes)
 
-    def test_px_rate_non_negative(
-        self, batch_size, n_genes, n_latent, n_labels, device
-    ):
+    def test_px_rate_non_negative(self, batch_size, n_genes, n_latent, n_labels, device):
         """Test that px_rate is non-negative."""
         n_niche_factors = 5
         module = NicheModule(
@@ -251,7 +234,6 @@ class TestNicheModuleGenerative:
         outputs = module.generative(z=z, niche_z=niche_z, library=library)
 
         assert (outputs["px_rate"] >= 0).all()
-
 
 
 class TestNicheModuleLoss:
@@ -289,9 +271,7 @@ class TestNicheModuleLoss:
         # Classification loss should be non-zero when labels are provided
         assert "classification_loss" in loss.extra_metrics
 
-    def test_loss_without_labels(
-        self, batch_size, n_genes, n_latent, n_labels, device
-    ):
+    def test_loss_without_labels(self, batch_size, n_genes, n_latent, n_labels, device):
         """Test loss without classification labels."""
         module = NicheModule(
             n_input=n_genes,
@@ -326,7 +306,6 @@ class TestNicheModuleLoss:
         assert torch.isfinite(loss.loss)
 
 
-
 class TestNicheModuleCellTypePrediction:
     """Tests for cell type prediction functionality."""
 
@@ -344,9 +323,7 @@ class TestNicheModuleCellTypePrediction:
 
         assert inference_outputs["logits"].shape == (batch_size, n_labels)
 
-    def test_predicted_probabilities(
-        self, niche_tensors, n_genes, n_latent, n_labels, batch_size, device
-    ):
+    def test_predicted_probabilities(self, niche_tensors, n_genes, n_latent, n_labels, batch_size, device):
         """Test that logits can be converted to probabilities."""
         module = NicheModule(
             n_input=n_genes,
@@ -362,7 +339,6 @@ class TestNicheModuleCellTypePrediction:
         assert probs.shape == (batch_size, n_labels)
         assert torch.allclose(probs.sum(dim=-1), torch.ones(batch_size, device=device))
         assert (probs >= 0).all()
-
 
 
 class TestNicheModuleGradients:
@@ -385,9 +361,7 @@ class TestNicheModuleGradients:
         assert module.px_r.grad is not None
         assert module.classifier.weight.grad is not None
 
-    def test_gradients_with_attention(
-        self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device
-    ):
+    def test_gradients_with_attention(self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device):
         """Test gradients flow with attention mechanism."""
         module = NicheModule(
             n_input=n_genes,

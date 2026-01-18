@@ -5,14 +5,11 @@ from __future__ import annotations
 import logging
 from importlib.metadata import version
 
+# Core modules
+# External models
+from . import data, external, model, module, nn, train, utils
 from ._constants import REGISTRY_KEYS, SPATIAL_REGISTRY_KEYS
 from ._settings import settings
-
-# Core modules
-from . import data, model, module, nn, train, utils
-
-# External models
-from . import external
 
 package_name = "spatialvi-tools"
 __version__ = version(package_name) if package_name else "0.1.0"

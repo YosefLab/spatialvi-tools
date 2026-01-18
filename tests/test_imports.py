@@ -1,7 +1,5 @@
 """Tests for package imports and API exports."""
 
-import pytest
-
 
 class TestTopLevelImports:
     """Test top-level package imports."""
@@ -15,13 +13,7 @@ class TestTopLevelImports:
 
     def test_module_imports(self):
         """Test that all modules can be imported."""
-        from spatialvi import data
-        from spatialvi import model
-        from spatialvi import module
-        from spatialvi import nn
-        from spatialvi import train
-        from spatialvi import utils
-        from spatialvi import external
+        from spatialvi import data, external, model, module, nn, train, utils
 
         assert data is not None
         assert model is not None
@@ -78,7 +70,7 @@ class TestNNImports:
 
     def test_encoder_imports(self):
         """Test encoder imports."""
-        from spatialvi.nn import SpatialEncoder, GraphEncoder, AttentionEncoder
+        from spatialvi.nn import AttentionEncoder, GraphEncoder, SpatialEncoder
 
         assert SpatialEncoder is not None
         assert GraphEncoder is not None
@@ -93,10 +85,10 @@ class TestNNImports:
     def test_attention_imports(self):
         """Test attention mechanism imports."""
         from spatialvi.nn import (
-            SpatialAttention,
             CrossAttention,
-            NeighborAttention,
             GATLayer,
+            NeighborAttention,
+            SpatialAttention,
         )
 
         assert SpatialAttention is not None
@@ -106,7 +98,7 @@ class TestNNImports:
 
     def test_layer_imports(self):
         """Test custom layer imports."""
-        from spatialvi.nn import SpatialConv, GraphConv, PositionalEncoding
+        from spatialvi.nn import GraphConv, PositionalEncoding, SpatialConv
 
         assert SpatialConv is not None
         assert GraphConv is not None
@@ -119,12 +111,12 @@ class TestDataImports:
     def test_preprocessing_imports(self):
         """Test preprocessing function imports."""
         from spatialvi.data import (
-            compute_spatial_neighbors,
-            compute_niche_composition,
-            normalize_spatial,
-            filter_by_spatial_density,
             add_spatial_noise,
+            compute_niche_composition,
+            compute_spatial_neighbors,
+            filter_by_spatial_density,
             get_neighbor_expression,
+            normalize_spatial,
         )
 
         assert compute_spatial_neighbors is not None
@@ -136,7 +128,7 @@ class TestDataImports:
 
     def test_dataset_imports(self):
         """Test dataset function imports."""
-        from spatialvi.data import synthetic_spatial, synthetic_scrna
+        from spatialvi.data import synthetic_scrna, synthetic_spatial
 
         assert synthetic_spatial is not None
         assert synthetic_scrna is not None
@@ -144,10 +136,10 @@ class TestDataImports:
     def test_field_imports(self):
         """Test data field imports."""
         from spatialvi.data import (
-            SpatialCoordinatesField,
-            NeighborIndexField,
             NeighborDistanceField,
+            NeighborIndexField,
             NicheCompositionField,
+            SpatialCoordinatesField,
         )
 
         assert SpatialCoordinatesField is not None
@@ -162,9 +154,9 @@ class TestTrainImports:
     def test_training_plan_imports(self):
         """Test training plan imports."""
         from spatialvi.train import (
-            SpatialTrainingPlan,
-            NicheTrainingPlan,
             DeconvolutionTrainingPlan,
+            NicheTrainingPlan,
+            SpatialTrainingPlan,
         )
 
         assert SpatialTrainingPlan is not None
@@ -174,9 +166,9 @@ class TestTrainImports:
     def test_callback_imports(self):
         """Test callback imports."""
         from spatialvi.train import (
-            SpatialMetricsCallback,
-            NeighborSamplingCallback,
             EarlyStoppingOnSpatialLoss,
+            NeighborSamplingCallback,
+            SpatialMetricsCallback,
             SpatialRegularizationScheduler,
         )
 
@@ -193,13 +185,13 @@ class TestExternalImports:
         """Test custom external model imports."""
         from spatialvi.external import (
             AMICI,
-            VIVS,
-            Starfysh,
-            Harreman,
-            Nolan,
-            Lambda,
-            PPIInference,
             SPARL,
+            VIVS,
+            Harreman,
+            Lambda,
+            Nolan,
+            PPIInference,
+            Starfysh,
         )
 
         assert AMICI is not None
@@ -213,7 +205,7 @@ class TestExternalImports:
 
     def test_scvi_wrapper_imports(self):
         """Test scvi-tools wrapper imports."""
-        from spatialvi.external import scVIVA, ResolVI, DestVI
+        from spatialvi.external import DestVI, ResolVI, scVIVA
 
         assert scVIVA is not None
         assert ResolVI is not None
@@ -226,9 +218,9 @@ class TestUtilsImports:
     def test_metric_imports(self):
         """Test metric function imports."""
         from spatialvi.utils import (
-            spatial_autocorrelation,
             compute_morans_i,
             silhouette_spatial,
+            spatial_autocorrelation,
         )
 
         assert spatial_autocorrelation is not None
@@ -238,9 +230,9 @@ class TestUtilsImports:
     def test_visualization_imports(self):
         """Test visualization function imports."""
         from spatialvi.utils import (
-            plot_spatial,
-            plot_proportions,
             plot_interactions,
+            plot_proportions,
+            plot_spatial,
         )
 
         assert plot_spatial is not None

@@ -1,7 +1,5 @@
 """Comprehensive tests for Harreman model, module, and utilities."""
 
-import numpy as np
-import pytest
 import torch
 
 
@@ -149,9 +147,7 @@ class TestHarremanUtils:
         adata = small_spatial_adata.copy()
         genes = adata.var_names.tolist()
 
-        filtered = filter_genes_by_expression(
-            adata, genes=genes, min_cells=1, min_counts=1
-        )
+        filtered = filter_genes_by_expression(adata, genes=genes, min_cells=1, min_counts=1)
 
         assert isinstance(filtered, list)
         assert len(filtered) <= len(genes)

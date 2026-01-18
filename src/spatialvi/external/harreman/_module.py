@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Literal
 
-import numpy as np
 import torch
 from torch import nn
 
@@ -95,21 +94,16 @@ class HarremanModule(nn.Module):
         sorted_indices = torch.argsort(X, dim=0)
         ranks = torch.empty_like(X)
         for g in range(X.shape[1]):
-            ranks[sorted_indices[:, g], g] = torch.arange(
-                X.shape[0], dtype=X.dtype, device=X.device
-            )
+            ranks[sorted_indices[:, g], g] = torch.arange(X.shape[0], dtype=X.dtype, device=X.device)
         return ranks
 
     def _pearson_correlation(self, X: Tensor, Y: Tensor) -> Tensor:
         """Compute Pearson correlation per gene."""
-        n = X.shape[0]
         X_centered = X - X.mean(dim=0, keepdim=True)
         Y_centered = Y - Y.mean(dim=0, keepdim=True)
 
         numerator = (X_centered * Y_centered).sum(dim=0)
-        denominator = torch.sqrt(
-            (X_centered ** 2).sum(dim=0) * (Y_centered ** 2).sum(dim=0) + 1e-8
-        )
+        denominator = torch.sqrt((X_centered**2).sum(dim=0) * (Y_centered**2).sum(dim=0) + 1e-8)
 
         return numerator / denominator
 
@@ -172,9 +166,7 @@ class MetabolicExchangeScorer(nn.Module):
         )
 
         # Cell type interaction weights
-        self.interaction_weights = nn.Parameter(
-            torch.randn(n_cell_types, n_cell_types, n_hidden)
-        )
+        self.interaction_weights = nn.Parameter(torch.randn(n_cell_types, n_cell_types, n_hidden))
 
         # Output head
         self.score_head = nn.Sequential(

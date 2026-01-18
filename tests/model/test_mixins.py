@@ -1,8 +1,5 @@
 """Tests for model mixins."""
 
-import pytest
-import numpy as np
-
 
 class TestVAEMixin:
     """Tests for VAEMixin."""

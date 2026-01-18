@@ -239,9 +239,7 @@ def identify_marker_proteins(
 
     markers = {}
     for group in adata.obs[labels_key].unique():
-        markers[str(group)] = (
-            adata.uns["rank_genes_groups"]["names"][group][:n_markers].tolist()
-        )
+        markers[str(group)] = adata.uns["rank_genes_groups"]["names"][group][:n_markers].tolist()
 
     return markers
 

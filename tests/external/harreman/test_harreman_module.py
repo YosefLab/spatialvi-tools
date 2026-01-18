@@ -1,7 +1,5 @@
 """Tests for Harreman module components (HarremanModule, MetabolicExchangeScorer)."""
 
-import numpy as np
-import pytest
 import torch
 
 

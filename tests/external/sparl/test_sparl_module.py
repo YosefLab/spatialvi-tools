@@ -81,9 +81,7 @@ class TestSPARLModuleForward:
         x = torch.randn(batch_size, 50).abs()
         tensors = {"X": x}
 
-        inference_outputs, generative_outputs, loss = module(
-            tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(tensors, compute_loss=True)
 
         assert "z" in inference_outputs
         assert "qz" in inference_outputs
@@ -109,9 +107,7 @@ class TestSPARLModuleForward:
         spatial = torch.randn(batch_size, 2)
         tensors = {"X": x, "spatial": spatial}
 
-        inference_outputs, generative_outputs, loss = module(
-            tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(tensors, compute_loss=True)
 
         assert "z" in inference_outputs
         assert torch.isfinite(loss.loss)
@@ -256,9 +252,7 @@ class TestSPARLUtils:
         X = np.random.rand(100, 15)
         coexpr = compute_protein_coexpression(X)
 
-        communities = detect_protein_communities(
-            coexpr, n_communities=3
-        )
+        communities = detect_protein_communities(coexpr, n_communities=3)
 
         assert len(communities) == 15
         assert len(np.unique(communities)) == 3
@@ -285,13 +279,9 @@ class TestSPARLUtils:
         from spatialvi.external.sparl import identify_marker_proteins
 
         adata = small_spatial_adata.copy()
-        adata.obs["cluster"] = np.random.choice(
-            ["C1", "C2", "C3"], adata.n_obs
-        )
+        adata.obs["cluster"] = np.random.choice(["C1", "C2", "C3"], adata.n_obs)
 
-        markers = identify_marker_proteins(
-            adata, labels_key="cluster", n_markers=5
-        )
+        markers = identify_marker_proteins(adata, labels_key="cluster", n_markers=5)
 
         assert isinstance(markers, dict)
         assert len(markers) == 3
@@ -304,8 +294,6 @@ class TestSPARLUtils:
 
         adata = small_spatial_adata.copy()
 
-        composition = compute_neighborhood_composition(
-            adata, spatial_key="spatial", n_neighbors=5
-        )
+        composition = compute_neighborhood_composition(adata, spatial_key="spatial", n_neighbors=5)
 
         assert composition.shape == adata.X.shape

@@ -8,17 +8,17 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
+    import pandas as pd
     from anndata import AnnData
     from numpy.typing import NDArray
-    import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
 def compute_cell_type_abundance(
-    proportions: "NDArray" | "pd.DataFrame",
+    proportions: NDArray | pd.DataFrame,
     normalize: bool = True,
-) -> "NDArray":
+) -> NDArray:
     """Compute total cell type abundance across spatial spots.
 
     Parameters
@@ -44,8 +44,8 @@ def compute_cell_type_abundance(
 
 
 def compute_spatial_autocorrelation(
-    adata: "AnnData",
-    proportions: "NDArray" | "pd.DataFrame",
+    adata: AnnData,
+    proportions: NDArray | pd.DataFrame,
     spatial_key: str = "spatial",
     n_neighbors: int = 6,
 ) -> dict[str, float]:
@@ -109,9 +109,9 @@ def compute_spatial_autocorrelation(
 
 
 def identify_dominant_cell_type(
-    proportions: "NDArray" | "pd.DataFrame",
+    proportions: NDArray | pd.DataFrame,
     threshold: float = 0.3,
-) -> "NDArray":
+) -> NDArray:
     """Identify dominant cell type per spot.
 
     Parameters
@@ -140,9 +140,9 @@ def identify_dominant_cell_type(
 
 
 def compute_colocalization(
-    proportions: "NDArray" | "pd.DataFrame",
+    proportions: NDArray | pd.DataFrame,
     method: str = "pearson",
-) -> "NDArray":
+) -> NDArray:
     """Compute cell type colocalization matrix.
 
     Parameters
@@ -179,10 +179,10 @@ def compute_colocalization(
 
 
 def compute_niche_enrichment(
-    adata: "AnnData",
-    proportions: "NDArray" | "pd.DataFrame",
+    adata: AnnData,
+    proportions: NDArray | pd.DataFrame,
     region_key: str,
-) -> "pd.DataFrame":
+) -> pd.DataFrame:
     """Compute cell type enrichment per spatial region.
 
     Parameters
@@ -229,8 +229,8 @@ def compute_niche_enrichment(
 
 
 def validate_reference_overlap(
-    sc_adata: "AnnData",
-    st_adata: "AnnData",
+    sc_adata: AnnData,
+    st_adata: AnnData,
     min_genes: int = 100,
 ) -> dict[str, int | list[str]]:
     """Validate gene overlap between reference and spatial data.
@@ -259,14 +259,13 @@ def validate_reference_overlap(
         "n_shared": len(shared),
         "n_sc_only": len(sc_only),
         "n_st_only": len(st_only),
-        "shared_genes": sorted(list(shared)),
+        "shared_genes": sorted(shared),
         "is_valid": len(shared) >= min_genes,
     }
 
     if len(shared) < min_genes:
         logger.warning(
-            f"Only {len(shared)} shared genes found. "
-            f"Minimum {min_genes} required for reliable deconvolution."
+            f"Only {len(shared)} shared genes found. Minimum {min_genes} required for reliable deconvolution."
         )
 
     return result

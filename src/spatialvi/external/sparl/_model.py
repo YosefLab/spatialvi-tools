@@ -83,10 +83,7 @@ class SPARL:
     @staticmethod
     def _require_sparl() -> None:
         if sparl is None:
-            raise ImportError(
-                "The 'sparl' package is not installed. "
-                "Install it with ``pip install sparl``."
-            )
+            raise ImportError("The 'sparl' package is not installed. Install it with ``pip install sparl``.")
 
     def train(
         self,

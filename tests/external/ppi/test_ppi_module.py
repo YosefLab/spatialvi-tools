@@ -220,9 +220,7 @@ class TestOLSEstimator:
         yhat_unlabeled = np.random.randn(n_unlabeled)
 
         try:
-            results = estimator.fit(
-                X_labeled, y_labeled, yhat_labeled, X_unlabeled, yhat_unlabeled
-            )
+            results = estimator.fit(X_labeled, y_labeled, yhat_labeled, X_unlabeled, yhat_unlabeled)
             # If ppi_py is installed, check results
             assert isinstance(results, list)
             assert len(results) == n_features
@@ -306,9 +304,7 @@ class TestSpatialMeanEstimator:
         genes = ["gene_0", "gene_1", "gene_2", "gene_3", "gene_4"]
 
         try:
-            results = estimator.fit(
-                expr_labeled, pred_labeled, pred_unlabeled, genes=genes
-            )
+            results = estimator.fit(expr_labeled, pred_labeled, pred_unlabeled, genes=genes)
             # If ppi_py is installed, check results
             assert isinstance(results, dict)
         except ImportError:

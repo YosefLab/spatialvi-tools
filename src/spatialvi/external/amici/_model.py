@@ -8,21 +8,19 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import pandas as pd
 import torch
-
 from anndata import AnnData
 from scvi.data import AnnDataManager
 from scvi.data.fields import (
     CategoricalObsField,
     LayerField,
-    NumericalObsField,
     ObsmField,
 )
 from scvi.utils import setup_anndata_dsp
 
 from spatialvi._constants import REGISTRY_KEYS, SPATIAL_REGISTRY_KEYS
+from spatialvi.external.amici._module import AMICIModule
 from spatialvi.model.base import BaseSpatialModel, SpatialMixin
 from spatialvi.model.base._training_mixins import SpatialTrainingMixin
-from spatialvi.external.amici._module import AMICIModule
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -202,9 +200,7 @@ class AMICI(SpatialTrainingMixin, SpatialMixin, BaseSpatialModel):
         )
 
         # Get cell type labels
-        labels = adata.obs[self.adata_manager.get_state_registry(
-            REGISTRY_KEYS.LABELS_KEY
-        ).original_key]
+        labels = adata.obs[self.adata_manager.get_state_registry(REGISTRY_KEYS.LABELS_KEY).original_key]
 
         if hasattr(labels, "cat"):
             unique_labels = labels.cat.categories.tolist()
@@ -358,8 +354,6 @@ class AMICI(SpatialTrainingMixin, SpatialMixin, BaseSpatialModel):
                 )
             )
 
-        adata_manager = AnnDataManager(
-            fields=anndata_fields, setup_method_args=setup_method_args
-        )
+        adata_manager = AnnDataManager(fields=anndata_fields, setup_method_args=setup_method_args)
         adata_manager.register_fields(adata, **kwargs)
         cls.register_manager(adata_manager)

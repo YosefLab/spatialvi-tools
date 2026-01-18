@@ -6,13 +6,12 @@ import logging
 from typing import TYPE_CHECKING, Literal
 
 import torch
+from scvi.distributions import NegativeBinomial, ZeroInflatedNegativeBinomial
+from scvi.module.base import BaseModuleClass, LossOutput, auto_move_data
+from scvi.nn import Encoder, FCLayers
 from torch import nn
 from torch.distributions import Normal
 from torch.distributions import kl_divergence as kl
-
-from scvi.distributions import NegativeBinomial, ZeroInflatedNegativeBinomial
-from scvi.module.base import BaseModuleClass, LossOutput, auto_move_data
-from scvi.nn import FCLayers, Encoder
 
 from spatialvi.nn import CrossAttention, NeighborAttention
 
@@ -104,14 +103,16 @@ class AMICIModule(BaseModuleClass):
             self.cell_type_embedding = None
 
         # Cross-attention layers for cell-cell interaction
-        self.interaction_layers = nn.ModuleList([
-            CrossAttention(
-                embed_dim=n_hidden,
-                n_heads=n_attention_heads,
-                dropout=dropout_rate,
-            )
-            for _ in range(interaction_layers)
-        ])
+        self.interaction_layers = nn.ModuleList(
+            [
+                CrossAttention(
+                    embed_dim=n_hidden,
+                    n_heads=n_attention_heads,
+                    dropout=dropout_rate,
+                )
+                for _ in range(interaction_layers)
+            ]
+        )
 
         # Neighbor attention for aggregation
         self.neighbor_attention = NeighborAttention(
@@ -385,15 +386,11 @@ class AMICIModule(BaseModuleClass):
         inference_inputs = self._get_inference_input(tensors, **get_inference_input_kwargs)
         inference_outputs = self.inference(**inference_inputs, **inference_kwargs)
 
-        generative_inputs = self._get_generative_input(
-            tensors, inference_outputs, **get_generative_input_kwargs
-        )
+        generative_inputs = self._get_generative_input(tensors, inference_outputs, **get_generative_input_kwargs)
         generative_outputs = self.generative(**generative_inputs, **generative_kwargs)
 
         if compute_loss:
-            losses = self.loss(
-                tensors, inference_outputs, generative_outputs, **loss_kwargs
-            )
+            losses = self.loss(tensors, inference_outputs, generative_outputs, **loss_kwargs)
             return inference_outputs, generative_outputs, losses
 
         return inference_outputs, generative_outputs

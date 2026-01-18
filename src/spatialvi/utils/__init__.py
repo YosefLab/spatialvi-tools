@@ -3,16 +3,16 @@
 from __future__ import annotations
 
 from ._metrics import (
-    spatial_autocorrelation,
-    compute_morans_i,
     compute_gearys_c,
+    compute_morans_i,
     silhouette_spatial,
+    spatial_autocorrelation,
 )
 from ._visualization import (
-    plot_spatial,
-    plot_proportions,
     plot_interactions,
     plot_niche_composition,
+    plot_proportions,
+    plot_spatial,
 )
 
 __all__ = [

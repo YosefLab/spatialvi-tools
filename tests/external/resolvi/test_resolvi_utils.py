@@ -1,7 +1,6 @@
 """Comprehensive tests for ResolVI utilities."""
 
 import numpy as np
-import pytest
 
 
 class TestResolVIUtils:
@@ -76,9 +75,7 @@ class TestResolVIUtils:
         adata = small_spatial_adata.copy()
         background_fraction = np.random.uniform(0, 1, adata.n_obs)
 
-        contaminated = identify_contaminated_cells(
-            adata, background_fraction, threshold=0.5
-        )
+        contaminated = identify_contaminated_cells(adata, background_fraction, threshold=0.5)
 
         assert len(contaminated) == adata.n_obs
         assert contaminated.dtype == bool
@@ -121,9 +118,7 @@ class TestResolVIUtils:
         if hasattr(expression, "toarray"):
             expression = expression.toarray()
 
-        smoothness = compute_spatial_smoothness(
-            adata, expression, spatial_key="spatial", n_neighbors=5
-        )
+        smoothness = compute_spatial_smoothness(adata, expression, spatial_key="spatial", n_neighbors=5)
 
         assert isinstance(smoothness, float)
         assert smoothness >= 0
@@ -138,9 +133,7 @@ class TestResolVIUtils:
             raw = raw.toarray()
         denoised = raw * 0.9  # Simulated denoised
 
-        metrics = compare_denoising_quality(
-            raw, denoised, adata, spatial_key="spatial"
-        )
+        metrics = compare_denoising_quality(raw, denoised, adata, spatial_key="spatial")
 
         assert "raw_sparsity" in metrics
         assert "denoised_sparsity" in metrics
@@ -166,11 +159,6 @@ class TestResolVIModelWrapper:
         from spatialvi.external.resolvi import (
             compare_denoising_quality,
             compute_background_signal,
-            compute_segmentation_confidence,
-            compute_signal_to_noise,
-            compute_spatial_smoothness,
-            filter_low_quality_cells,
-            identify_contaminated_cells,
         )
 
         assert compare_denoising_quality is not None

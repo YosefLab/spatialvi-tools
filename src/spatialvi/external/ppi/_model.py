@@ -21,7 +21,7 @@ https://arxiv.org/abs/2301.09633
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -66,10 +66,7 @@ class PPIInference:
     @staticmethod
     def _require_ppi() -> None:
         if ppi_mean_ci is None:
-            raise ImportError(
-                "The 'ppi_py' package is not installed. "
-                "Install it with ``pip install ppi-python``."
-            )
+            raise ImportError("The 'ppi_py' package is not installed. Install it with ``pip install ppi-python``.")
 
     @staticmethod
     def mean_ci(
@@ -167,9 +164,7 @@ class PPIInference:
         yhat_arr = np.asarray(yhat)
         X_unlabeled_arr = np.asarray(X_unlabeled)
         yhat_unlabeled_arr = np.asarray(yhat_unlabeled)
-        return ppi_ols_ci(
-            X_arr, y_arr, yhat_arr, X_unlabeled_arr, yhat_unlabeled_arr, alpha=alpha
-        )
+        return ppi_ols_ci(X_arr, y_arr, yhat_arr, X_unlabeled_arr, yhat_unlabeled_arr, alpha=alpha)
 
     @staticmethod
     def ols_pointestimate(
@@ -205,9 +200,7 @@ class PPIInference:
         yhat_arr = np.asarray(yhat)
         X_unlabeled_arr = np.asarray(X_unlabeled)
         yhat_unlabeled_arr = np.asarray(yhat_unlabeled)
-        return ppi_ols_pointestimate(
-            X_arr, y_arr, yhat_arr, X_unlabeled_arr, yhat_unlabeled_arr
-        )
+        return ppi_ols_pointestimate(X_arr, y_arr, yhat_arr, X_unlabeled_arr, yhat_unlabeled_arr)
 
     @staticmethod
     def classical_mean_ci(

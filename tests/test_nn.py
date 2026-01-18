@@ -1,13 +1,11 @@
 """Tests for neural network components."""
 
 import torch
-import pytest
 
 
 class TestEncoders:
     """Tests for encoder architectures."""
 
-    
     def test_spatial_encoder(self, random_expression, n_latent, device):
         """Test spatial encoder forward pass."""
         from spatialvi.nn import SpatialEncoder
@@ -26,9 +24,7 @@ class TestEncoders:
         assert output.loc.shape == (batch_size, n_latent)
         assert output.scale.shape == (batch_size, n_latent)
 
-    def test_spatial_encoder_with_neighbors(
-        self, random_expression, random_neighbor_expression, n_latent, device
-    ):
+    def test_spatial_encoder_with_neighbors(self, random_expression, random_neighbor_expression, n_latent, device):
         """Test spatial encoder with neighbor context."""
         from spatialvi.nn import SpatialEncoder
 

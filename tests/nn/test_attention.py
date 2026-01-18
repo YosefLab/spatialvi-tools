@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from spatialvi.nn import SpatialAttention, CrossAttention, NeighborAttention, GATLayer
+from spatialvi.nn import CrossAttention, GATLayer, NeighborAttention, SpatialAttention
 
 
 class TestSpatialAttention:

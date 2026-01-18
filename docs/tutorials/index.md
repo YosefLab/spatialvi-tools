@@ -26,33 +26,6 @@ Learn how to estimate cell type proportions and intra-cell type gene expression 
 destvi_tutorial
 ```
 
-### Stereoscope Tutorial
-Spatial deconvolution using Stereoscope for estimating cell type compositions in spatial spots.
-
-```{toctree}
-:maxdepth: 1
-
-stereoscope_tutorial
-```
-
-### Cell2location Tutorial
-Comprehensive cell type mapping to spatial transcriptomics using Cell2location.
-
-```{toctree}
-:maxdepth: 1
-
-cell2location_tutorial
-```
-
-### Tangram Tutorial
-Mapping single-cell RNA-seq data to spatial transcriptomics using Tangram.
-
-```{toctree}
-:maxdepth: 1
-
-tangram_tutorial
-```
-
 ### Starfysh Tutorial
 Spatial deconvolution with histology integration using Starfysh.
 Learn how to deconvolve spatial spots using archetypal factors per cell type.

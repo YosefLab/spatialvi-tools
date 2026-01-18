@@ -167,9 +167,7 @@ class RESOLVAEModel(PyroModule):
         elif self.dispersion == "gene-batch":
             init_px_r = torch.full([n_input, n_batch], 0.01)
         else:
-            raise ValueError(
-                f"dispersion must be one of ['gene', 'gene-batch'], but input was {dispersion}."
-            )
+            raise ValueError(f"dispersion must be one of ['gene', 'gene-batch'], but input was {dispersion}.")
         self.register_buffer("px_r", init_px_r)
 
         self.register_buffer("median_distance", torch.tensor(median_distance))
@@ -353,10 +351,7 @@ class RESOLVAEModel(PyroModule):
         with pyro.plate("obs_plate", size=n_obs or self.n_obs, subsample_size=x.shape[0], dim=-1):
             distances = 30.0 * pyro.deterministic(
                 "distances",
-                torch.exp(
-                    -torch.clamp(diffusion_scale * distances_n / self.median_distance, max=20.0)
-                )
-                + 1e-3,
+                torch.exp(-torch.clamp(diffusion_scale * distances_n / self.median_distance, max=20.0)) + 1e-3,
                 event_dim=1,
             )
             px_r = 1 / pyro.sample("px_r_inv", Exponential(torch.ones_like(x)).to_event(1))
@@ -377,9 +372,7 @@ class RESOLVAEModel(PyroModule):
                     ),
                 )
 
-            true_mixture_proportion = pyro.deterministic(
-                "true_mixture_proportion", mixture_proportions[..., 0]
-            )
+            true_mixture_proportion = pyro.deterministic("true_mixture_proportion", mixture_proportions[..., 0])
             diffusion_mixture_proportion = pyro.deterministic(
                 "diffusion_mixture_proportion", mixture_proportions[..., 1]
             )
@@ -452,8 +445,7 @@ class RESOLVAEModel(PyroModule):
             with torch.no_grad():
                 if cat_covs is not None:
                     categorical_input = [
-                        i.repeat_interleave(self.n_neighbors).unsqueeze(1)
-                        for i in torch.split(cat_covs, 1, dim=1)
+                        i.repeat_interleave(self.n_neighbors).unsqueeze(1) for i in torch.split(cat_covs, 1, dim=1)
                     ]
                 else:
                     categorical_input = ()
@@ -496,9 +488,7 @@ class RESOLVAEModel(PyroModule):
                         batch_index.repeat_interleave(self.n_neighbors).unsqueeze(1),
                         *categorical_input,
                     )
-                    px_rate_n = px_rate_n.reshape(
-                        [z.shape[0], x.shape[0], self.n_neighbors, self.n_input]
-                    )
+                    px_rate_n = px_rate_n.reshape([z.shape[0], x.shape[0], self.n_neighbors, self.n_input])
 
                 px_rate_n = pyro.deterministic("px_rate_n", px_rate_n, event_dim=2)
 
@@ -516,11 +506,7 @@ class RESOLVAEModel(PyroModule):
             if self.gene_likelihood == "poisson":
                 mean_nb = Delta(px_rate_sum, event_dim=1).rsample()
             else:
-                mean_nb = (
-                    Gamma(concentration=px_r, rate=px_r / (px_rate_sum + self.eps))
-                    .to_event(1)
-                    .rsample()
-                )
+                mean_nb = Gamma(concentration=px_r, rate=px_r / (px_rate_sum + self.eps)).to_event(1).rsample()
 
             mean_poisson = pyro.deterministic(
                 "mean_poisson",
@@ -542,9 +528,7 @@ class RESOLVAEModel(PyroModule):
 
                 with pyro.poutine.scale(scale=50.0):
                     with pyro.poutine.mask(mask=is_observed):
-                        pyro.sample(
-                            "prediction", Categorical(probs=probs_prediction), obs=valid_data
-                        )
+                        pyro.sample("prediction", Categorical(probs=probs_prediction), obs=valid_data)
 
     @auto_move_data
     def model_corrected(
@@ -656,9 +640,7 @@ class RESOLVAEGuide(PyroModule):
         elif self.dispersion == "gene-batch":
             init_px_r = torch.full([n_input, n_batch], 0.01)
         else:
-            raise ValueError(
-                f"dispersion must be one of ['gene', 'gene-batch'], but input was {dispersion}."
-            )
+            raise ValueError(f"dispersion must be one of ['gene', 'gene-batch'], but input was {dispersion}.")
         self.register_buffer("px_r", init_px_r)
         self.register_buffer("per_neighbor_diffusion_init", torch.zeros([n_obs, n_neighbors]))
         self.register_buffer("gene_dummy", torch.ones([n_batch, n_input]))
@@ -749,12 +731,7 @@ class RESOLVAEGuide(PyroModule):
 
         if self.downsample_counts_mean is not None:
             downsample_counts = (
-                int(
-                    LogNormal(
-                        float(self.downsample_counts_mean), float(self.downsample_counts_std)
-                    ).sample()
-                )
-                + 10
+                int(LogNormal(float(self.downsample_counts_mean), float(self.downsample_counts_std)).sample()) + 10
             )
 
         with pyro.plate("obs_plate", size=n_obs or self.n_obs, subsample=ind_x, dim=-1):
@@ -767,9 +744,7 @@ class RESOLVAEGuide(PyroModule):
 
             if self.dispersion == "gene-batch":
                 px_r_inv = F.linear(
-                    torch.nn.functional.one_hot(batch_index.flatten(), self.n_batch).to(
-                        px_r_mle.dtype
-                    ),
+                    torch.nn.functional.one_hot(batch_index.flatten(), self.n_batch).to(px_r_mle.dtype),
                     px_r_mle,
                 )
             elif self.dispersion == "gene":
@@ -777,8 +752,7 @@ class RESOLVAEGuide(PyroModule):
             pyro.sample("px_r_inv", Delta(px_r_inv, event_dim=1))
 
             concentration = torch.nn.Softmax(dim=-1)(
-                per_neighbor_diffusion[ind_x, :]
-                - torch.clamp(torch.sqrt(distances_n / self.median_distance), max=10.0)
+                per_neighbor_diffusion[ind_x, :] - torch.clamp(torch.sqrt(distances_n / self.median_distance), max=10.0)
             )
             pyro.sample("per_neighbor_diffusion", Delta(concentration, event_dim=1))
 
@@ -788,9 +762,7 @@ class RESOLVAEGuide(PyroModule):
                 categorical_input = ()
 
             with pyro.poutine.scale(scale=5.0):
-                _, mixture_proportions_est, _ = self.diffusion_encoder(
-                    torch.log1p(x), batch_index, *categorical_input
-                )
+                _, mixture_proportions_est, _ = self.diffusion_encoder(torch.log1p(x), batch_index, *categorical_input)
                 mixture_proportions_est[..., 1] += self.diffusion_eps
                 pyro.sample("mixture_proportions", Delta(mixture_proportions_est, event_dim=1))
 

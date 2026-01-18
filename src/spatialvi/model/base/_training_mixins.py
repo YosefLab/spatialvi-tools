@@ -6,14 +6,10 @@ import logging
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-import torch
 from lightning.pytorch.callbacks import Callback
-
-from scvi.train import TrainingPlan, TrainRunner
+from scvi.train import TrainRunner
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from anndata import AnnData
     from lightning.pytorch.callbacks import Callback
 

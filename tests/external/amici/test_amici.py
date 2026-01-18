@@ -91,9 +91,7 @@ class TestAMICIModuleInitialization:
 class TestAMICIModuleForward:
     """Tests for AMICIModule forward pass."""
 
-    def test_forward_with_neighbors(
-        self, amici_tensors, n_genes, n_latent, n_labels, device
-    ):
+    def test_forward_with_neighbors(self, amici_tensors, n_genes, n_latent, n_labels, device):
         """Test forward pass with neighbor information."""
         module = AMICIModule(
             n_input=n_genes,
@@ -103,9 +101,7 @@ class TestAMICIModuleForward:
             n_latent=n_latent,
         ).to(device)
 
-        inference_outputs, generative_outputs, loss = module(
-            amici_tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(amici_tensors, compute_loss=True)
 
         assert "z" in inference_outputs
         assert "interaction_context" in inference_outputs
@@ -113,9 +109,7 @@ class TestAMICIModuleForward:
         assert "px" in generative_outputs
         assert loss.loss.numel() == 1
 
-    def test_forward_without_neighbors(
-        self, batch_size, n_genes, n_latent, n_labels, device
-    ):
+    def test_forward_without_neighbors(self, batch_size, n_genes, n_latent, n_labels, device):
         """Test forward pass without neighbor information."""
         module = AMICIModule(
             n_input=n_genes,
@@ -155,9 +149,7 @@ class TestAMICIModuleForward:
 class TestAMICIModuleInference:
     """Tests for AMICIModule inference method."""
 
-    def test_inference_output_shapes(
-        self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device
-    ):
+    def test_inference_output_shapes(self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device):
         """Test inference output shapes."""
         module = AMICIModule(
             n_input=n_genes,
@@ -172,18 +164,14 @@ class TestAMICIModuleInference:
         labels = torch.randint(0, n_labels, (batch_size, 1)).to(device)
         neighbor_expr = torch.randn(batch_size, n_neighbors, n_genes).abs().to(device)
 
-        outputs = module.inference(
-            x=x, batch_index=batch_index, labels=labels, neighbor_expr=neighbor_expr
-        )
+        outputs = module.inference(x=x, batch_index=batch_index, labels=labels, neighbor_expr=neighbor_expr)
 
         assert outputs["z"].shape == (batch_size, n_latent)
         assert outputs["qz_m"].shape == (batch_size, n_latent)
         assert outputs["qz_v"].shape == (batch_size, n_latent)
         assert outputs["interaction_context"].shape == (batch_size, n_hidden)
 
-    def test_inference_interaction_scores(
-        self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device
-    ):
+    def test_inference_interaction_scores(self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device):
         """Test inference interaction scores."""
         module = AMICIModule(
             n_input=n_genes,
@@ -202,9 +190,7 @@ class TestAMICIModuleInference:
         assert (outputs["interaction_scores"] >= 0).all()
         assert (outputs["interaction_scores"] <= 1).all()
 
-    def test_inference_attention_weights(
-        self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device
-    ):
+    def test_inference_attention_weights(self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device):
         """Test inference attention weights."""
         module = AMICIModule(
             n_input=n_genes,
@@ -224,9 +210,7 @@ class TestAMICIModuleInference:
 class TestAMICIModuleGenerative:
     """Tests for AMICIModule generative method."""
 
-    def test_generative_output_shapes(
-        self, batch_size, n_genes, n_latent, n_labels, n_hidden, device
-    ):
+    def test_generative_output_shapes(self, batch_size, n_genes, n_latent, n_labels, n_hidden, device):
         """Test generative output shapes."""
         module = AMICIModule(
             n_input=n_genes,
@@ -239,18 +223,14 @@ class TestAMICIModuleGenerative:
         interaction_context = torch.randn(batch_size, n_hidden).to(device)
         library = torch.randn(batch_size, 1).exp().to(device)
 
-        outputs = module.generative(
-            z=z, interaction_context=interaction_context, library=library
-        )
+        outputs = module.generative(z=z, interaction_context=interaction_context, library=library)
 
         assert outputs["px_rate"].shape == (batch_size, n_genes)
         assert outputs["px_scale"].shape == (batch_size, n_genes)
         assert "px" in outputs
 
     @pytest.mark.parametrize("gene_likelihood", ["zinb", "nb", "poisson"])
-    def test_generative_distributions(
-        self, batch_size, n_genes, n_latent, n_labels, n_hidden, gene_likelihood, device
-    ):
+    def test_generative_distributions(self, batch_size, n_genes, n_latent, n_labels, n_hidden, gene_likelihood, device):
         """Test generative produces correct distributions."""
         module = AMICIModule(
             n_input=n_genes,
@@ -264,9 +244,7 @@ class TestAMICIModuleGenerative:
         interaction_context = torch.randn(batch_size, n_hidden).to(device)
         library = torch.randn(batch_size, 1).exp().to(device)
 
-        outputs = module.generative(
-            z=z, interaction_context=interaction_context, library=library
-        )
+        outputs = module.generative(z=z, interaction_context=interaction_context, library=library)
 
         # Check we can sample from the distribution
         sample = outputs["px"].sample()
@@ -310,9 +288,7 @@ class TestAMICIModuleLoss:
 class TestAMICIModuleInteractionModeling:
     """Tests for cell-cell interaction modeling."""
 
-    def test_interaction_layers_effect(
-        self, amici_tensors, n_genes, n_latent, n_labels, device
-    ):
+    def test_interaction_layers_effect(self, amici_tensors, n_genes, n_latent, n_labels, device):
         """Test that interaction layers affect the output."""
         module_1layer = AMICIModule(
             n_input=n_genes,
@@ -333,9 +309,7 @@ class TestAMICIModuleInteractionModeling:
         assert len(module_1layer.interaction_layers) == 1
         assert len(module_3layers.interaction_layers) == 3
 
-    def test_cell_type_embedding_usage(
-        self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device
-    ):
+    def test_cell_type_embedding_usage(self, batch_size, n_genes, n_latent, n_labels, n_neighbors, n_hidden, device):
         """Test that cell type embeddings are used."""
         module = AMICIModule(
             n_input=n_genes,
@@ -374,9 +348,7 @@ class TestAMICIModuleGradients:
         assert module.px_r.grad is not None
         assert module.feature_proj.weight.grad is not None
 
-    def test_gradients_through_interaction_layers(
-        self, amici_tensors, n_genes, n_latent, n_labels, device
-    ):
+    def test_gradients_through_interaction_layers(self, amici_tensors, n_genes, n_latent, n_labels, device):
         """Test gradients flow through interaction layers."""
         module = AMICIModule(
             n_input=n_genes,

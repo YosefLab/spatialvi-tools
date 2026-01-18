@@ -7,17 +7,16 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import torch
+from scvi.distributions import NegativeBinomial as SCVINB
+from scvi.distributions import ZeroInflatedNegativeBinomial
+from scvi.module.base import LossOutput
+from scvi.nn import DecoderSCVI, Encoder
 from torch import nn
-from torch.distributions import Normal, NegativeBinomial
+from torch.distributions import Normal
 from torch.distributions import kl_divergence as kl
 
-from scvi.distributions import ZeroInflatedNegativeBinomial, NegativeBinomial as SCVINB
-from scvi.module.base import LossOutput, auto_move_data
-from scvi.nn import DecoderSCVI, Encoder
-import torch.nn.functional as F
-
 from spatialvi.module._base import BaseSpatialModule
-from spatialvi.nn import SpatialEncoder, SpatialDecoder
+from spatialvi.nn import SpatialEncoder
 
 if TYPE_CHECKING:
     from torch.distributions import Distribution
@@ -124,12 +123,8 @@ class SpatialVAEModule(BaseSpatialModule):
 
         # Library size prior
         if library_log_means is not None and library_log_vars is not None:
-            self.register_buffer(
-                "library_log_means", torch.from_numpy(library_log_means).float()
-            )
-            self.register_buffer(
-                "library_log_vars", torch.from_numpy(library_log_vars).float()
-            )
+            self.register_buffer("library_log_means", torch.from_numpy(library_log_means).float())
+            self.register_buffer("library_log_vars", torch.from_numpy(library_log_vars).float())
         else:
             self.library_log_means = None
             self.library_log_vars = None

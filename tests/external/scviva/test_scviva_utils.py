@@ -1,7 +1,6 @@
 """Comprehensive tests for scVIVA utilities."""
 
 import numpy as np
-import pytest
 
 
 class TestScVIVAUtils:
@@ -12,9 +11,7 @@ class TestScVIVAUtils:
         from spatialvi.external.scviva import compute_niche_composition
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["TypeA", "TypeB", "TypeC"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["TypeA", "TypeB", "TypeC"], adata.n_obs)
 
         composition = compute_niche_composition(
             adata,
@@ -37,17 +34,11 @@ class TestScVIVAUtils:
         )
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["TypeA", "TypeB"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["TypeA", "TypeB"], adata.n_obs)
 
-        composition = compute_niche_composition(
-            adata, labels_key="cell_type", n_neighbors=5
-        )
+        composition = compute_niche_composition(adata, labels_key="cell_type", n_neighbors=5)
 
-        clusters = identify_niche_clusters(
-            composition, n_clusters=3, method="kmeans"
-        )
+        clusters = identify_niche_clusters(composition, n_clusters=3, method="kmeans")
 
         assert len(clusters) == adata.n_obs
         assert len(np.unique(clusters)) == 3
@@ -71,9 +62,7 @@ class TestScVIVAUtils:
         from spatialvi.external.scviva import compute_niche_interaction_strength
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["A", "B", "C"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["A", "B", "C"], adata.n_obs)
 
         interactions = compute_niche_interaction_strength(
             adata,
@@ -89,9 +78,7 @@ class TestScVIVAUtils:
         from spatialvi.external.scviva import identify_boundary_cells
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["A", "B"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["A", "B"], adata.n_obs)
 
         boundary = identify_boundary_cells(
             adata,
@@ -111,9 +98,7 @@ class TestScVIVAUtils:
         adata = small_spatial_adata.copy()
         adata.obs["niche"] = np.random.choice(["N1", "N2"], adata.n_obs)
 
-        markers = compute_niche_differential_genes(
-            adata, niche_key="niche", n_genes=5
-        )
+        markers = compute_niche_differential_genes(adata, niche_key="niche", n_genes=5)
 
         assert isinstance(markers, dict)
         assert "N1" in markers
@@ -126,9 +111,7 @@ class TestScVIVAUtils:
         from spatialvi.external.scviva import compute_spatial_entropy
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["A", "B", "C"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["A", "B", "C"], adata.n_obs)
 
         entropy = compute_spatial_entropy(
             adata,
@@ -147,9 +130,7 @@ class TestScVIVAUtils:
         adata = small_spatial_adata.copy()
         niche_effects = np.random.randn(adata.n_obs, 10)
 
-        embedding = visualize_niche_embedding(
-            adata, niche_effects, method="umap"
-        )
+        embedding = visualize_niche_embedding(adata, niche_effects, method="umap")
 
         assert embedding.shape == (adata.n_obs, 2)
 
@@ -160,9 +141,7 @@ class TestScVIVAUtils:
         adata = small_spatial_adata.copy()
         niche_effects = np.random.randn(adata.n_obs, 10)
 
-        embedding = visualize_niche_embedding(
-            adata, niche_effects, method="pca"
-        )
+        embedding = visualize_niche_embedding(adata, niche_effects, method="pca")
 
         assert embedding.shape == (adata.n_obs, 2)
 
@@ -180,13 +159,7 @@ class TestScVIVAModelWrapper:
         """Test that all utils can be imported."""
         from spatialvi.external.scviva import (
             compute_niche_composition,
-            compute_niche_differential_genes,
-            compute_niche_heterogeneity,
-            compute_niche_interaction_strength,
-            compute_spatial_entropy,
-            identify_boundary_cells,
             identify_niche_clusters,
-            visualize_niche_embedding,
         )
 
         assert compute_niche_composition is not None

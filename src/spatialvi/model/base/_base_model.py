@@ -9,11 +9,9 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 import torch
 from anndata import AnnData
-
-from scvi.data import AnnDataManager
 from scvi.model.base import BaseModelClass
 
-from spatialvi._constants import REGISTRY_KEYS, SPATIAL_REGISTRY_KEYS
+from spatialvi._constants import SPATIAL_REGISTRY_KEYS
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -69,9 +67,7 @@ class BaseSpatialModel(BaseModelClass):
         """
         if self._spatial_key is not None:
             if self._spatial_key not in adata.obsm:
-                raise ValueError(
-                    f"Spatial coordinates key '{self._spatial_key}' not found in adata.obsm"
-                )
+                raise ValueError(f"Spatial coordinates key '{self._spatial_key}' not found in adata.obsm")
 
     @staticmethod
     def compute_spatial_neighbors(

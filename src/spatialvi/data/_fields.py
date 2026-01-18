@@ -6,7 +6,6 @@ import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
-
 from scvi.data.fields import ObsmField
 
 if TYPE_CHECKING:
@@ -36,7 +35,7 @@ class SpatialCoordinatesField(ObsmField):
             attr_key=attr_key,
         )
 
-    def validate_field(self, adata: "AnnData") -> None:
+    def validate_field(self, adata: AnnData) -> None:
         """Validate spatial coordinates.
 
         Parameters
@@ -52,15 +51,10 @@ class SpatialCoordinatesField(ObsmField):
                 coords = coords.values
 
             if coords.ndim != 2:
-                raise ValueError(
-                    f"Spatial coordinates must be 2D, got {coords.ndim}D"
-                )
+                raise ValueError(f"Spatial coordinates must be 2D, got {coords.ndim}D")
 
             if coords.shape[1] not in (2, 3):
-                raise ValueError(
-                    f"Spatial coordinates must have 2 or 3 dimensions, "
-                    f"got {coords.shape[1]}"
-                )
+                raise ValueError(f"Spatial coordinates must have 2 or 3 dimensions, got {coords.shape[1]}")
 
 
 class NeighborIndexField(ObsmField):
@@ -88,7 +82,7 @@ class NeighborIndexField(ObsmField):
         )
         self.n_neighbors = n_neighbors
 
-    def validate_field(self, adata: "AnnData") -> None:
+    def validate_field(self, adata: AnnData) -> None:
         """Validate neighbor indices.
 
         Parameters
@@ -102,28 +96,17 @@ class NeighborIndexField(ObsmField):
             indices = adata.obsm[self.attr_key]
 
             if indices.ndim != 2:
-                raise ValueError(
-                    f"Neighbor indices must be 2D, got {indices.ndim}D"
-                )
+                raise ValueError(f"Neighbor indices must be 2D, got {indices.ndim}D")
 
             if indices.shape[0] != adata.n_obs:
-                raise ValueError(
-                    f"Neighbor indices must have {adata.n_obs} rows, "
-                    f"got {indices.shape[0]}"
-                )
+                raise ValueError(f"Neighbor indices must have {adata.n_obs} rows, got {indices.shape[0]}")
 
             if self.n_neighbors is not None and indices.shape[1] != self.n_neighbors:
-                logger.warning(
-                    f"Expected {self.n_neighbors} neighbors, "
-                    f"got {indices.shape[1]}"
-                )
+                logger.warning(f"Expected {self.n_neighbors} neighbors, got {indices.shape[1]}")
 
             # Check for valid indices
             if indices.max() >= adata.n_obs:
-                raise ValueError(
-                    f"Neighbor index {indices.max()} out of bounds "
-                    f"for {adata.n_obs} observations"
-                )
+                raise ValueError(f"Neighbor index {indices.max()} out of bounds for {adata.n_obs} observations")
 
 
 class NeighborDistanceField(ObsmField):
@@ -147,7 +130,7 @@ class NeighborDistanceField(ObsmField):
             attr_key=attr_key,
         )
 
-    def validate_field(self, adata: "AnnData") -> None:
+    def validate_field(self, adata: AnnData) -> None:
         """Validate neighbor distances.
 
         Parameters
@@ -161,9 +144,7 @@ class NeighborDistanceField(ObsmField):
             distances = adata.obsm[self.attr_key]
 
             if distances.ndim != 2:
-                raise ValueError(
-                    f"Neighbor distances must be 2D, got {distances.ndim}D"
-                )
+                raise ValueError(f"Neighbor distances must be 2D, got {distances.ndim}D")
 
             if (distances < 0).any():
                 raise ValueError("Neighbor distances must be non-negative")
@@ -194,7 +175,7 @@ class NicheCompositionField(ObsmField):
         )
         self.n_cell_types = n_cell_types
 
-    def validate_field(self, adata: "AnnData") -> None:
+    def validate_field(self, adata: AnnData) -> None:
         """Validate niche composition.
 
         Parameters
@@ -208,25 +189,15 @@ class NicheCompositionField(ObsmField):
             composition = adata.obsm[self.attr_key]
 
             if composition.ndim != 2:
-                raise ValueError(
-                    f"Niche composition must be 2D, got {composition.ndim}D"
-                )
+                raise ValueError(f"Niche composition must be 2D, got {composition.ndim}D")
 
             if composition.shape[0] != adata.n_obs:
-                raise ValueError(
-                    f"Niche composition must have {adata.n_obs} rows, "
-                    f"got {composition.shape[0]}"
-                )
+                raise ValueError(f"Niche composition must have {adata.n_obs} rows, got {composition.shape[0]}")
 
             # Check that composition sums to 1
             row_sums = composition.sum(axis=1)
             if not np.allclose(row_sums, 1.0, atol=1e-4):
-                logger.warning(
-                    "Niche composition rows do not sum to 1. "
-                    "Consider normalizing."
-                )
+                logger.warning("Niche composition rows do not sum to 1. Consider normalizing.")
 
             if (composition < 0).any() or (composition > 1).any():
-                raise ValueError(
-                    "Niche composition values must be between 0 and 1"
-                )
+                raise ValueError("Niche composition values must be between 0 and 1")

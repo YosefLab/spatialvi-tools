@@ -1,7 +1,7 @@
 """Tests for Nolan (NicheExplorer) model."""
 
-import pytest
 import numpy as np
+import pytest
 
 
 class TestNolanInitialization:
@@ -86,7 +86,7 @@ class TestNolanMethods:
             model.train(num_epochs=1)
         except ImportError:
             pytest.skip("nolan package not installed")
-        except Exception:
+        except (ValueError, RuntimeError, OSError):
             # Other errors are acceptable if dependency is installed
             pass
 

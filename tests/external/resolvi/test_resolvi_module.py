@@ -1,7 +1,5 @@
 """Tests for ResolVI module classes."""
 
-import pytest
-import torch
 
 class TestRESOLVAEModelImport:
     """Tests for RESOLVAE imports."""

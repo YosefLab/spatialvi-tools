@@ -1,7 +1,6 @@
 """Comprehensive tests for PPI (Prediction-Powered Inference) utilities."""
 
 import numpy as np
-import pytest
 
 
 class TestPPIUtils:
@@ -108,7 +107,9 @@ class TestPPIUtils:
         yhat_unlabeled = np.random.randn(n_unlabeled) + 5
 
         lower, upper = bootstrap_ci(
-            y, yhat, yhat_unlabeled,
+            y,
+            yhat,
+            yhat_unlabeled,
             n_bootstrap=100,
             alpha=0.05,
             seed=42,
@@ -127,12 +128,8 @@ class TestPPIUtils:
         yhat = y + np.random.randn(50) * 0.2
         yhat_unlabeled = np.random.randn(500) + 5
 
-        lower1, upper1 = bootstrap_ci(
-            y, yhat, yhat_unlabeled, n_bootstrap=50, seed=123
-        )
-        lower2, upper2 = bootstrap_ci(
-            y, yhat, yhat_unlabeled, n_bootstrap=50, seed=123
-        )
+        lower1, upper1 = bootstrap_ci(y, yhat, yhat_unlabeled, n_bootstrap=50, seed=123)
+        lower2, upper2 = bootstrap_ci(y, yhat, yhat_unlabeled, n_bootstrap=50, seed=123)
 
         assert lower1 == lower2
         assert upper1 == upper2
@@ -151,10 +148,7 @@ class TestPPIModelWrapper:
         """Test that all utils can be imported."""
         from spatialvi.external.ppi import (
             bootstrap_ci,
-            compute_power_analysis,
             compute_rectifier,
-            compute_variance_reduction,
-            stratified_sample,
         )
 
         assert compute_rectifier is not None

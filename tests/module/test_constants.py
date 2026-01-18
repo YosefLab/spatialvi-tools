@@ -1,7 +1,5 @@
 """Tests for module constants."""
 
-import pytest
-
 
 class TestModuleKeys:
     """Tests for MODULE_KEYS constants."""

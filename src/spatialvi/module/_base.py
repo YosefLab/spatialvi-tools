@@ -7,8 +7,6 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, Literal
 
 import torch
-from torch import nn
-
 from scvi.module.base import BaseModuleClass, LossOutput, auto_move_data
 
 if TYPE_CHECKING:
@@ -211,7 +209,6 @@ class BaseSpatialModule(BaseModuleClass):
         Aggregated neighbor features of shape (n_cells, n_features).
         """
         n_cells, n_features = x.shape
-        n_neighbors = neighbor_indices.shape[1]
 
         # Gather neighbor features
         neighbor_x = x[neighbor_indices.long()]  # (n_cells, n_neighbors, n_features)
@@ -268,15 +265,11 @@ class BaseSpatialModule(BaseModuleClass):
         inference_inputs = self._get_inference_input(tensors, **get_inference_input_kwargs)
         inference_outputs = self.inference(**inference_inputs, **inference_kwargs)
 
-        generative_inputs = self._get_generative_input(
-            tensors, inference_outputs, **get_generative_input_kwargs
-        )
+        generative_inputs = self._get_generative_input(tensors, inference_outputs, **get_generative_input_kwargs)
         generative_outputs = self.generative(**generative_inputs, **generative_kwargs)
 
         if compute_loss:
-            losses = self.loss(
-                tensors, inference_outputs, generative_outputs, **loss_kwargs
-            )
+            losses = self.loss(tensors, inference_outputs, generative_outputs, **loss_kwargs)
             return inference_outputs, generative_outputs, losses
 
         return inference_outputs, generative_outputs

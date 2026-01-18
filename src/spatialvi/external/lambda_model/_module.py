@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from anndata import AnnData
@@ -148,11 +148,10 @@ Please refine your annotation if needed, or confirm the previous one."""
 
         if scores is not None:
             gene_list = "\n".join(
-                f"{i+1}. {g} (score: {s:.3f})"
-                for i, (g, s) in enumerate(zip(genes, scores))
+                f"{i + 1}. {g} (score: {s:.3f})" for i, (g, s) in enumerate(zip(genes, scores, strict=False))
             )
         else:
-            gene_list = "\n".join(f"{i+1}. {g}" for i, g in enumerate(genes))
+            gene_list = "\n".join(f"{i + 1}. {g}" for i, g in enumerate(genes))
 
         return cls.ANNOTATION_TEMPLATE.format(
             organism_text=organism_text,
@@ -179,7 +178,7 @@ class LambdaAnnotator:
 
     def extract_marker_genes(
         self,
-        adata: "AnnData",
+        adata: AnnData,
         cluster_key: str,
         cluster_id: str,
     ) -> tuple[list[str], list[float]]:

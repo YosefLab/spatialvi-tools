@@ -17,16 +17,16 @@ logger = logging.getLogger(__name__)
 
 
 def plot_spatial(
-    adata: "AnnData",
+    adata: AnnData,
     color: str | list[str] | None = None,
     spatial_key: str = "spatial",
     size: float = 1.0,
     alpha: float = 1.0,
     cmap: str = "viridis",
-    ax: "Axes" | None = None,
+    ax: Axes | None = None,
     show: bool = True,
     **kwargs,
-) -> "Axes" | None:
+) -> Axes | None:
     """Plot cells in spatial coordinates.
 
     Parameters
@@ -72,56 +72,53 @@ def plot_spatial(
             # Pandas Categorical
             codes = values.cat.codes.values
             categories = values.cat.categories.tolist()
-            scatter = ax.scatter(
-                coords[:, 0], coords[:, 1],
-                c=codes, s=size, alpha=alpha,
-                cmap="tab20", **kwargs
-            )
+            scatter = ax.scatter(coords[:, 0], coords[:, 1], c=codes, s=size, alpha=alpha, cmap="tab20", **kwargs)
             # Add legend
             handles = [
-                plt.Line2D([0], [0], marker='o', color='w',
-                          markerfacecolor=plt.cm.tab20(i / len(categories)),
-                          markersize=8, label=cat)
+                plt.Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color="w",
+                    markerfacecolor=plt.cm.tab20(i / len(categories)),
+                    markersize=8,
+                    label=cat,
+                )
                 for i, cat in enumerate(categories)
             ]
-            ax.legend(handles=handles, loc='center left', bbox_to_anchor=(1, 0.5))
+            ax.legend(handles=handles, loc="center left", bbox_to_anchor=(1, 0.5))
         elif values.dtype == object or values.dtype.name == "category":
             # Object dtype or uncategorized strings - convert to codes
             import pandas as pd
+
             cat_values = pd.Categorical(values)
             codes = cat_values.codes
             categories = cat_values.categories.tolist()
-            scatter = ax.scatter(
-                coords[:, 0], coords[:, 1],
-                c=codes, s=size, alpha=alpha,
-                cmap="tab20", **kwargs
-            )
+            scatter = ax.scatter(coords[:, 0], coords[:, 1], c=codes, s=size, alpha=alpha, cmap="tab20", **kwargs)
             # Add legend
             handles = [
-                plt.Line2D([0], [0], marker='o', color='w',
-                          markerfacecolor=plt.cm.tab20(i / len(categories)),
-                          markersize=8, label=cat)
+                plt.Line2D(
+                    [0],
+                    [0],
+                    marker="o",
+                    color="w",
+                    markerfacecolor=plt.cm.tab20(i / len(categories)),
+                    markersize=8,
+                    label=cat,
+                )
                 for i, cat in enumerate(categories)
             ]
-            ax.legend(handles=handles, loc='center left', bbox_to_anchor=(1, 0.5))
+            ax.legend(handles=handles, loc="center left", bbox_to_anchor=(1, 0.5))
         else:
             # Numeric values
-            scatter = ax.scatter(
-                coords[:, 0], coords[:, 1],
-                c=values.values, s=size, alpha=alpha,
-                cmap=cmap, **kwargs
-            )
+            scatter = ax.scatter(coords[:, 0], coords[:, 1], c=values.values, s=size, alpha=alpha, cmap=cmap, **kwargs)
             plt.colorbar(scatter, ax=ax, label=color)
     elif color in adata.var_names:
         gene_idx = adata.var_names.get_loc(color)
         values = adata.X[:, gene_idx]
         if hasattr(values, "toarray"):
             values = values.toarray().flatten()
-        scatter = ax.scatter(
-            coords[:, 0], coords[:, 1],
-            c=values, s=size, alpha=alpha,
-            cmap=cmap, **kwargs
-        )
+        scatter = ax.scatter(coords[:, 0], coords[:, 1], c=values, s=size, alpha=alpha, cmap=cmap, **kwargs)
         plt.colorbar(scatter, ax=ax, label=color)
     else:
         raise ValueError(f"'{color}' not found in obs or var_names")
@@ -139,7 +136,7 @@ def plot_spatial(
 
 
 def plot_proportions(
-    adata: "AnnData",
+    adata: AnnData,
     proportions_key: str = "proportions",
     spatial_key: str = "spatial",
     cell_types: list[str] | None = None,
@@ -148,7 +145,7 @@ def plot_proportions(
     cmap: str = "Reds",
     show: bool = True,
     **kwargs,
-) -> "Figure" | None:
+) -> Figure | None:
     """Plot cell type proportions in spatial coordinates.
 
     Parameters
@@ -204,15 +201,11 @@ def plot_proportions(
     fig, axes = plt.subplots(nrows, ncols, figsize=(5 * ncols, 5 * nrows))
     axes = axes.flatten() if n_types > 1 else [axes]
 
-    for i, (ct, ct_idx) in enumerate(zip(cell_types, prop_indices)):
+    for i, (ct, ct_idx) in enumerate(zip(cell_types, prop_indices, strict=False)):
         ax = axes[i]
         values = proportions[:, ct_idx]
 
-        scatter = ax.scatter(
-            coords[:, 0], coords[:, 1],
-            c=values, s=size, cmap=cmap,
-            vmin=0, vmax=1, **kwargs
-        )
+        scatter = ax.scatter(coords[:, 0], coords[:, 1], c=values, s=size, cmap=cmap, vmin=0, vmax=1, **kwargs)
         plt.colorbar(scatter, ax=ax)
         ax.set_title(ct)
         ax.set_aspect("equal")
@@ -231,16 +224,16 @@ def plot_proportions(
 
 
 def plot_interactions(
-    interaction_matrix: "NDArray",
+    interaction_matrix: NDArray,
     cell_types: list[str],
     cmap: str = "coolwarm",
     vmin: float | None = None,
     vmax: float | None = None,
     annot: bool = True,
-    ax: "Axes" | None = None,
+    ax: Axes | None = None,
     show: bool = True,
     **kwargs,
-) -> "Axes" | None:
+) -> Axes | None:
     """Plot cell-cell interaction matrix.
 
     Parameters
@@ -276,6 +269,7 @@ def plot_interactions(
     # Use seaborn if available
     try:
         import seaborn as sns
+
         sns.heatmap(
             interaction_matrix,
             xticklabels=cell_types,
@@ -299,8 +293,7 @@ def plot_interactions(
         if annot:
             for i in range(len(cell_types)):
                 for j in range(len(cell_types)):
-                    ax.text(j, i, f"{interaction_matrix[i, j]:.2f}",
-                           ha="center", va="center", fontsize=8)
+                    ax.text(j, i, f"{interaction_matrix[i, j]:.2f}", ha="center", va="center", fontsize=8)
 
     ax.set_xlabel("Receiver")
     ax.set_ylabel("Sender")
@@ -315,16 +308,16 @@ def plot_interactions(
 
 
 def plot_niche_composition(
-    adata: "AnnData",
+    adata: AnnData,
     composition_key: str = "niche_composition",
     spatial_key: str = "spatial",
     method: Literal["pie", "stacked", "dominant"] = "dominant",
     cell_types: list[str] | None = None,
     size: float = 50,
-    ax: "Axes" | None = None,
+    ax: Axes | None = None,
     show: bool = True,
     **kwargs,
-) -> "Axes" | None:
+) -> Axes | None:
     """Plot niche composition in spatial coordinates.
 
     Parameters
@@ -378,19 +371,15 @@ def plot_niche_composition(
 
     if method == "dominant":
         dominant = np.argmax(composition, axis=1)
-        scatter = ax.scatter(
-            coords[:, 0], coords[:, 1],
-            c=dominant, s=size,
-            cmap="tab20", **kwargs
-        )
+        ax.scatter(coords[:, 0], coords[:, 1], c=dominant, s=size, cmap="tab20", **kwargs)
         # Legend
         handles = [
-            plt.Line2D([0], [0], marker='o', color='w',
-                      markerfacecolor=plt.cm.tab20(i / n_types),
-                      markersize=8, label=ct)
+            plt.Line2D(
+                [0], [0], marker="o", color="w", markerfacecolor=plt.cm.tab20(i / n_types), markersize=8, label=ct
+            )
             for i, ct in enumerate(cell_types)
         ]
-        ax.legend(handles=handles, loc='center left', bbox_to_anchor=(1, 0.5))
+        ax.legend(handles=handles, loc="center left", bbox_to_anchor=(1, 0.5))
 
     elif method == "pie":
         # Small pie charts at each location (works best for sparse grids)
@@ -415,8 +404,7 @@ def plot_niche_composition(
                 if prop > 0.01:  # Skip very small slices
                     end_angle = start_angle + prop * 360
                     wedge = Wedge(
-                        (x, y), radius, start_angle, end_angle,
-                        facecolor=colors[j], edgecolor='white', linewidth=0.5
+                        (x, y), radius, start_angle, end_angle, facecolor=colors[j], edgecolor="white", linewidth=0.5
                     )
                     ax.add_patch(wedge)
                     start_angle = end_angle

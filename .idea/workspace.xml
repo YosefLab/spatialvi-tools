@@ -4,82 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="3fb75dcb-497d-40a1-b05a-3556b5b1dde7" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.codecov.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.codespell-ignore-words" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.cruft.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.editorconfig" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/bug_report.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/bug_report.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/config.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/feature_request.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/feature_request.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/ISSUE_TEMPLATE/release_checklist.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/pull_request_template.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/build.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/ci.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/codeql.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/docs.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/release.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/test_linux.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/test_macos.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.github/workflows/test_windows.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/spatialvi-tools.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.markdownlint.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.pre-commit-config.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.readthedocs.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vscode/extensions.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vscode/launch.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.vscode/settings.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CHANGELOG.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CONTRIBUTING.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/biome.jsonc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/_static/.gitkeep" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/_static/css/custom.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/_templates/.gitkeep" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/_templates/autosummary/class.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/extensions/typed_returns.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/api_reference_spatialvi_tools.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/data.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/index.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/index.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/models.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/modules.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/nn.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/train.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/api/utils.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/changelog.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/conf.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/index.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/index.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/installation.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/references.bib" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/references.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/tutorials/basic_workflow.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/tutorials/cell_cell_interactions.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/tutorials/index.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/tutorials/spatial_deconvolution.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/user_guide/analysis.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/user_guide/contributing.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/user_guide/installation.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/user_guide/model_training.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/source/user_guide/quickstart.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/spatialvi_project_structure.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/tutorials/amici_tutorial.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/tutorials/cell2location_tutorial.ipynb" afterDir="false" />
+    <list default="true" id="3fb75dcb-497d-40a1-b05a-3556b5b1dde7" name="Changes" comment="updates with pre-commits errors">
       <change afterPath="$PROJECT_DIR$/docs/tutorials/destvi_tutorial.ipynb" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/docs/tutorials/harreman_tutorial.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/tutorials/index.md" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/docs/tutorials/lambda_tutorial.ipynb" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/docs/tutorials/nolan_tutorial.ipynb" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/docs/tutorials/ppi_tutorial.ipynb" afterDir="false" />
@@ -87,143 +14,120 @@
       <change afterPath="$PROJECT_DIR$/docs/tutorials/scviva_tutorial.ipynb" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/docs/tutorials/sparl_tutorial.ipynb" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/docs/tutorials/starfysh_tutorial.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/tutorials/stereoscope_tutorial.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/tutorials/tangram_tutorial.ipynb" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/docs/tutorials/vivs_tutorial.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/_constants.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/_settings.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/data/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/data/_datasets.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/data/_fields.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/data/_preprocessing.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/amici/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/amici/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/amici/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/amici/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/destvi/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/destvi/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/destvi/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/destvi/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/harreman/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/harreman/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/harreman/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/harreman/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/harreman/api_reference_spatialvi_tools.rst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/nolan/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/nolan/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/nolan/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/nolan/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/ppi/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/ppi/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/ppi/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/ppi/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/resolvi/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_components.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_constants.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/sparl/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/sparl/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/sparl/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/sparl/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/starfysh/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/starfysh/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/starfysh/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/starfysh/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/vivs/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/vivs/_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/vivs/_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/external/vivs/_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/model/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/model/_spatial_vae.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/model/base/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_base_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_embedding_mixin.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_mixins.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_training_mixins.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_vaemixin.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/module/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/module/_base.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/module/_constants.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/module/_deconv_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/module/_niche_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/module/_spatial_vae.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/nn/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/nn/_attention.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/nn/_decoders.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/nn/_encoders.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/nn/_layers.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/train/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/train/_callbacks.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/train/_training_plans.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/utils/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/utils/_metrics.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/spatialvi/utils/_visualization.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/amici/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/amici/test_amici.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/amici/test_amici_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/destvi/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/destvi/test_destvi_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/destvi/test_destvi_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/harreman/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/harreman/test_harreman.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/harreman/test_harreman_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/lambda/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/lambda/test_lambda.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/lambda/test_lambda_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/lambda/test_lambda_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/nolan/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/nolan/test_nolan.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/nolan/test_nolan_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/ppi/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/ppi/test_ppi.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/ppi/test_ppi_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/ppi/test_ppi_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/resolvi/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/resolvi/test_resolvi_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/resolvi/test_resolvi_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/scviva/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/scviva/test_scviva_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/scviva/test_scviva_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/sparl/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/sparl/test_sparl.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/sparl/test_sparl_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/staryfish/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/staryfish/test_starfysh.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/test_wrappers.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/vivs/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/external/vivs/test_vivs.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/model/test_mixins.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/model/test_spatial_vae.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/module/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/module/test_amici_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/module/test_constants.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/module/test_deconv_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/module/test_niche_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/module/test_spatial_vae_module.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/nn/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/nn/test_attention.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/nn/test_encoders.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_data.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_imports.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_modules.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_nn.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/spatialvi-tools.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/spatialvi-tools.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/biome.jsonc" beforeDir="false" afterPath="$PROJECT_DIR$/biome.jsonc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/user_guide/installation.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/user_guide/installation.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/tutorials/amici_tutorial.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/docs/tutorials/amici_tutorial.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/tutorials/index.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/tutorials/index.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/_constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/_constants.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/_settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/_settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/data/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/data/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/data/_datasets.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/data/_datasets.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/data/_fields.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/data/_fields.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/data/_preprocessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/data/_preprocessing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/amici/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/amici/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/amici/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/amici/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/amici/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/amici/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/destvi/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/destvi/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/destvi/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/destvi/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/destvi/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/destvi/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/harreman/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/harreman/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/harreman/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/harreman/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/harreman/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/harreman/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/lambda_model/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/nolan/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/nolan/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/nolan/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/nolan/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/nolan/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/nolan/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/ppi/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/ppi/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/ppi/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/ppi/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/ppi/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/ppi/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/resolvi/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/scviva/_components.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_components.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/scviva/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/scviva/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/scviva/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/scviva/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/sparl/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/sparl/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/sparl/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/sparl/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/sparl/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/sparl/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/starfysh/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/starfysh/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/starfysh/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/starfysh/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/vivs/_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/vivs/_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/vivs/_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/vivs/_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/external/vivs/_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/external/vivs/_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/model/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/model/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/model/_spatial_vae.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/model/_spatial_vae.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/model/base/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/model/base/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/model/base/_base_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_base_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/model/base/_embedding_mixin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_embedding_mixin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/model/base/_mixins.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_mixins.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/model/base/_training_mixins.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_training_mixins.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/model/base/_vaemixin.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/model/base/_vaemixin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/module/_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/module/_base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/module/_deconv_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/module/_deconv_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/module/_niche_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/module/_niche_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/module/_spatial_vae.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/module/_spatial_vae.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/nn/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/nn/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/nn/_attention.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/nn/_attention.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/nn/_decoders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/nn/_decoders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/nn/_encoders.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/nn/_encoders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/nn/_layers.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/nn/_layers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/train/_callbacks.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/train/_callbacks.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/train/_training_plans.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/train/_training_plans.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/utils/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/utils/_metrics.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/utils/_metrics.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/spatialvi/utils/_visualization.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/spatialvi/utils/_visualization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/amici/test_amici.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/amici/test_amici.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/amici/test_amici_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/amici/test_amici_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/destvi/test_destvi_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/destvi/test_destvi_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/destvi/test_destvi_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/destvi/test_destvi_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/harreman/test_harreman.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/harreman/test_harreman.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/harreman/test_harreman_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/harreman/test_harreman_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/lambda/test_lambda.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/lambda/test_lambda.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/lambda/test_lambda_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/lambda/test_lambda_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/lambda/test_lambda_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/lambda/test_lambda_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/nolan/test_nolan.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/nolan/test_nolan.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/nolan/test_nolan_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/nolan/test_nolan_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/ppi/test_ppi.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/ppi/test_ppi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/ppi/test_ppi_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/ppi/test_ppi_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/ppi/test_ppi_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/ppi/test_ppi_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/resolvi/test_resolvi_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/resolvi/test_resolvi_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/resolvi/test_resolvi_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/resolvi/test_resolvi_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/scviva/test_scviva_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/scviva/test_scviva_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/scviva/test_scviva_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/scviva/test_scviva_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/sparl/test_sparl.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/sparl/test_sparl.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/sparl/test_sparl_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/sparl/test_sparl_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/staryfish/test_starfysh.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/staryfish/test_starfysh.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/test_wrappers.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/test_wrappers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/external/vivs/test_vivs.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/external/vivs/test_vivs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/model/test_mixins.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/model/test_mixins.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/model/test_spatial_vae.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/model/test_spatial_vae.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/module/test_amici_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/module/test_amici_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/module/test_constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/module/test_constants.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/module/test_deconv_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/module/test_deconv_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/module/test_niche_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/module/test_niche_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/module/test_spatial_vae_module.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/module/test_spatial_vae_module.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/nn/test_attention.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/nn/test_attention.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/nn/test_encoders.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/nn/test_encoders.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_imports.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_imports.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_modules.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_modules.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_nn.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_nn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -240,30 +144,42 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 5
-}]]></component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;ori-kron-wis&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/ori-kron-wis/spatialvi-tools.git&quot;,
+    &quot;accountId&quot;: &quot;2a0a173f-bcfa-424f-b081-3b29e468516a&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 5
+}</component>
   <component name="ProjectId" id="38FMvS9oU0bMCadn5JgDGBmQJcx" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHELLCHECK.PATH": "I do mind",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/orikr/PycharmProjects/spatialvi-tools/.github/workflows"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHELLCHECK.PATH&quot;: &quot;I do mind&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/orikr/PycharmProjects/spatialvi-tools/.github/workflows&quot;
   },
-  "keyToStringList": {
-    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
-      "Shell Script"
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;Shell Script&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/.github/workflows" />
@@ -293,6 +209,20 @@
       <option name="presentableId" value="Default" />
       <updated>1768391096195</updated>
     </task>
+    <task id="LOCAL-00001" summary="Add 1st commit to spatialvi-tools repo">
+      <option name="closed" value="true" />
+      <created>1768736333982</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1768736333982</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Add 1st commit to spatialvi-tools repo" />
+    <MESSAGE value="updates with pre-commits errors" />
+    <option name="LAST_COMMIT_MESSAGE" value="updates with pre-commits errors" />
   </component>
 </project>

@@ -19,7 +19,8 @@ the annotation process.
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from anndata import AnnData
 
@@ -97,10 +98,7 @@ class Lambda:
     @staticmethod
     def _require_agent() -> None:
         if Agent is None:
-            raise ImportError(
-                "The 'LAMBDA' package is not installed. "
-                "Install it with ``pip install LAMBDA``."
-            )
+            raise ImportError("The 'LAMBDA' package is not installed. Install it with ``pip install LAMBDA``.")
 
     def train(self, *args: Any, **kwargs: Any) -> None:
         """Prepare the LAMBDA agent.
@@ -173,7 +171,7 @@ class Lambda:
             self.train()
 
         # Call the annotation method on the Agent
-        res = self._agent.annotate(
+        self._agent.annotate(
             group_key=group_key,
             groups=groups,
             key_is_hierarchical=key_is_hierarchical,

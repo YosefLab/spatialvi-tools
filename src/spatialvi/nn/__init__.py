@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from ._encoders import SpatialEncoder, GraphEncoder, AttentionEncoder
-from ._decoders import SpatialDecoder
 from ._attention import (
-    SpatialAttention,
     CrossAttention,
-    NeighborAttention,
     GATLayer,
+    NeighborAttention,
+    SpatialAttention,
 )
+from ._decoders import SpatialDecoder
+from ._encoders import AttentionEncoder, GraphEncoder, SpatialEncoder
 from ._layers import (
-    SpatialConv,
     GraphConv,
     PositionalEncoding,
+    SpatialConv,
 )
 
 __all__ = [

@@ -36,8 +36,8 @@ class SpatialMetricsCallback(Callback):
 
     def on_train_epoch_end(
         self,
-        trainer: "Trainer",
-        pl_module: "LightningModule",
+        trainer: Trainer,
+        pl_module: LightningModule,
     ) -> None:
         """Compute metrics at epoch end."""
         if (trainer.current_epoch + 1) % self.compute_every_n_epochs != 0:
@@ -75,8 +75,8 @@ class NeighborSamplingCallback(Callback):
 
     def on_train_batch_start(
         self,
-        trainer: "Trainer",
-        pl_module: "LightningModule",
+        trainer: Trainer,
+        pl_module: LightningModule,
         batch: dict,
         batch_idx: int,
     ) -> None:
@@ -114,8 +114,8 @@ class EarlyStoppingOnSpatialLoss(Callback):
 
     def on_validation_epoch_end(
         self,
-        trainer: "Trainer",
-        pl_module: "LightningModule",
+        trainer: Trainer,
+        pl_module: LightningModule,
     ) -> None:
         """Check for improvement."""
         current = trainer.callback_metrics.get(self.monitor)
@@ -130,9 +130,7 @@ class EarlyStoppingOnSpatialLoss(Callback):
         else:
             self.wait_count += 1
             if self.wait_count >= self.patience:
-                logger.info(
-                    f"Early stopping triggered after {trainer.current_epoch} epochs"
-                )
+                logger.info(f"Early stopping triggered after {trainer.current_epoch} epochs")
                 trainer.should_stop = True
 
 
@@ -174,9 +172,7 @@ class SpatialRegularizationScheduler(Callback):
         if self.schedule == "linear":
             return self.initial_weight + progress * (self.final_weight - self.initial_weight)
         elif self.schedule == "cosine":
-            return self.final_weight - (self.final_weight - self.initial_weight) * (
-                1 + np.cos(np.pi * progress)
-            ) / 2
+            return self.final_weight - (self.final_weight - self.initial_weight) * (1 + np.cos(np.pi * progress)) / 2
         elif self.schedule == "step":
             # Step at halfway
             if progress < 0.5:
@@ -188,8 +184,8 @@ class SpatialRegularizationScheduler(Callback):
 
     def on_train_epoch_start(
         self,
-        trainer: "Trainer",
-        pl_module: "LightningModule",
+        trainer: Trainer,
+        pl_module: LightningModule,
     ) -> None:
         """Update spatial weight."""
         weight = self._compute_weight(trainer.current_epoch)

@@ -1,7 +1,6 @@
 """Tests for utility functions."""
 
 import numpy as np
-import pytest
 
 
 class TestMetrics:
@@ -52,10 +51,10 @@ class TestMetrics:
 class TestVisualization:
     """Tests for visualization functions."""
 
-    
     def test_plot_spatial(self, small_spatial_adata):
         """Test spatial plot."""
         import matplotlib
+
         matplotlib.use("Agg")  # Non-interactive backend
 
         from spatialvi.utils import plot_spatial
@@ -66,6 +65,7 @@ class TestVisualization:
     def test_plot_proportions(self, small_spatial_adata):
         """Test proportions plot."""
         import matplotlib
+
         matplotlib.use("Agg")
 
         from spatialvi.utils import plot_proportions
@@ -73,9 +73,7 @@ class TestVisualization:
         # Add fake proportions
         n_types = 3
         adata = small_spatial_adata.copy()
-        adata.obsm["proportions"] = np.random.dirichlet(
-            np.ones(n_types), size=adata.n_obs
-        )
+        adata.obsm["proportions"] = np.random.dirichlet(np.ones(n_types), size=adata.n_obs)
         adata.uns["cell_type_names"] = [f"Type_{i}" for i in range(n_types)]
 
         fig = plot_proportions(adata, show=False)
@@ -84,6 +82,7 @@ class TestVisualization:
     def test_plot_interactions(self):
         """Test interactions plot."""
         import matplotlib
+
         matplotlib.use("Agg")
 
         from spatialvi.utils import plot_interactions

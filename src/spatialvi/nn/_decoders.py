@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import torch
-from torch import nn
-
 from scvi.nn import FCLayers
+from torch import nn
 
 if TYPE_CHECKING:
     pass
@@ -244,16 +243,18 @@ class FactorizedDecoder(nn.Module):
         self.n_factors = n_factors
 
         # Factor-specific decoders
-        self.factor_decoders = nn.ModuleList([
-            FCLayers(
-                n_in=n_input,
-                n_out=n_output,
-                n_layers=n_layers,
-                n_hidden=n_hidden,
-                dropout_rate=dropout_rate,
-            )
-            for _ in range(n_factors)
-        ])
+        self.factor_decoders = nn.ModuleList(
+            [
+                FCLayers(
+                    n_in=n_input,
+                    n_out=n_output,
+                    n_layers=n_layers,
+                    n_hidden=n_hidden,
+                    dropout_rate=dropout_rate,
+                )
+                for _ in range(n_factors)
+            ]
+        )
 
         # Mixing weights decoder
         self.mixing_decoder = nn.Sequential(

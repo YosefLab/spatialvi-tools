@@ -9,29 +9,29 @@
 ## Installation Methods
 
 ### From PyPI (Recommended)
-bash pip install spatialvi-tools``` 
+bash pip install spatialvi-tools```
 
 ### From Source
 ```
 
-bash git clone https://github.com/your-org/spatialvi-tools.git cd spatialvi-tools pip install -e .``` 
+bash git clone https://github.com/your-org/spatialvi-tools.git cd spatialvi-tools pip install -e .```
 
 ### With Development Dependencies
 ```
 
-bash pip install -e ".[dev]"``` 
+bash pip install -e ".[dev]"```
 
 ### With Documentation Dependencies
 ```
 
-bash pip install -e ".[docs]"``` 
+bash pip install -e ".[docs]"```
 
 ## GPU Support
 
 For GPU acceleration, ensure you have CUDA installed and install PyTorch with CUDA support:
 ```
 
-bash pip install torch --index-url https://download.pytorch.org/whl/cu118``` 
+bash pip install torch --index-url https://download.pytorch.org/whl/cu118```
 
 ## Verifying Installation
 ```

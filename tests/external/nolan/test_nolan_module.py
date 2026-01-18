@@ -1,7 +1,6 @@
 """Comprehensive tests for Nolan module and utilities."""
 
 import numpy as np
-import pytest
 import torch
 
 
@@ -142,11 +141,7 @@ class TestNicheClusteringHead:
         assert "cluster_ids" in outputs
         assert outputs["assignments"].shape == (batch_size, 20)
         # Should be probabilities (softmax)
-        assert torch.allclose(
-            outputs["assignments"].sum(dim=1),
-            torch.ones(batch_size),
-            atol=1e-5
-        )
+        assert torch.allclose(outputs["assignments"].sum(dim=1), torch.ones(batch_size), atol=1e-5)
 
     def test_hard_assignment(self):
         """Test hard cluster assignment."""
@@ -164,9 +159,7 @@ class TestNicheClusteringHead:
         outputs = head(x)
 
         # Hard assignment should be one-hot
-        assert torch.all(
-            outputs["assignments"].sum(dim=1) == torch.ones(batch_size)
-        )
+        assert torch.all(outputs["assignments"].sum(dim=1) == torch.ones(batch_size))
 
 
 class TestNolanContrastiveLoss:
@@ -221,9 +214,7 @@ class TestNolanUtils:
 
         adata = small_spatial_adata.copy()
 
-        radius, mean_count, max_count = compute_grid_size(
-            adata, spatial_key="spatial", expected_num_cells=10
-        )
+        radius, mean_count, max_count = compute_grid_size(adata, spatial_key="spatial", expected_num_cells=10)
 
         assert isinstance(radius, (float, np.floating))
         assert radius > 0
@@ -254,9 +245,7 @@ class TestNolanUtils:
         from spatialvi.external.nolan import create_niche_graph
 
         adata = small_spatial_adata.copy()
-        adata.obs["niche_cluster"] = np.random.choice(
-            ["N1", "N2", "N3"], adata.n_obs
-        )
+        adata.obs["niche_cluster"] = np.random.choice(["N1", "N2", "N3"], adata.n_obs)
 
         graph = create_niche_graph(
             adata,
@@ -273,12 +262,8 @@ class TestNolanUtils:
         from spatialvi.external.nolan import evaluate_niche_clustering
 
         adata = small_spatial_adata.copy()
-        adata.obs["niche_cluster"] = np.random.choice(
-            ["N1", "N2", "N3"], adata.n_obs
-        )
-        adata.obs["cell_type"] = np.random.choice(
-            ["A", "B", "C"], adata.n_obs
-        )
+        adata.obs["niche_cluster"] = np.random.choice(["N1", "N2", "N3"], adata.n_obs)
+        adata.obs["cell_type"] = np.random.choice(["A", "B", "C"], adata.n_obs)
 
         metrics = evaluate_niche_clustering(
             adata,
@@ -302,7 +287,7 @@ class TestNolanModelWrapper:
 
     def test_import_module(self):
         """Test module import."""
-        from spatialvi.external.nolan import NolanModule, NicheClusteringHead
+        from spatialvi.external.nolan import NicheClusteringHead, NolanModule
 
         assert NolanModule is not None
         assert NicheClusteringHead is not None

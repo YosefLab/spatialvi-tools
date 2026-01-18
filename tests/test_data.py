@@ -2,7 +2,6 @@
 
 import numpy as np
 import pytest
-from scipy.sparse import csr_matrix
 
 
 class TestSyntheticData:
@@ -158,9 +157,7 @@ class TestPreprocessingNicheComposition:
 
         adata = spatial_adata_with_neighbors.copy()
         adata.obs["cell_type"] = adata.obs["cell_type"].astype("category")
-        compute_niche_composition(
-            adata, labels_key="cell_type", composition_key="custom_comp"
-        )
+        compute_niche_composition(adata, labels_key="cell_type", composition_key="custom_comp")
 
         assert "custom_comp" in adata.obsm
 
@@ -270,9 +267,7 @@ class TestPreprocessingNoise:
         add_spatial_noise(adata1, seed=42)
         add_spatial_noise(adata2, seed=42)
 
-        np.testing.assert_array_equal(
-            adata1.obsm["spatial"], adata2.obsm["spatial"]
-        )
+        np.testing.assert_array_equal(adata1.obsm["spatial"], adata2.obsm["spatial"])
 
 
 class TestNeighborExpression:
@@ -289,9 +284,7 @@ class TestNeighborExpression:
         assert (neighbor_expr >= 0).all()
 
     @pytest.mark.parametrize("aggregation", ["mean", "sum", "max"])
-    def test_get_neighbor_expression_aggregations(
-        self, spatial_adata_with_neighbors, aggregation
-    ):
+    def test_get_neighbor_expression_aggregations(self, spatial_adata_with_neighbors, aggregation):
         """Test different aggregation methods."""
         from spatialvi.data import get_neighbor_expression
 

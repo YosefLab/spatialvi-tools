@@ -106,7 +106,7 @@ def build_interaction_matrix(
 
     # Compute enrichment (log odds ratio)
     observed = interaction_counts / interaction_counts.sum()
-    with np.errstate(divide='ignore', invalid='ignore'):
+    with np.errstate(divide="ignore", invalid="ignore"):
         enrichment = np.log2((observed + 1e-8) / (expected + 1e-8))
         enrichment = np.nan_to_num(enrichment, nan=0, posinf=0, neginf=0)
 
@@ -135,11 +135,9 @@ def compute_interaction_strength(
     Dictionary mapping cell type pairs to interaction strength.
     """
     if hasattr(labels, "codes"):
-        label_codes = labels.codes
         label_names = labels.categories.tolist()
     else:
         unique_labels = np.unique(labels)
-        label_codes = np.searchsorted(unique_labels, labels)
         label_names = unique_labels.tolist()
 
     # Aggregate attention by cell type pairs

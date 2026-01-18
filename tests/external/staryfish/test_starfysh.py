@@ -1,7 +1,6 @@
 """Comprehensive tests for Starfysh model, module, and utilities."""
 
 import numpy as np
-import pytest
 import torch
 
 
@@ -66,9 +65,7 @@ class TestStarfyshModuleForward:
         x = torch.randn(batch_size, 100).abs()
         tensors = {"X": x}
 
-        inference_outputs, generative_outputs, loss = module(
-            tensors, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss = module(tensors, compute_loss=True)
 
         assert "proportions" in inference_outputs
         assert "concentration" in inference_outputs
@@ -106,14 +103,10 @@ class TestStarfyshUtils:
         from spatialvi.external.starfysh import compute_reference_signatures
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["A", "B", "C"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["A", "B", "C"], adata.n_obs)
         adata.obs["cell_type"] = adata.obs["cell_type"].astype("category")
 
-        signatures, cell_types = compute_reference_signatures(
-            adata, cell_type_key="cell_type"
-        )
+        signatures, cell_types = compute_reference_signatures(adata, cell_type_key="cell_type")
 
         assert signatures.shape[0] == 3  # 3 cell types
         assert signatures.shape[1] == adata.n_vars
@@ -124,13 +117,9 @@ class TestStarfyshUtils:
         from spatialvi.external.starfysh import find_marker_genes
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["A", "B", "C"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["A", "B", "C"], adata.n_obs)
 
-        markers = find_marker_genes(
-            adata, cell_type_key="cell_type", n_markers=5
-        )
+        markers = find_marker_genes(adata, cell_type_key="cell_type", n_markers=5)
 
         assert isinstance(markers, dict)
         assert len(markers) == 3
@@ -143,14 +132,10 @@ class TestStarfyshUtils:
 
         adata_spatial = small_spatial_adata.copy()
         adata_ref = small_spatial_adata.copy()
-        adata_ref.obs["cell_type"] = np.random.choice(
-            ["A", "B", "C"], adata_ref.n_obs
-        )
+        adata_ref.obs["cell_type"] = np.random.choice(["A", "B", "C"], adata_ref.n_obs)
         adata_ref.obs["cell_type"] = adata_ref.obs["cell_type"].astype("category")
 
-        common_genes, cell_types = validate_input_data(
-            adata_spatial, adata_ref, cell_type_key="cell_type"
-        )
+        common_genes, cell_types = validate_input_data(adata_spatial, adata_ref, cell_type_key="cell_type")
 
         assert len(common_genes) > 0
         assert len(cell_types) == 3
@@ -166,9 +151,7 @@ class TestStarfyshUtils:
 
         assert counts.shape == proportions.shape
         # Should be approximately correct
-        np.testing.assert_array_almost_equal(
-            counts, np.array([[50, 30, 20], [20, 140, 40]]), decimal=0
-        )
+        np.testing.assert_array_almost_equal(counts, np.array([[50, 30, 20], [20, 140, 40]]), decimal=0)
 
     def test_evaluate_deconvolution(self):
         """Test deconvolution evaluation."""
@@ -201,15 +184,9 @@ class TestStarfyshModelWrapper:
 
         adata_spatial = small_spatial_adata.copy()
         adata_ref = small_spatial_adata.copy()
-        adata_ref.obs["cell_type"] = np.random.choice(
-            ["A", "B", "C"], adata_ref.n_obs
-        )
+        adata_ref.obs["cell_type"] = np.random.choice(["A", "B", "C"], adata_ref.n_obs)
         adata_ref.obs["cell_type"] = adata_ref.obs["cell_type"].astype("category")
 
-        model = Starfysh(
-            adata_spatial=adata_spatial,
-            adata_ref=adata_ref,
-            cell_type_key="cell_type"
-        )
+        model = Starfysh(adata_spatial=adata_spatial, adata_ref=adata_ref, cell_type_key="cell_type")
 
         assert model is not None

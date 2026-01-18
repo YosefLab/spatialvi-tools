@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Sequence
 
     from anndata import AnnData
     from numpy.typing import NDArray
@@ -260,9 +260,7 @@ class VAEMixin:
             inference_inputs = self.module._get_inference_input(tensors)
             inference_outputs = self.module.inference(**inference_inputs, **kwargs)
 
-            gen_inputs = self.module._get_generative_input(
-                tensors, inference_outputs, **kwargs
-            )
+            gen_inputs = self.module._get_generative_input(tensors, inference_outputs, **kwargs)
             gen_outputs = self.module.generative(**gen_inputs, **kwargs)
 
             # Get the scale/rate parameter
@@ -274,9 +272,7 @@ class VAEMixin:
                 scale = gen_outputs.get("scale", gen_outputs.get("rate"))
 
             if scale is None:
-                raise NotImplementedError(
-                    "This model does not support normalized expression retrieval."
-                )
+                raise NotImplementedError("This model does not support normalized expression retrieval.")
 
             if isinstance(library_size, (int, float)):
                 scale = scale * library_size

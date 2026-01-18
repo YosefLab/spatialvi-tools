@@ -7,8 +7,8 @@ import math
 from typing import TYPE_CHECKING
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
 
 if TYPE_CHECKING:
     pass
@@ -182,7 +182,9 @@ class CrossAttention(nn.Module):
         """
         # Cross-attention
         attn_out, _ = self.attention(
-            query, context, context,
+            query,
+            context,
+            context,
             key_padding_mask=context_mask,
         )
         x = self.norm1(query + attn_out)

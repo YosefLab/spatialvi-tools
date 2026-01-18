@@ -1,7 +1,5 @@
 """Tests for Lambda module components (AnnotationConfig, ClusterAnnotation, etc.)."""
 
-import pytest
-
 
 class TestAnnotationConfig:
     """Tests for AnnotationConfig dataclass."""
@@ -141,9 +139,7 @@ class TestPromptTemplate:
         from spatialvi.external.lambda_model import PromptTemplate
 
         genes = ["CD3E"]
-        prompt = PromptTemplate.format_annotation_prompt(
-            genes, organism="human", location="lung"
-        )
+        prompt = PromptTemplate.format_annotation_prompt(genes, organism="human", location="lung")
 
         assert "human" in prompt
         assert "lung" in prompt

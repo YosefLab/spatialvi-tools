@@ -1,7 +1,7 @@
 """Tests for PPIInference (Prediction-Powered Inference)."""
 
-import pytest
 import numpy as np
+import pytest
 
 
 class TestPPIInference:
@@ -92,9 +92,7 @@ class TestPPIOLSMethods:
         yhat_unlabeled = np.random.randn(n_unlabeled)
 
         try:
-            ci_low, ci_high = PPIInference.ols_ci(
-                X, y, yhat, X_unlabeled, yhat_unlabeled
-            )
+            ci_low, ci_high = PPIInference.ols_ci(X, y, yhat, X_unlabeled, yhat_unlabeled)
             assert len(ci_low) == n_features
             assert len(ci_high) == n_features
         except ImportError:
@@ -115,9 +113,7 @@ class TestPPIOLSMethods:
         yhat_unlabeled = np.random.randn(n_unlabeled)
 
         try:
-            coefs = PPIInference.ols_pointestimate(
-                X, y, yhat, X_unlabeled, yhat_unlabeled
-            )
+            coefs = PPIInference.ols_pointestimate(X, y, yhat, X_unlabeled, yhat_unlabeled)
             assert len(coefs) == n_features
         except ImportError:
             pytest.skip("ppi_py package not installed")

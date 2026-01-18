@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-import numpy as np
-
 if TYPE_CHECKING:
     from anndata import AnnData
     from numpy.typing import NDArray
@@ -17,34 +15,120 @@ logger = logging.getLogger(__name__)
 # Default metabolic gene sets by pathway
 METABOLIC_PATHWAYS = {
     "glycolysis": [
-        "HK1", "HK2", "GPI", "PFKL", "PFKM", "PFKP", "ALDOA", "ALDOB", "ALDOC",
-        "GAPDH", "PGK1", "PGAM1", "PGAM2", "ENO1", "ENO2", "ENO3", "PKM", "PKLR",
-        "LDHA", "LDHB", "LDHC",
+        "HK1",
+        "HK2",
+        "GPI",
+        "PFKL",
+        "PFKM",
+        "PFKP",
+        "ALDOA",
+        "ALDOB",
+        "ALDOC",
+        "GAPDH",
+        "PGK1",
+        "PGAM1",
+        "PGAM2",
+        "ENO1",
+        "ENO2",
+        "ENO3",
+        "PKM",
+        "PKLR",
+        "LDHA",
+        "LDHB",
+        "LDHC",
     ],
     "tca_cycle": [
-        "CS", "ACO1", "ACO2", "IDH1", "IDH2", "IDH3A", "IDH3B", "IDH3G",
-        "OGDH", "OGDHL", "SUCLA2", "SUCLG1", "SUCLG2", "SDHA", "SDHB", "SDHC", "SDHD",
-        "FH", "MDH1", "MDH2",
+        "CS",
+        "ACO1",
+        "ACO2",
+        "IDH1",
+        "IDH2",
+        "IDH3A",
+        "IDH3B",
+        "IDH3G",
+        "OGDH",
+        "OGDHL",
+        "SUCLA2",
+        "SUCLG1",
+        "SUCLG2",
+        "SDHA",
+        "SDHB",
+        "SDHC",
+        "SDHD",
+        "FH",
+        "MDH1",
+        "MDH2",
     ],
     "oxidative_phosphorylation": [
-        "NDUFA1", "NDUFA2", "NDUFB1", "NDUFB2", "NDUFS1", "NDUFS2", "NDUFS3",
-        "UQCRC1", "UQCRC2", "UQCRFS1", "UQCRQ",
-        "COX4I1", "COX4I2", "COX5A", "COX5B", "COX6A1", "COX6B1", "COX7A1",
-        "ATP5A1", "ATP5B", "ATP5C1", "ATP5D", "ATP5E", "ATP5F1",
+        "NDUFA1",
+        "NDUFA2",
+        "NDUFB1",
+        "NDUFB2",
+        "NDUFS1",
+        "NDUFS2",
+        "NDUFS3",
+        "UQCRC1",
+        "UQCRC2",
+        "UQCRFS1",
+        "UQCRQ",
+        "COX4I1",
+        "COX4I2",
+        "COX5A",
+        "COX5B",
+        "COX6A1",
+        "COX6B1",
+        "COX7A1",
+        "ATP5A1",
+        "ATP5B",
+        "ATP5C1",
+        "ATP5D",
+        "ATP5E",
+        "ATP5F1",
     ],
     "amino_acid_metabolism": [
-        "GOT1", "GOT2", "GPT", "GPT2", "GLS", "GLS2", "GLUD1", "GLUD2",
-        "BCAT1", "BCAT2", "ASNS", "ASS1", "ASL",
+        "GOT1",
+        "GOT2",
+        "GPT",
+        "GPT2",
+        "GLS",
+        "GLS2",
+        "GLUD1",
+        "GLUD2",
+        "BCAT1",
+        "BCAT2",
+        "ASNS",
+        "ASS1",
+        "ASL",
     ],
     "lipid_metabolism": [
-        "FASN", "ACACA", "ACACB", "SCD", "SCD5", "FADS1", "FADS2",
-        "ACLY", "ACSS2", "ELOVL1", "ELOVL5", "ELOVL6",
+        "FASN",
+        "ACACA",
+        "ACACB",
+        "SCD",
+        "SCD5",
+        "FADS1",
+        "FADS2",
+        "ACLY",
+        "ACSS2",
+        "ELOVL1",
+        "ELOVL5",
+        "ELOVL6",
     ],
     "transporters": [
-        "SLC2A1", "SLC2A2", "SLC2A3", "SLC2A4", "SLC2A5",
-        "SLC16A1", "SLC16A3", "SLC16A7",
-        "SLC1A5", "SLC7A5", "SLC7A11",
-        "SLC25A1", "SLC25A10", "SLC25A11",
+        "SLC2A1",
+        "SLC2A2",
+        "SLC2A3",
+        "SLC2A4",
+        "SLC2A5",
+        "SLC16A1",
+        "SLC16A3",
+        "SLC16A7",
+        "SLC1A5",
+        "SLC7A5",
+        "SLC7A11",
+        "SLC25A1",
+        "SLC25A10",
+        "SLC25A11",
     ],
 }
 
@@ -122,7 +206,7 @@ def filter_genes_by_expression(
     total_counts = X.sum(axis=0)
 
     mask = (cells_expressing >= min_cells) & (total_counts >= min_counts)
-    filtered_genes = [g for g, m in zip(present_genes, mask) if m]
+    filtered_genes = [g for g, m in zip(present_genes, mask, strict=False) if m]
 
     logger.info(f"Filtered from {len(present_genes)} to {len(filtered_genes)} genes")
 
@@ -194,10 +278,7 @@ def compute_exchange_network(
     Dictionary with nodes and edges.
     """
     # Filter
-    df = exchange_df[
-        (exchange_df["mean_expression"] >= min_score) &
-        (exchange_df["n_cells"] >= min_cells)
-    ]
+    df = exchange_df[(exchange_df["mean_expression"] >= min_score) & (exchange_df["n_cells"] >= min_cells)]
 
     # Get unique cell types
     cell_types = list(set(df["sender"].unique()) | set(df["receiver"].unique()))
@@ -205,12 +286,14 @@ def compute_exchange_network(
     # Create edges
     edges = []
     for _, row in df.iterrows():
-        edges.append({
-            "source": row["sender"],
-            "target": row["receiver"],
-            "gene": row["gene"],
-            "weight": row["mean_expression"],
-        })
+        edges.append(
+            {
+                "source": row["sender"],
+                "target": row["receiver"],
+                "gene": row["gene"],
+                "weight": row["mean_expression"],
+            }
+        )
 
     return {
         "nodes": cell_types,

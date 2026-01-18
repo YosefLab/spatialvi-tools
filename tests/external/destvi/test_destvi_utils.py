@@ -2,7 +2,6 @@
 
 import numpy as np
 import pandas as pd
-import pytest
 
 
 class TestDestVIUtils:
@@ -12,11 +11,13 @@ class TestDestVIUtils:
         """Test cell type abundance computation."""
         from spatialvi.external.destvi import compute_cell_type_abundance
 
-        proportions = np.array([
-            [0.5, 0.3, 0.2],
-            [0.2, 0.6, 0.2],
-            [0.3, 0.3, 0.4],
-        ])
+        proportions = np.array(
+            [
+                [0.5, 0.3, 0.2],
+                [0.2, 0.6, 0.2],
+                [0.3, 0.3, 0.4],
+            ]
+        )
 
         abundance = compute_cell_type_abundance(proportions, normalize=True)
 
@@ -27,10 +28,12 @@ class TestDestVIUtils:
         """Test unnormalized abundance computation."""
         from spatialvi.external.destvi import compute_cell_type_abundance
 
-        proportions = np.array([
-            [0.5, 0.3, 0.2],
-            [0.2, 0.6, 0.2],
-        ])
+        proportions = np.array(
+            [
+                [0.5, 0.3, 0.2],
+                [0.2, 0.6, 0.2],
+            ]
+        )
 
         abundance = compute_cell_type_abundance(proportions, normalize=False)
 
@@ -41,11 +44,13 @@ class TestDestVIUtils:
         """Test abundance computation with DataFrame input."""
         from spatialvi.external.destvi import compute_cell_type_abundance
 
-        proportions = pd.DataFrame({
-            "TypeA": [0.5, 0.2],
-            "TypeB": [0.3, 0.6],
-            "TypeC": [0.2, 0.2],
-        })
+        proportions = pd.DataFrame(
+            {
+                "TypeA": [0.5, 0.2],
+                "TypeB": [0.3, 0.6],
+                "TypeC": [0.2, 0.2],
+            }
+        )
 
         abundance = compute_cell_type_abundance(proportions)
 
@@ -58,25 +63,25 @@ class TestDestVIUtils:
         adata = small_spatial_adata.copy()
         proportions = np.random.dirichlet([1, 1, 1], size=adata.n_obs)
 
-        morans_i = compute_spatial_autocorrelation(
-            adata, proportions, spatial_key="spatial", n_neighbors=5
-        )
+        morans_i = compute_spatial_autocorrelation(adata, proportions, spatial_key="spatial", n_neighbors=5)
 
         assert isinstance(morans_i, dict)
         assert len(morans_i) == 3
-        for ct, value in morans_i.items():
+        for _ct, value in morans_i.items():
             assert -1 <= value <= 1  # Moran's I range
 
     def test_identify_dominant_cell_type(self):
         """Test dominant cell type identification."""
         from spatialvi.external.destvi import identify_dominant_cell_type
 
-        proportions = np.array([
-            [0.6, 0.2, 0.2],  # Dominant: 0
-            [0.2, 0.5, 0.3],  # Dominant: 1
-            [0.3, 0.3, 0.4],  # Dominant: 2
-            [0.33, 0.33, 0.34],  # No dominant (below threshold)
-        ])
+        proportions = np.array(
+            [
+                [0.6, 0.2, 0.2],  # Dominant: 0
+                [0.2, 0.5, 0.3],  # Dominant: 1
+                [0.3, 0.3, 0.4],  # Dominant: 2
+                [0.33, 0.33, 0.34],  # No dominant (below threshold)
+            ]
+        )
 
         dominant = identify_dominant_cell_type(proportions, threshold=0.4)
 
@@ -122,9 +127,7 @@ class TestDestVIUtils:
             index=adata.obs_names,
         )
 
-        enrichment = compute_niche_enrichment(
-            adata, proportions, region_key="region"
-        )
+        enrichment = compute_niche_enrichment(adata, proportions, region_key="region")
 
         assert enrichment.shape[0] == 2  # 2 regions
         assert enrichment.shape[1] == 3  # 3 cell types
@@ -171,7 +174,7 @@ class TestDestVIModelWrapper:
 
     def test_import(self):
         """Test that DestVI wrapper can be imported."""
-        from spatialvi.external.destvi import DestVI, CondSCVI
+        from spatialvi.external.destvi import CondSCVI, DestVI
 
         assert DestVI is not None
         assert CondSCVI is not None
@@ -181,10 +184,6 @@ class TestDestVIModelWrapper:
         from spatialvi.external.destvi import (
             compute_cell_type_abundance,
             compute_colocalization,
-            compute_niche_enrichment,
-            compute_spatial_autocorrelation,
-            identify_dominant_cell_type,
-            validate_reference_overlap,
         )
 
         assert compute_cell_type_abundance is not None

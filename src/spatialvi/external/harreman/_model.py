@@ -7,15 +7,13 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
+from anndata import AnnData
 from scipy import stats
 from scipy.sparse import issparse
-
-from anndata import AnnData
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
@@ -82,27 +80,74 @@ class Harreman:
         # Common metabolic genes (glycolysis, TCA, oxidative phosphorylation)
         return [
             # Glycolysis
-            "HK1", "HK2", "GPI", "PFKL", "PFKM", "ALDOA", "ALDOB",
-            "GAPDH", "PGK1", "PGAM1", "ENO1", "ENO2", "PKM", "LDHA", "LDHB",
+            "HK1",
+            "HK2",
+            "GPI",
+            "PFKL",
+            "PFKM",
+            "ALDOA",
+            "ALDOB",
+            "GAPDH",
+            "PGK1",
+            "PGAM1",
+            "ENO1",
+            "ENO2",
+            "PKM",
+            "LDHA",
+            "LDHB",
             # TCA cycle
-            "CS", "ACO1", "ACO2", "IDH1", "IDH2", "IDH3A", "OGDH",
-            "SUCLA2", "SUCLG1", "SDHA", "SDHB", "FH", "MDH1", "MDH2",
+            "CS",
+            "ACO1",
+            "ACO2",
+            "IDH1",
+            "IDH2",
+            "IDH3A",
+            "OGDH",
+            "SUCLA2",
+            "SUCLG1",
+            "SDHA",
+            "SDHB",
+            "FH",
+            "MDH1",
+            "MDH2",
             # Oxidative phosphorylation
-            "NDUFA1", "NDUFB1", "NDUFS1", "NDUFS2", "UQCRC1", "UQCRC2",
-            "COX4I1", "COX5A", "COX6A1", "ATP5A1", "ATP5B", "ATP5C1",
+            "NDUFA1",
+            "NDUFB1",
+            "NDUFS1",
+            "NDUFS2",
+            "UQCRC1",
+            "UQCRC2",
+            "COX4I1",
+            "COX5A",
+            "COX6A1",
+            "ATP5A1",
+            "ATP5B",
+            "ATP5C1",
             # Amino acid metabolism
-            "GOT1", "GOT2", "GPT", "GLS", "GLUD1",
+            "GOT1",
+            "GOT2",
+            "GPT",
+            "GLS",
+            "GLUD1",
             # Lipid metabolism
-            "FASN", "ACACA", "SCD", "FADS1", "FADS2",
+            "FASN",
+            "ACACA",
+            "SCD",
+            "FADS1",
+            "FADS2",
             # Transporters
-            "SLC2A1", "SLC2A3", "SLC16A1", "SLC16A3", "SLC1A5",
+            "SLC2A1",
+            "SLC2A3",
+            "SLC16A1",
+            "SLC16A3",
+            "SLC1A5",
         ]
 
     def fit(
         self,
         n_permutations: int = 100,
         correlation_method: Literal["pearson", "spearman"] = "spearman",
-    ) -> "Harreman":
+    ) -> Harreman:
         """Fit the Harreman model.
 
         Parameters
@@ -168,12 +213,14 @@ class Harreman:
         z_scores = (spatial_corr - null_mean) / null_std
         p_values = 2 * (1 - stats.norm.cdf(np.abs(z_scores)))
 
-        self._exchange_scores = pd.DataFrame({
-            "gene": self.metabolic_genes,
-            "spatial_correlation": spatial_corr,
-            "z_score": z_scores,
-            "p_value": p_values,
-        })
+        self._exchange_scores = pd.DataFrame(
+            {
+                "gene": self.metabolic_genes,
+                "spatial_correlation": spatial_corr,
+                "z_score": z_scores,
+                "p_value": p_values,
+            }
+        )
 
         self._fitted = True
 
@@ -256,8 +303,6 @@ class Harreman:
         else:
             unique_labels = list(np.unique(labels))
 
-        n_types = len(unique_labels)
-
         # Get expression data
         gene_mask = [self.adata.var_names.get_loc(g) for g in self.metabolic_genes]
         X = self.adata.X[:, gene_mask]
@@ -276,8 +321,6 @@ class Harreman:
                 if i == j:
                     continue
 
-                mask2 = labels == j
-
                 # Find cells of type 1 with neighbors of type 2
                 exchange_cells = []
                 for cell_idx in np.where(mask1)[0]:
@@ -293,13 +336,15 @@ class Harreman:
                 mean_expr = X[exchange_cells].mean(axis=0)
 
                 for g, gene in enumerate(self.metabolic_genes):
-                    exchanges.append({
-                        "sender": ct1,
-                        "receiver": ct2,
-                        "gene": gene,
-                        "mean_expression": mean_expr[g],
-                        "n_cells": len(exchange_cells),
-                    })
+                    exchanges.append(
+                        {
+                            "sender": ct1,
+                            "receiver": ct2,
+                            "gene": gene,
+                            "mean_expression": mean_expr[g],
+                            "n_cells": len(exchange_cells),
+                        }
+                    )
 
         return pd.DataFrame(exchanges)
 

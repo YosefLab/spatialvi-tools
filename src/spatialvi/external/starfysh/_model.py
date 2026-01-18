@@ -3,19 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 import torch
+from anndata import AnnData
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
-from anndata import AnnData
-
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
@@ -122,7 +119,7 @@ class Starfysh:
         early_stopping: bool = True,
         patience: int = 20,
         device: str = "auto",
-    ) -> "Starfysh":
+    ) -> Starfysh:
         """Fit the Starfysh model.
 
         Parameters
@@ -240,9 +237,7 @@ class Starfysh:
         sparsity_loss = 0.01 * torch.mean(proportions * torch.log(proportions + 1e-8))
 
         # Entropy regularization (encourage diverse proportions)
-        entropy_loss = -0.01 * torch.mean(
-            torch.sum(proportions * torch.log(proportions + 1e-8), dim=-1)
-        )
+        entropy_loss = -0.01 * torch.mean(torch.sum(proportions * torch.log(proportions + 1e-8), dim=-1))
 
         return recon_loss + sparsity_loss + entropy_loss
 
@@ -341,9 +336,7 @@ class StarfyshModule(nn.Module):
         )
 
         # Cell type-specific factor loadings
-        self.factor_loadings = nn.Parameter(
-            torch.randn(n_cell_types, n_factors, n_genes)
-        )
+        self.factor_loadings = nn.Parameter(torch.randn(n_cell_types, n_factors, n_genes))
 
         # Factor weights per spot
         self.factor_encoder = nn.Linear(n_hidden, n_cell_types * n_factors)

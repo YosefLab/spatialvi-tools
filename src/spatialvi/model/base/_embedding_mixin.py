@@ -85,9 +85,8 @@ class EmbeddingMixin:
                 from umap import UMAP
             except ImportError:
                 raise ImportError(
-                    "umap-learn is required for UMAP embedding. "
-                    "Install via `pip install umap-learn`"
-                )
+                    "umap-learn is required for UMAP embedding. Install via `pip install umap-learn`"
+                ) from None
             reducer = UMAP(n_components=n_components, **kwargs)
         elif method == "tsne":
             from sklearn.manifold import TSNE
@@ -232,9 +231,8 @@ class SpatialEmbeddingMixin(EmbeddingMixin):
             from umap import UMAP
         except ImportError:
             raise ImportError(
-                "umap-learn is required for spatial embedding. "
-                "Install via `pip install umap-learn`"
-            )
+                "umap-learn is required for spatial embedding. Install via `pip install umap-learn`"
+            ) from None
 
         adata = self._validate_anndata(adata)
         if indices is None:

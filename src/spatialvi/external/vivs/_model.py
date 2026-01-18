@@ -3,19 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 import torch
-from torch import nn
-
 from anndata import AnnData
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
-    from numpy.typing import NDArray
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +69,7 @@ class VIVS:
         n_permutations: int = 100,
         batch_size: int = 100,
         use_gpu: bool = False,
-    ) -> "VIVS":
+    ) -> VIVS:
         """Fit the VIVS model.
 
         Parameters
@@ -183,7 +180,6 @@ class VIVS:
         Local variance of shape (n_genes,).
         """
         n_cells, n_genes = X.shape
-        n_neighbors = neighbor_indices.shape[1]
 
         # Get neighbor values
         neighbor_X = X[neighbor_indices.long()]  # (n_cells, n_neighbors, n_genes)
@@ -231,13 +227,15 @@ class VIVS:
         _, fdr, _, _ = multipletests(p_values, method="fdr_bh")
 
         # Create results DataFrame
-        results = pd.DataFrame({
-            "gene": self.adata.var_names,
-            "importance_score": self._importance_scores,
-            "max_z_score": max_z,
-            "p_value": p_values,
-            "fdr": fdr,
-        })
+        results = pd.DataFrame(
+            {
+                "gene": self.adata.var_names,
+                "importance_score": self._importance_scores,
+                "max_z_score": max_z,
+                "p_value": p_values,
+                "fdr": fdr,
+            }
+        )
 
         results = results.sort_values("importance_score", ascending=False)
 
@@ -271,7 +269,7 @@ class VIVS:
         else:
             gene_mask = [self.adata.var_names.get_loc(g) for g in gene_names]
 
-        scale_names = [f"scale_{i+1}" for i in range(self.n_scales)]
+        scale_names = [f"scale_{i + 1}" for i in range(self.n_scales)]
 
         results = pd.DataFrame(
             self._scale_scores[gene_mask],

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def spatial_autocorrelation(
-    adata: "AnnData",
+    adata: AnnData,
     var_names: list[str] | None = None,
     spatial_key: str = "spatial",
     n_neighbors: int = 20,
@@ -73,8 +73,8 @@ def spatial_autocorrelation(
 
 
 def compute_morans_i(
-    values: "NDArray",
-    weights: "NDArray",
+    values: NDArray,
+    weights: NDArray,
 ) -> float:
     """Compute Moran's I statistic.
 
@@ -93,8 +93,8 @@ def compute_morans_i(
 
 
 def compute_gearys_c(
-    values: "NDArray",
-    weights: "NDArray",
+    values: NDArray,
+    weights: NDArray,
 ) -> float:
     """Compute Geary's C statistic.
 
@@ -113,10 +113,10 @@ def compute_gearys_c(
 
 
 def _build_spatial_weights(
-    adata: "AnnData",
+    adata: AnnData,
     spatial_key: str,
     n_neighbors: int,
-) -> "NDArray":
+) -> NDArray:
     """Build spatial weight matrix."""
     from sklearn.neighbors import NearestNeighbors
 
@@ -141,12 +141,12 @@ def _build_spatial_weights(
     return W
 
 
-def _compute_moran(x: "NDArray", W: "NDArray") -> float:
+def _compute_moran(x: NDArray, W: NDArray) -> float:
     """Compute Moran's I."""
     n = len(x)
     x_dev = x - x.mean()
     num = n * np.sum(W * np.outer(x_dev, x_dev))
-    denom = np.sum(W) * np.sum(x_dev ** 2)
+    denom = np.sum(W) * np.sum(x_dev**2)
 
     if denom == 0:
         return 0.0
@@ -154,7 +154,7 @@ def _compute_moran(x: "NDArray", W: "NDArray") -> float:
     return num / denom
 
 
-def _compute_geary(x: "NDArray", W: "NDArray") -> float:
+def _compute_geary(x: NDArray, W: NDArray) -> float:
     """Compute Geary's C."""
     n = len(x)
     x_dev = x - x.mean()
@@ -163,7 +163,7 @@ def _compute_geary(x: "NDArray", W: "NDArray") -> float:
     diff_sq = np.subtract.outer(x, x) ** 2
 
     num = (n - 1) * np.sum(W * diff_sq)
-    denom = 2 * np.sum(W) * np.sum(x_dev ** 2)
+    denom = 2 * np.sum(W) * np.sum(x_dev**2)
 
     if denom == 0:
         return 1.0
@@ -172,7 +172,7 @@ def _compute_geary(x: "NDArray", W: "NDArray") -> float:
 
 
 def silhouette_spatial(
-    adata: "AnnData",
+    adata: AnnData,
     labels_key: str,
     spatial_key: str = "spatial",
 ) -> float:
@@ -205,7 +205,7 @@ def silhouette_spatial(
 
 
 def niche_purity(
-    adata: "AnnData",
+    adata: AnnData,
     labels_key: str,
     neighbor_key: str = "nn_index",
 ) -> float:
@@ -245,7 +245,7 @@ def niche_purity(
 
 
 def spatial_mixing_score(
-    adata: "AnnData",
+    adata: AnnData,
     batch_key: str,
     neighbor_key: str = "nn_index",
 ) -> float:

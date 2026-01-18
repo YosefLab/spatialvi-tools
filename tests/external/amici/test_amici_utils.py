@@ -1,7 +1,6 @@
 """Comprehensive tests for AMICI utilities."""
 
 import numpy as np
-import pytest
 
 
 class TestAMICIUtils:
@@ -13,9 +12,7 @@ class TestAMICIUtils:
 
         adata = small_spatial_adata.copy()
 
-        indices, distances = compute_interaction_neighbors(
-            adata, spatial_key="spatial", n_neighbors=5
-        )
+        indices, distances = compute_interaction_neighbors(adata, spatial_key="spatial", n_neighbors=5)
 
         assert indices.shape[0] == adata.n_obs
         assert indices.shape[1] == 5
@@ -28,9 +25,7 @@ class TestAMICIUtils:
 
         adata = small_spatial_adata.copy()
 
-        indices, distances = compute_interaction_neighbors(
-            adata, spatial_key="spatial", n_neighbors=5, max_dist=10.0
-        )
+        indices, distances = compute_interaction_neighbors(adata, spatial_key="spatial", n_neighbors=5, max_dist=10.0)
 
         assert indices.shape[0] == adata.n_obs
         # Check that far neighbors are marked as -1
@@ -44,14 +39,10 @@ class TestAMICIUtils:
         )
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["A", "B", "C"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["A", "B", "C"], adata.n_obs)
 
         # First compute neighbors
-        neighbor_indices, _ = compute_interaction_neighbors(
-            adata, spatial_key="spatial", n_neighbors=5
-        )
+        neighbor_indices, _ = compute_interaction_neighbors(adata, spatial_key="spatial", n_neighbors=5)
 
         matrix = build_interaction_matrix(
             adata,
@@ -67,9 +58,7 @@ class TestAMICIUtils:
         from spatialvi.external.amici import compute_interaction_strength
 
         adata = small_spatial_adata.copy()
-        adata.obs["cell_type"] = np.random.choice(
-            ["TypeA", "TypeB"], adata.n_obs
-        )
+        adata.obs["cell_type"] = np.random.choice(["TypeA", "TypeB"], adata.n_obs)
 
         n_neighbors = 5
         attention_weights = np.random.rand(adata.n_obs, n_neighbors)
@@ -106,24 +95,24 @@ class TestAMICIUtils:
 
     def test_filter_expressed_pairs(self, small_spatial_adata):
         """Test filtering of expressed ligand-receptor pairs."""
+        import pandas as pd
+
         from spatialvi.external.amici import (
             filter_expressed_pairs,
-            get_ligand_receptor_pairs,
         )
-        import pandas as pd
 
         adata = small_spatial_adata.copy()
 
         # Create a fake pairs DataFrame using genes from adata
-        pairs = pd.DataFrame({
-            "ligand": [adata.var_names[0], adata.var_names[2]],
-            "receptor": [adata.var_names[1], adata.var_names[3]],
-            "category": ["test", "test"],
-        })
-
-        filtered = filter_expressed_pairs(
-            adata, pairs, min_pct=0.0
+        pairs = pd.DataFrame(
+            {
+                "ligand": [adata.var_names[0], adata.var_names[2]],
+                "receptor": [adata.var_names[1], adata.var_names[3]],
+                "category": ["test", "test"],
+            }
         )
+
+        filtered = filter_expressed_pairs(adata, pairs, min_pct=0.0)
 
         assert isinstance(filtered, pd.DataFrame)
         assert "ligand" in filtered.columns
@@ -131,22 +120,23 @@ class TestAMICIUtils:
 
     def test_filter_expressed_pairs_with_threshold(self, small_spatial_adata):
         """Test filtering with expression threshold."""
-        from spatialvi.external.amici import filter_expressed_pairs
         import pandas as pd
+
+        from spatialvi.external.amici import filter_expressed_pairs
 
         adata = small_spatial_adata.copy()
 
         # Create pairs using genes from adata
-        pairs = pd.DataFrame({
-            "ligand": [adata.var_names[0]],
-            "receptor": [adata.var_names[1]],
-            "category": ["test"],
-        })
+        pairs = pd.DataFrame(
+            {
+                "ligand": [adata.var_names[0]],
+                "receptor": [adata.var_names[1]],
+                "category": ["test"],
+            }
+        )
 
         # With high threshold, may filter out pairs
-        filtered = filter_expressed_pairs(
-            adata, pairs, min_pct=0.5
-        )
+        filtered = filter_expressed_pairs(adata, pairs, min_pct=0.5)
 
         assert isinstance(filtered, pd.DataFrame)
 

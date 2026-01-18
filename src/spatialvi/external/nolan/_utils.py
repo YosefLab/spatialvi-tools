@@ -51,9 +51,7 @@ def compute_grid_size(
             mask = adata.obs[batch_key] == batch
             batch_coords = coords[mask]
 
-            radius, mean_count, _ = _compute_single_grid_size(
-                batch_coords, expected_num_cells
-            )
+            radius, mean_count, _ = _compute_single_grid_size(batch_coords, expected_num_cells)
             radii.append(radius)
             counts.append(mean_count)
 
@@ -72,9 +70,7 @@ def _compute_single_grid_size(
     n_cells = coords.shape[0]
 
     # Estimate density
-    area = (coords[:, 0].max() - coords[:, 0].min()) * (
-        coords[:, 1].max() - coords[:, 1].min()
-    )
+    area = (coords[:, 0].max() - coords[:, 0].min()) * (coords[:, 1].max() - coords[:, 1].min())
     density = n_cells / area
 
     # Target radius for expected cell count
@@ -136,7 +132,7 @@ def sample_spatial_crops(
     for _ in range(n_crops):
         # Sample random center
         center_idx = np.random.randint(0, n_cells)
-        center = coords[center_idx:center_idx + 1]
+        center = coords[center_idx : center_idx + 1]
 
         # Get cells within radius
         indices = tree.query_radius(center, r=crop_radius)[0]
@@ -204,11 +200,13 @@ def create_niche_graph(
         for j in range(i + 1, n_niches):
             weight = adjacency[i, j] + adjacency[j, i]
             if weight >= min_edge_weight:
-                edges.append({
-                    "source": str(unique_niches[i]),
-                    "target": str(unique_niches[j]),
-                    "weight": float(weight),
-                })
+                edges.append(
+                    {
+                        "source": str(unique_niches[i]),
+                        "target": str(unique_niches[j]),
+                        "weight": float(weight),
+                    }
+                )
 
     return {"nodes": nodes, "edges": edges}
 

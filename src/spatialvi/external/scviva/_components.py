@@ -3,10 +3,9 @@
 from collections.abc import Iterable
 
 import torch
+from scvi.nn import Decoder, FCLayers
 from torch import nn
 from torch.distributions import Dirichlet, Normal
-
-from scvi.nn import Decoder, FCLayers
 
 
 def _identity(x):

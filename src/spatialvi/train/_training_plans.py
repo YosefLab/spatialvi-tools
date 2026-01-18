@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import torch
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-
 from scvi.train import TrainingPlan
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 if TYPE_CHECKING:
     from scvi.module.base import BaseModuleClass
@@ -42,7 +41,7 @@ class SpatialTrainingPlan(TrainingPlan):
 
     def __init__(
         self,
-        module: "BaseModuleClass",
+        module: BaseModuleClass,
         lr: float = 1e-3,
         weight_decay: float = 1e-6,
         spatial_weight: float = 1.0,
@@ -60,9 +59,7 @@ class SpatialTrainingPlan(TrainingPlan):
 
         current_epoch = self.current_epoch
         if current_epoch < self.spatial_warmup_epochs:
-            self._current_spatial_weight = (
-                self.spatial_weight * (current_epoch + 1) / self.spatial_warmup_epochs
-            )
+            self._current_spatial_weight = self.spatial_weight * (current_epoch + 1) / self.spatial_warmup_epochs
         else:
             self._current_spatial_weight = self.spatial_weight
 
@@ -105,7 +102,7 @@ class NicheTrainingPlan(SpatialTrainingPlan):
 
     def __init__(
         self,
-        module: "BaseModuleClass",
+        module: BaseModuleClass,
         lr: float = 1e-3,
         classification_weight: float = 1.0,
         niche_weight: float = 1.0,
@@ -118,9 +115,7 @@ class NicheTrainingPlan(SpatialTrainingPlan):
     def training_step(self, batch, batch_idx):
         """Training step with niche losses."""
         # Standard forward pass
-        inference_outputs, generative_outputs, loss_output = self.module(
-            batch, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss_output = self.module(batch, compute_loss=True)
 
         loss = loss_output.loss
 
@@ -170,7 +165,7 @@ class DeconvolutionTrainingPlan(SpatialTrainingPlan):
 
     def __init__(
         self,
-        module: "BaseModuleClass",
+        module: BaseModuleClass,
         lr: float = 1e-3,
         sparsity_weight: float = 0.1,
         reference_weight: float = 0.0,
@@ -182,9 +177,7 @@ class DeconvolutionTrainingPlan(SpatialTrainingPlan):
 
     def training_step(self, batch, batch_idx):
         """Training step with deconvolution losses."""
-        inference_outputs, generative_outputs, loss_output = self.module(
-            batch, compute_loss=True
-        )
+        inference_outputs, generative_outputs, loss_output = self.module(batch, compute_loss=True)
 
         loss = loss_output.loss
 
@@ -192,13 +185,9 @@ class DeconvolutionTrainingPlan(SpatialTrainingPlan):
         if "proportions" in generative_outputs:
             proportions = generative_outputs["proportions"]
             # L1 sparsity
-            sparsity_loss = self.sparsity_weight * torch.mean(
-                torch.abs(proportions)
-            )
+            sparsity_loss = self.sparsity_weight * torch.mean(torch.abs(proportions))
             # Entropy regularization (encourage diversity)
-            entropy = -torch.mean(
-                torch.sum(proportions * torch.log(proportions + 1e-8), dim=-1)
-            )
+            entropy = -torch.mean(torch.sum(proportions * torch.log(proportions + 1e-8), dim=-1))
             loss = loss + sparsity_loss - 0.01 * entropy
 
             self.log("sparsity_loss", sparsity_loss)

@@ -1,11 +1,10 @@
 """Shared test fixtures for spatialvi-tools."""
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 from anndata import AnnData
 from scipy.sparse import csr_matrix
-
 
 # =============================================================================
 # Device and Basic Fixtures
