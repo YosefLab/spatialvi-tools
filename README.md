@@ -122,7 +122,7 @@ If you use spatialvi-tools in your research, please cite:
 @software{spatialvi_tools,
   title = {spatialvi-tools: A unified toolkit for spatial transcriptomics analysis},
   author = {YosefLab},
-  year = {2024},
+  year = {2026},
   url = {https://github.com/YosefLab/spatialvi-tools}
 }
 ```
