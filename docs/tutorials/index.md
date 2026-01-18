@@ -129,7 +129,7 @@ ppi_tutorial
 
 ## Additional Resources
 
-For more information about the models, please refer to the [API Reference](../source/api/index.rst).
+For more information about the models, please refer to the [API Reference](../source/api/index.md).
 
 ## Getting Started
 
