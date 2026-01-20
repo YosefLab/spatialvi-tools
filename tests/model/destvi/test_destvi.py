@@ -60,7 +60,6 @@ def test_destvi():
             spatial_model.get_normalized_expression()
 
 
-@pytest.mark.internet
 def test_destvi_new(save_path: str):
     CELL_TYPE_ID = "broad_cell_types"
     G = 2000
