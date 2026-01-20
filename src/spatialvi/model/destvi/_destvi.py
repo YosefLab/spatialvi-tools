@@ -14,7 +14,8 @@ from scvi.data._constants import _SETUP_ARGS_KEY
 from scvi.data.fields import CategoricalObsField, LayerField, NumericalObsField
 from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin
 from scvi.model.base._archesmixin import _get_loaded_data
-from scvi.train._config import merge_kwargs
+
+# from scvi.train._config import merge_kwargs
 from scvi.utils import setup_anndata_dsp
 from scvi.utils._docstrings import devices_dsp
 
@@ -593,7 +594,7 @@ class DestVI(UnsupervisedTrainingMixin, BaseModelClass):
             "lr": lr,
             "n_epochs_kl_warmup": n_epochs_kl_warmup,
         }
-        plan_kwargs = merge_kwargs(None, plan_kwargs, name="plan")
+        # plan_kwargs = merge_kwargs(None, plan_kwargs, name="plan")
         plan_kwargs.update(update_dict)
         super().train(
             max_epochs=max_epochs,
