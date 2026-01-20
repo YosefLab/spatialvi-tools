@@ -74,8 +74,8 @@ jobs:
       - name: Verify installation
         run: |
           python -c "import spatialvi; print(f'Version: {spatialvi.__version__}')"
-          python -c "from spatialvi.external import AMICI, VIVS, Starfysh, Harreman"
-          python -c "from spatialvi.module import SpatialVAEModule, NicheModule, DeconvolutionModule"
+          python -c "from spatialvi.model import RESOLVI, SCVIVA, DestVI"
+          python -c "from spatialvi.module import MRDeconv, RESOLVAE"
 
   publish-test:
     needs: [build, verify-install]

@@ -185,43 +185,9 @@ def niche_tensors(batch_size, n_genes, n_batches, n_labels, n_neighbors, device)
     }
 
 
-@pytest.fixture
-def amici_tensors(batch_size, n_genes, n_batches, n_labels, n_neighbors, device):
-    """Create tensors for AMICIModule testing."""
-    x = torch.randn(batch_size, n_genes).abs().to(device)
-    batch_index = torch.randint(0, n_batches, (batch_size, 1)).to(device)
-    labels = torch.randint(0, n_labels, (batch_size, 1)).to(device)
-    neighbor_indices = torch.randint(0, batch_size, (batch_size, n_neighbors)).to(device)
-    neighbor_expr = torch.randn(batch_size, n_neighbors, n_genes).abs().to(device)
-
-    return {
-        "X": x,
-        "batch": batch_index,
-        "labels": labels,
-        "neighbor_indices": neighbor_indices,
-        "neighbor_expr": neighbor_expr,
-    }
-
-
 # =============================================================================
 # AnnData Fixtures
 # =============================================================================
-
-
-@pytest.fixture(scope="session")
-def synthetic_spatial_adata():
-    """Create synthetic spatial AnnData for testing."""
-    from spatialvi.data import synthetic_spatial
-
-    return synthetic_spatial(n_cells=100, n_genes=50, n_cell_types=3, seed=42)
-
-
-@pytest.fixture(scope="session")
-def synthetic_scrna_adata():
-    """Create synthetic scRNA-seq AnnData for testing."""
-    from spatialvi.data import synthetic_scrna
-
-    return synthetic_scrna(n_cells=200, n_genes=50, n_cell_types=3, seed=42)
 
 
 @pytest.fixture(scope="function")
@@ -265,27 +231,6 @@ def medium_spatial_adata():
     adata.var_names = [f"Gene_{i}" for i in range(n_genes)]
     adata.obs_names = [f"Cell_{i}" for i in range(n_cells)]
 
-    return adata
-
-
-@pytest.fixture(scope="function")
-def spatial_adata_with_neighbors(small_spatial_adata):
-    """Spatial AnnData with precomputed neighbors."""
-    from spatialvi.data import compute_spatial_neighbors
-
-    adata = small_spatial_adata.copy()
-    compute_spatial_neighbors(adata, n_neighbors=10)
-    return adata
-
-
-@pytest.fixture(scope="function")
-def spatial_adata_with_composition(spatial_adata_with_neighbors):
-    """Spatial AnnData with niche composition."""
-    from spatialvi.data import compute_niche_composition
-
-    adata = spatial_adata_with_neighbors.copy()
-    adata.obs["cell_type"] = adata.obs["cell_type"].astype("category")
-    compute_niche_composition(adata, labels_key="cell_type")
     return adata
 
 
