@@ -1,10 +1,7 @@
-from destvi import MRDeconv
-from resolvi import RESOLVAE
-from scviva import NicheLossOutput, nicheVAE
+from .destvi import MRDeconv
+from .resolvi import RESOLVAE
 
 __all__ = [
-    "nicheVAE",
-    "NicheLossOutput",
     "MRDeconv",
     "RESOLVAE",
 ]

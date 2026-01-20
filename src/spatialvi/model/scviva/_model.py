@@ -37,7 +37,7 @@ from scvi.model.base._archesmixin import _get_loaded_data
 from scvi.model.base._de_core import _de_core
 from scvi.utils import de_dsp, setup_anndata_dsp, unsupported_if_adata_minified
 
-from spatialvi.module.scviva._module import nicheVAE
+from spatialvi.module.scviva import nicheVAE
 
 from ._constants import SCVIVA_REGISTRY_KEYS
 from .differential_expression import _niche_de_core
