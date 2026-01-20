@@ -62,7 +62,7 @@ jobs:
       - name: git tag
         run: |
           git config --global user.email "ori.kronfeld@scverse.org"
-          git config --global user.name "scvi-tools release"
+          git config --global user.name "spatialvi-tools release"
           git tag -m "${{ inputs.tag }}" "${{ inputs.tag }}"
           # If there is duplicate tag, this will fail. The publish to pypi action will have been a noop (due to skip
           # existing), so we make a non-destructive exit here
@@ -85,7 +85,7 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          name: scvi-tools ${{ inputs.tag }}
+          name: spatialvi-tools ${{ inputs.tag }}
           tag_name: ${{ inputs.tag }}
           generate_release_notes: false
           body_path: .github/workflows/release_notes.md
@@ -97,7 +97,7 @@ jobs:
     needs: tag-release
     environment:
       name: pypi
-      url: https://pypi.org/p/scvi-tools
+      url: https://pypi.org/p/spatialvi-tools
     permissions:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     # If you don't set an input tag, it's a dry run (no uploads).
@@ -155,9 +155,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          cache-from: type=registry,ref=ghcr.io/scverse/scvi-tools:buildcache
-          cache-to: type=inline,ref=ghcr.io/scverse/scvi-tools:buildcache
+          cache-from: type=registry,ref=ghcr.io/scverse/spatialvi-tools:buildcache
+          cache-to: type=inline,ref=ghcr.io/scverse/spatialvi-tools:buildcache
           target: build
-          tags: ghcr.io/scverse/scvi-tools:py3.13-cu12-${{ inputs.tag }}-${{ matrix.dependencies }},ghcr.io/scverse/scvi-tools:py3.13-cu12-stable-${{ matrix.dependencies }}
+          tags: ghcr.io/scverse/spatialvi-tools:py3.13-cu12-${{ inputs.tag }}-${{ matrix.dependencies }},ghcr.io/scverse/spatialvi-tools:py3.13-cu12-stable-${{ matrix.dependencies }}
           build-args: |
             DEPENDENCIES=${{ matrix.dependencies }}

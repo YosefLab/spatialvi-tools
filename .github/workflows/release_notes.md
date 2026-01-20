@@ -3,7 +3,7 @@ See the [release notes](https://docs.scvi-tools.org/en/stable/changelog.html) fo
 This release is available via PyPi:
 
 ```bash
-pip install scvi-tools
+pip install spatialvi-tools
 ```
 
 Conda availability will follow (< 2 days typically)
