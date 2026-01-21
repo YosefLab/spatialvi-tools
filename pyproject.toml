@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spatialvi-tools"
+version = "0.1.0"
+description = "Unified toolbox for spatial transcriptomics and proteomics analysis"
+authors = [
+  { name = "YosefLab" }
+]
+license = { text = "BSD-3-Clause" }
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "anndata>=0.9.0",
+  "scanpy>=1.9.0",
+  "numpy>=1.20",
+  "pandas>=1.5",
+  "torch>=2.1",
+  "scvi-tools>=0.20.1"
+]
+
+[project.optional-dependencies]
+# Each external model is optional and can be installed separately.
+nolan = ["nolan"]
+lambda-model = ["LAMBDA"]
+ppi = ["ppi-python"]
+vivs = ["vivs"]
+harreman = ["harreman"]
+amici = ["amici-st"]
+starfysh = ["starfysh"]
+sparl = ["SPARL"]
+all = [
+  "nolan",
+  "LAMBDA",
+  "ppi-python",
+  "vivs",
+  "harreman",
+  "amici-st",
+  "starfysh",
+  "SPARL"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
