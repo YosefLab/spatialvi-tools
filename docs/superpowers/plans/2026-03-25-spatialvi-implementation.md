@@ -15,7 +15,7 @@
 
 ## Phase 0: Scope Note
 
-Tasks 1–9 are sequential (each builds on the last). Tasks 10–15 (the three models + their tests) are **independent of each other** and can run in parallel after Task 9. Tasks 16–17 are post-model cleanup.
+Tasks 1–9 are sequential (each builds on the last). Tasks 10–18 (the three models + their tests) are **independent of each other** and can run in parallel after Task 9. Task 19 is docs. Task 20 is final integration. **Task 21 (code consolidation) runs last**, only after Task 20 passes — it requires a clean regression baseline before any refactoring.
 
 ---
 
@@ -2244,6 +2244,154 @@ git commit -am "fix: final integration fixes for v0.1.0"
 
 ---
 
+---
+
+## Task 21: Code Consolidation Across Models
+
+**Prerequisite:** Task 20 (full test suite passing, all 3 models working).
+
+**Goal:** Identify and extract duplicated logic between the three model implementations into shared utilities, without breaking any existing behaviour. The acceptance bar is strict: **all original scvi-tools tests for scVIVA, ResolVI, and DestVI must still pass against the spatialvi implementations.**
+
+### Step 1: Run upstream scvi-tools tests against spatialvi models
+
+Before touching any code, establish a regression baseline using the original scvi-tools test files, adapted to import from spatialvi:
+
+- [ ] **Copy upstream tests as regression fixtures**
+
+```bash
+mkdir -p tests/regression
+cp /Users/orikr/PycharmProjects/scvi-tools-main-always/tests/external/scviva/test_scviva.py \
+   tests/regression/test_scviva_upstream.py
+cp /Users/orikr/PycharmProjects/scvi-tools-main-always/tests/external/resolvi/test_resolvi.py \
+   tests/regression/test_resolvi_upstream.py
+```
+
+Then do a single find-replace in each regression file:
+
+```python
+# In test_scviva_upstream.py:
+# from scvi.external import SCVIVA  →  from spatialvi.model import SCVIVA
+# from scvi.external.scviva.differential_expression import ...  →  from spatialvi.model._scviva_de import ...
+
+# In test_resolvi_upstream.py:
+# from scvi.external import RESOLVI  →  from spatialvi.model import ResolVI
+# (and rename RESOLVI → ResolVI throughout)
+```
+
+- [ ] **Run regression suite — all must PASS before any consolidation**
+
+```bash
+pytest tests/regression/ -v --tb=short
+```
+
+Expected: all upstream tests pass with spatialvi imports. If any fail, fix the port (in Tasks 11/14/17) before proceeding.
+
+- [ ] **Commit the regression test files**
+
+```bash
+git add tests/regression/
+git commit -m "test: add upstream scvi-tools regression tests for scVIVA and ResolVI"
+```
+
+---
+
+### Step 2: Audit for consolidation opportunities
+
+Read the three model files and their modules side-by-side and record every duplication. Known candidates from the upstream source:
+
+| Duplicated pattern | Found in | Candidate home |
+|---|---|---|
+| `_validate_anndata` + dataloader setup boilerplate | All 3 model `get_*` methods | Already in `SpatialBaseModel` via scvi |
+| Spatial coordinate validation in `setup_anndata` | scVIVA + ResolVI | `SpatialBaseModel._register_spatial_coords()` |
+| `scrna_raw_counts_properties` call pattern | scVIVA + ResolVI | Could share a `_get_gene_properties()` helper |
+| NB / ZINB dispersion string validation | scVIVA + ResolVI modules | Could share a `_validate_dispersion()` utility |
+| `get_normalized_expression` with size-factor scaling | scVIVA + ResolVI | Could share via a `SpatialExpressionMixin` |
+| Neighbor index → one-hot encoding for module forward | scVIVA + ResolVI modules | Could share a `_neighbors_to_onehot()` helper |
+| `save` / `load` + history assertions in tests | All 3 test files | Already handled by scvi's `BaseModelClass` |
+
+- [ ] **For each candidate: decide consolidate or leave**
+
+Use this rubric:
+- **Consolidate** if: identical logic > 10 lines, no model-specific branching, change is purely extracting to a shared location.
+- **Leave** if: logic differs in subtle ways between models, or the saving is < 5 lines, or extracting would require a new abstraction layer.
+
+Write the decisions as a comment block at the top of `src/spatialvi/model/base/_spatial_base.py`:
+
+```python
+# Consolidation log (Task 21):
+# - spatial coord validation → _register_spatial_coords() [DONE via SpatialCoordsField]
+# - neighbor field registration → SpatialNeighborhoodMixin._setup_neighbor_field() [DONE]
+# - get_latent_representation RAPIDS dispatch → SpatialBaseModel [DONE]
+# - NB dispersion validation → LEFT in each module (logic differs, saving < 5 lines)
+# - neighbor one-hot encoding → [DECISION: consolidate/leave + reason]
+# - get_normalized_expression with size scaling → [DECISION]
+```
+
+---
+
+### Step 3: Implement consolidations (one at a time, with regression check after each)
+
+For each item marked CONSOLIDATE:
+
+- [ ] **Extract to shared location**
+
+Move the logic to its new home (`SpatialBaseModel`, a mixin, or `utils/_spatial.py`).
+Update all imports in the three model files.
+
+- [ ] **Run full test suite + regression suite**
+
+```bash
+pytest tests/ tests/regression/ -v --tb=short
+```
+
+Expected: all PASS. If anything breaks, revert this consolidation and mark it LEAVE.
+
+- [ ] **Commit each consolidation separately**
+
+```bash
+git commit -m "refactor: consolidate <specific pattern> into <target location>"
+```
+
+> **Rule:** One consolidation per commit. Never batch multiple refactors. This makes it trivial to `git revert` a single change if a regression appears later.
+
+---
+
+### Step 4: Final regression check
+
+- [ ] **Run the full suite one last time**
+
+```bash
+pytest tests/ tests/regression/ -v --cov=spatialvi --cov-report=term-missing
+```
+
+Expected: all PASS. Coverage should be >= 80%.
+
+- [ ] **Compare line counts vs. original scvi-tools**
+
+```bash
+wc -l src/spatialvi/model/_scviva.py \
+       /Users/orikr/PycharmProjects/scvi-tools-main-always/src/scvi/external/scviva/_model.py
+
+wc -l src/spatialvi/model/_resolvi.py \
+       /Users/orikr/PycharmProjects/scvi-tools-main-always/src/scvi/external/resolvi/_model.py
+
+wc -l src/spatialvi/model/_destvi.py \
+       /Users/orikr/PycharmProjects/scvi-tools-main-always/src/scvi/model/_destvi.py
+```
+
+The spatialvi versions should be **shorter** than the originals (due to shared base removing duplication). If any spatialvi file is longer, investigate why before tagging.
+
+- [ ] **Update CHANGELOG.md** with the list of consolidations made
+
+- [ ] **Final commit**
+
+```bash
+git commit -am "refactor: complete Task 21 code consolidation — all regression tests pass"
+git tag v0.1.0
+```
+
+---
+
 ## File Map Summary
 
 | File | Task | Status |
@@ -2270,6 +2418,7 @@ git commit -am "fix: final integration fixes for v0.1.0"
 | `src/spatialvi/model/_resolvi.py` | 17 | |
 | `tests/model/test_resolvi.py` | 18 | |
 | `docs/user_guide/models/*.md` | 19 | |
+| `tests/regression/test_*_upstream.py` | 21 | |
 
 **Tasks 10–18 dependency graph:**
 ```
