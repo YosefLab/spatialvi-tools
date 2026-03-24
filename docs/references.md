@@ -52,11 +52,6 @@ Pyro-based probabilistic model with neighbor-aware decoders.
 > *Nature Methods*, 15, 1053–1058. doi: [10.1038/s41592-018-0229-2](https://doi.org/10.1038/s41592-018-0229-2)
 > `cite:Lopez18`
 
-> **Ergen et al. (2025)**
-> *Scvi-hub: an actionable repository for model-driven single-cell analysis*
-> *Nature Methods*, 22, 1836–1845. doi: [10.1038/s41592-025-02799-9](https://doi.org/10.1038/s41592-025-02799-9)
-> `cite:Ergen25-2`
-
 ---
 
 ## scverse Ecosystem
