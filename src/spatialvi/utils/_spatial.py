@@ -4,28 +4,25 @@ import numpy as np
 from anndata import AnnData
 
 
-def get_spatial_coords(adata: AnnData, spatial_key: str = "spatial") -> np.ndarray:
+def get_spatial_coords(adata: AnnData, key: str = "spatial") -> np.ndarray:
     """Extract spatial coordinates from AnnData.obsm.
 
     Parameters
     ----------
     adata
         AnnData object with spatial coordinates stored in obsm.
-    spatial_key
+    key
         Key in adata.obsm containing the spatial coordinates.
 
     Returns
     -------
     Array of shape (n_obs, 2) or (n_obs, 3).
     """
-    if spatial_key not in adata.obsm:
+    if key not in adata.obsm:
         raise KeyError(
-            f"Spatial coordinates key '{spatial_key}' not found in adata.obsm. "
-            f"Available keys: {list(adata.obsm.keys())}"
+            f"'{key}' not found in adata.obsm. " f"Available keys: {list(adata.obsm.keys())}"
         )
-    coords = np.asarray(adata.obsm[spatial_key])
-    validate_spatial_coords(coords)
-    return coords
+    return np.asarray(adata.obsm[key])
 
 
 def validate_spatial_coords(coords: np.ndarray) -> None:
