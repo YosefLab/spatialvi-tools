@@ -522,28 +522,6 @@ Key:
 
 ---
 
-## Post-Implementation Changes (2026-03-25)
-
-Changes applied after initial implementation, tracked here for spec completeness:
-
-| # | Change | Rationale |
-|---|--------|-----------|
-| P1 | `compute_composition_error` / `compute_niche_error` moved from `module/_nichevae_log_likelihood.py` into `module/_nichevae.py` | Eliminated standalone single-purpose file; functions logically belong with the module they operate on |
-| P2 | Regression tests rewritten to compare spatialvi vs scvi outputs directly | Original tests only ran spatialvi in isolation; true regression requires side-by-side comparison with same seed |
-| P3 | `tests/regression/test_destvi_upstream.py` added | DestVI regression was missing entirely |
-| P4 | All empty `tests/*/__init__.py` files removed | Not needed for pytest; caused unnecessary noise |
-| P5 | `@pytest.mark.optional` removed from all tests | All tests should run by default |
-| P6 | `pandas>=2.0`, `numpy>=2.0` minimum versions set | Modern-only package; no legacy support needed |
-| P7 | `.pre-commit-config.yaml` updated to match scvi-tools (added blacken-docs, prettier, mdformat, markdownlint-fix, forbid-rej hooks) | Consistency with upstream tooling |
-| P8 | `docs/conf.py` expanded with full Sphinx extensions matching scvi-tools | Required for proper ReadTheDocs builds |
-| P9 | `.readthedocs.yaml` updated to ubuntu-24.04 | Match scvi-tools; ubuntu-22.04 EOL approaching |
-| P10 | `.codecov.yaml` expanded with per-flag tracking | Match scvi-tools coverage reporting |
-| P11 | `test_gpu.yml` changed to label-triggered (`cuda tests` / `all tests`) | Match scvi-tools pattern; prevents wasted self-hosted runner time |
-| P12 | `docs/tutorials/` restored with scVIVA, DestVI, resolVI notebooks | Were accidentally absent from feature branch |
-| P13 | `plot_cell_type_map` (all-types path): writes proportions to `adata.obs` before plotting | Fix: was passing column names not in obs to scanpy |
-| P14 | DestVI `get_latent_representation`: preserve tuple when `return_dist=True` on RAPIDS | Fix: `cp.asarray(tuple)` broke tuple unpacking |
-| P15 | ResolVI `differential_expression`: raise `ValueError` when `library_scaling=True` and `weights!="importance"` | Fix: parameter was silently ignored |
-=======
 ## Implementation Plan Summary
 
 The full plan is at `docs/superpowers/plans/2026-03-25-spatialvi-implementation.md`.
@@ -572,5 +550,28 @@ All 21 tasks were completed on 2026-03-25. Final state: **50/50 tests pass**, pa
 | 19 | Documentation | `docs/conf.py` (Sphinx + myst_nb), `docs/user_guide/models/scviva.md`, `destvi.md`, `resolvi.md` |
 | 20 | Final Integration & Smoke Test | Full test suite (25/25 pass), package build (`dist/*.whl`, `dist/*.tar.gz`), lazy import validation |
 | 21 | Code Consolidation & Regression | `tests/regression/test_scviva_upstream.py`, `test_resolvi_upstream.py`; 50/50 tests pass total |
+
+
+## Post-Implementation Changes (2026-03-25)
+
+Changes applied after initial implementation, tracked here for spec completeness:
+
+| # | Change | Rationale |
+|---|--------|-----------|
+| P1 | `compute_composition_error` / `compute_niche_error` moved from `module/_nichevae_log_likelihood.py` into `module/_nichevae.py` | Eliminated standalone single-purpose file; functions logically belong with the module they operate on |
+| P2 | Regression tests rewritten to compare spatialvi vs scvi outputs directly | Original tests only ran spatialvi in isolation; true regression requires side-by-side comparison with same seed |
+| P3 | `tests/regression/test_destvi_upstream.py` added | DestVI regression was missing entirely |
+| P4 | All empty `tests/*/__init__.py` files removed | Not needed for pytest; caused unnecessary noise |
+| P5 | `@pytest.mark.optional` removed from all tests | All tests should run by default |
+| P6 | `pandas>=2.0`, `numpy>=2.0` minimum versions set | Modern-only package; no legacy support needed |
+| P7 | `.pre-commit-config.yaml` updated to match scvi-tools (added blacken-docs, prettier, mdformat, markdownlint-fix, forbid-rej hooks) | Consistency with upstream tooling |
+| P8 | `docs/conf.py` expanded with full Sphinx extensions matching scvi-tools | Required for proper ReadTheDocs builds |
+| P9 | `.readthedocs.yaml` updated to ubuntu-24.04 | Match scvi-tools; ubuntu-22.04 EOL approaching |
+| P10 | `.codecov.yaml` expanded with per-flag tracking | Match scvi-tools coverage reporting |
+| P11 | `test_gpu.yml` changed to label-triggered (`cuda tests` / `all tests`) | Match scvi-tools pattern; prevents wasted self-hosted runner time |
+| P12 | `docs/tutorials/` restored with scVIVA, DestVI, resolVI notebooks | Were accidentally absent from feature branch |
+| P13 | `plot_cell_type_map` (all-types path): writes proportions to `adata.obs` before plotting | Fix: was passing column names not in obs to scanpy |
+| P14 | DestVI `get_latent_representation`: preserve tuple when `return_dist=True` on RAPIDS | Fix: `cp.asarray(tuple)` broke tuple unpacking |
+| P15 | ResolVI `differential_expression`: raise `ValueError` when `library_scaling=True` and `weights!="importance"` | Fix: parameter was silently ignored |
 
 \* Python 3.14 CI job uses `continue-on-error: true` — aspirational target.

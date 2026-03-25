@@ -37,7 +37,7 @@ def _train_scvi(adata, seed=SEED, **model_kwargs):
     np.random.seed(seed)
     ScviResolVI.setup_anndata(adata)
     model = ScviResolVI(adata, **model_kwargs)
-    model.train(max_epochs=N_EPOCHS, plan_kwargs={"lr": 1e-3})
+    model.train(max_epochs=N_EPOCHS, lr=1e-3)
     return model
 
 
@@ -47,7 +47,7 @@ def _train_spatialvi(adata, seed=SEED, **model_kwargs):
     np.random.seed(seed)
     SpatialResolVI.setup_anndata(adata)
     model = SpatialResolVI(adata, **model_kwargs)
-    model.train(max_epochs=N_EPOCHS, plan_kwargs={"lr": 1e-3})
+    model.train(max_epochs=N_EPOCHS, lr=1e-3)
     return model
 
 
