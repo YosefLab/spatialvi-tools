@@ -12,6 +12,40 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# =========================================================================
+# Consolidation log (Task 21)
+# =========================================================================
+# The following patterns were audited across scVIVA, DestVI, and ResolVI:
+#
+# DONE (extracted to shared base):
+# - Spatial coordinate validation → SpatialCoordsField (Task 4)
+# - Neighbor graph registration → SpatialNeighborhoodMixin._setup_neighbor_field() (Task 6)
+# - RAPIDS latent representation dispatch → SpatialBaseModel.get_latent_representation() (Task 5)
+# - SpatialData integration → SpatialBaseModel.setup_spatialdata() / from_spatialdata() (Task 5)
+#
+# AUDITED - LEFT IN MODELS:
+# - NB/ZINB dispersion string validation in modules (_nichevae.py, _resolvae.py):
+#   Each module validates its own dispersion string against a model-specific set of allowed
+#   values ("gene", "gene-batch", "gene-label", "gene-cell" for scVIVA; only "gene" /
+#   "gene-batch" for ResolVI; none for DestVI which uses a fixed deconvolution formulation).
+#   The allowed sets differ per model, so extraction would require branching logic that adds
+#   more abstraction than it removes (< 5 lines saved per model).
+# - get_normalized_expression with size-factor scaling:
+#   scVIVA inherits this from scvi's RNASeqMixin; ResolVI uses a bespoke
+#   ResolVIPredictiveMixin (get_normalized_expression / get_normalized_expression_importance)
+#   that applies residual-model sampling — entirely different logic, not shareable.
+#   DestVI exposes get_proportions / get_gamma, not normalized expression.
+# - Neighbor index → one-hot encoding in modules:
+#   Only _resolvae.py uses one_hot on neighbor indices (for cell-type composition
+#   in the spatial prior). _nichevae.py uses raw niche composition obsm arrays.
+#   No shared pattern exists across models.
+# - _prepare_data (neighbor precomputation):
+#   Added to ResolVI as a static method (Task 21) to match upstream RESOLVI API.
+#   scVIVA uses a higher-level preprocessing_anndata() with different parameters.
+#   DestVI has no spatial neighbor requirement. Not generalizable to a shared base.
+# =========================================================================
+
+
 class SpatialBaseModel(BaseModelClass):
     """Base class for all spatialvi models.
 
