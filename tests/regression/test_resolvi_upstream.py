@@ -76,8 +76,8 @@ def test_resolvi_elbo_matches(adata):
     scvi_model = _train_scvi(adata)
     spatial_model = _train_spatialvi(adata)
 
-    elbo_scvi = scvi_model.history_["elbo_train"].values
-    elbo_spatial = spatial_model.history_["elbo_train"].values
+    elbo_scvi = np.array(scvi_model.history_["elbo_train"].values, dtype=float)
+    elbo_spatial = np.array(spatial_model.history_["elbo_train"].values, dtype=float)
 
     assert len(elbo_scvi) == len(elbo_spatial)
     np.testing.assert_allclose(

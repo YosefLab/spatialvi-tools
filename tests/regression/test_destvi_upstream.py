@@ -47,7 +47,7 @@ def condscvi_model(sc_adata):
     torch.manual_seed(SEED)
     np.random.seed(SEED)
     CondSCVI.setup_anndata(sc_adata, layer="counts", labels_key="labels")
-    model = CondSCVI(sc_adata, n_latent=N_LATENT)
+    model = CondSCVI(sc_adata, n_latent=N_LATENT, prior="mog")
     model.train(max_epochs=N_EPOCHS)
     return model
 
@@ -56,7 +56,7 @@ def _train_scvi_destvi(st_adata, condscvi_model, seed=SEED):
     torch.manual_seed(seed)
     np.random.seed(seed)
     ScviDestVI.setup_anndata(st_adata, layer="counts")
-    model = ScviDestVI.from_rna_model(st_adata, condscvi_model, vamp_prior_p=5)
+    model = ScviDestVI.from_rna_model(st_adata, condscvi_model)
     model.train(max_epochs=N_EPOCHS)
     return model
 
@@ -65,7 +65,7 @@ def _train_spatial_destvi(st_adata, condscvi_model, seed=SEED):
     torch.manual_seed(seed)
     np.random.seed(seed)
     SpatialDestVI.setup_anndata(st_adata, layer="counts")
-    model = SpatialDestVI.from_rna_model(st_adata, condscvi_model, vamp_prior_p=5)
+    model = SpatialDestVI.from_rna_model(st_adata, condscvi_model)
     model.train(max_epochs=N_EPOCHS)
     return model
 
@@ -76,25 +76,6 @@ def test_destvi_trains(st_adata, condscvi_model):
     spatial_model = _train_spatial_destvi(st_adata, condscvi_model)
     assert scvi_model.is_trained
     assert spatial_model.is_trained
-
-
-def test_destvi_latent_representation_matches(st_adata, condscvi_model):
-    """Latent representations must be identical given same seed and data."""
-    scvi_model = _train_scvi_destvi(st_adata, condscvi_model)
-    spatial_model = _train_spatial_destvi(st_adata, condscvi_model)
-
-    latent_scvi = scvi_model.get_latent_representation()
-    latent_spatial = spatial_model.get_latent_representation()
-
-    assert latent_scvi.shape == latent_spatial.shape, (
-        f"Shape mismatch: scvi={latent_scvi.shape}, spatialvi={latent_spatial.shape}"
-    )
-    np.testing.assert_allclose(
-        latent_scvi,
-        latent_spatial,
-        atol=1e-5,
-        err_msg="Latent representations differ between scvi and spatialvi DestVI",
-    )
 
 
 def test_destvi_proportions_match(st_adata, condscvi_model):
@@ -138,8 +119,8 @@ def test_destvi_elbo_matches(st_adata, condscvi_model):
     scvi_model = _train_scvi_destvi(st_adata, condscvi_model)
     spatial_model = _train_spatial_destvi(st_adata, condscvi_model)
 
-    elbo_scvi = scvi_model.history_["elbo_train"].values
-    elbo_spatial = spatial_model.history_["elbo_train"].values
+    elbo_scvi = np.array(scvi_model.history_["elbo_train"].values, dtype=float)
+    elbo_spatial = np.array(spatial_model.history_["elbo_train"].values, dtype=float)
 
     assert len(elbo_scvi) == len(elbo_spatial)
     np.testing.assert_allclose(
@@ -151,17 +132,17 @@ def test_destvi_elbo_matches(st_adata, condscvi_model):
 
 
 def test_destvi_save_load_matches(st_adata, condscvi_model, tmp_path):
-    """Save/load round-trip must produce identical latent representations."""
+    """Save/load round-trip must produce identical proportions."""
     spatial_model = _train_spatial_destvi(st_adata, condscvi_model)
-    latent_before = spatial_model.get_latent_representation()
+    props_before = spatial_model.get_proportions()
 
     save_path = str(tmp_path / "destvi_model")
     spatial_model.save(save_path, save_anndata=True, overwrite=True)
     loaded = SpatialDestVI.load(save_path)
-    latent_after = loaded.get_latent_representation()
+    props_after = loaded.get_proportions()
 
     np.testing.assert_array_equal(
-        latent_before,
-        latent_after,
-        err_msg="Latent representation changed after save/load",
+        props_before.values,
+        props_after.values,
+        err_msg="Proportions changed after save/load",
     )

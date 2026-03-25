@@ -39,10 +39,9 @@ MODEL_KWARGS = {
 
 TRAIN_KWARGS = {
     "max_epochs": N_EPOCHS,
-    "train_size": 0.8,
-    "validation_size": 0.2,
-    "early_stopping": True,
-    "check_val_every_n_epoch": 1,
+    "train_size": 1.0,
+    "validation_size": 0.0,
+    "early_stopping": False,
     "accelerator": "cpu",
 }
 
@@ -119,8 +118,8 @@ def test_scviva_elbo_matches(adata):
     scvi_model = _train_scvi(adata)
     spatial_model = _train_spatialvi(adata)
 
-    elbo_scvi = scvi_model.history["elbo_train"].values
-    elbo_spatial = spatial_model.history["elbo_train"].values
+    elbo_scvi = np.array(scvi_model.history["elbo_train"].values, dtype=float)
+    elbo_spatial = np.array(spatial_model.history["elbo_train"].values, dtype=float)
 
     assert len(elbo_scvi) == len(elbo_spatial)
     np.testing.assert_allclose(
