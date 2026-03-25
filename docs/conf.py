@@ -47,7 +47,7 @@ myst_enable_extensions = ["colon_fence", "dollarmath", "html_image"]
 nb_execution_mode = "off"
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "superpowers"]
 
 # -- HTML output -------------------------------------------------------------
 

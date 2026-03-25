@@ -41,7 +41,7 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        args: ["--skip=docs/tutorials/*.ipynb"]
+        args: ["--skip=docs/tutorials/*.ipynb", "--ignore-words-list=theis,raison,mor,gord"]
 
   - repo: local
     hooks:
