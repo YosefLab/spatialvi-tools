@@ -469,3 +469,77 @@ These are tracked in `/Users/orikr/PycharmProjects/spatialvi-tools`.
 - Minified model support (beyond what scvi provides)
 - Any model from `spatialvi.external`
 - `CondSCVI` wrapper (imported directly from `scvi.model` by users)
+
+---
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         spatialvi-tools                                 │
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                      scvi-tools (upstream)                        │  │
+│  │  BaseModelClass · UnsupervisedTrainingMixin · VAEMixin            │  │
+│  │  RNASeqMixin · EmbeddingMixin · ArchesMixin                      │  │
+│  │  BaseMinifiedModeModelClass · PyroSviTrainMixin · PyroSampleMixin │  │
+│  └───────────────────────────┬──────────────────────────────────────┘  │
+│                               │ inherits                                │
+│  ┌────────────────────────────▼───────────────────────────────────┐    │
+│  │                    SpatialBaseModel                             │    │
+│  │  setup_spatialdata()  ·  from_spatialdata()                    │    │
+│  │  get_latent_representation(backend="cpu"|"rapids")             │    │
+│  │  plot_spatial_embedding()  ·  plot_spatial_predictions()       │    │
+│  └──────────────┬─────────────────────────┬────────────────────┘      │
+│                 │ composed                 │ composed                   │
+│  ┌──────────────▼──────────┐  ┌───────────▼────────────┐              │
+│  │  SpatialNeighborhoodMixin│  │ SpatialDeconvolutionMixin│            │
+│  │  compute_neighbors(      │  │ get_proportions_df()    │             │
+│  │    backend="squidpy"     │  │ plot_cell_type_map()    │             │
+│  │           |"rapids")     │  └───────────┬────────────┘              │
+│  └──────┬────────┬──────────┘             │                            │
+│         │        │                        │                            │
+│  ┌──────▼──┐  ┌──▼──────┐  ┌─────────────▼──┐                        │
+│  │ SCVIVA  │  │ ResolVI │  │     DestVI      │                        │
+│  │         │  │         │  │                 │                        │
+│  │ nicheVAE│  │RESOLVAE │  │  MRDeconv       │                        │
+│  │ (module)│  │ (module)│  │  (module)       │                        │
+│  └─────────┘  └─────────┘  └─────────────────┘                        │
+│                                                                         │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │  Custom AnnData Fields                                           │   │
+│  │  SpatialCoordsField (2D/3D validation)                          │   │
+│  │  NeighborhoodGraphField (CSR → dense conversion)                │   │
+│  └─────────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Key:
+  SCVIVA  = SpatialNeighborhoodMixin + scvi mixins + SpatialBaseModel + BaseMinifiedModeModelClass
+  ResolVI = SpatialNeighborhoodMixin + SpatialBaseModel + PyroSviTrainMixin + PyroSampleMixin
+            + ResolVIPredictiveMixin (vendored) + ArchesMixin + BaseModelClass
+  DestVI  = SpatialDeconvolutionMixin + UnsupervisedTrainingMixin + SpatialBaseModel
+```
+
+---
+
+## Post-Implementation Changes (2026-03-25)
+
+Changes applied after initial implementation, tracked here for spec completeness:
+
+| # | Change | Rationale |
+|---|--------|-----------|
+| P1 | `compute_composition_error` / `compute_niche_error` moved from `module/_nichevae_log_likelihood.py` into `module/_nichevae.py` | Eliminated standalone single-purpose file; functions logically belong with the module they operate on |
+| P2 | Regression tests rewritten to compare spatialvi vs scvi outputs directly | Original tests only ran spatialvi in isolation; true regression requires side-by-side comparison with same seed |
+| P3 | `tests/regression/test_destvi_upstream.py` added | DestVI regression was missing entirely |
+| P4 | All empty `tests/*/__init__.py` files removed | Not needed for pytest; caused unnecessary noise |
+| P5 | `@pytest.mark.optional` removed from all tests | All tests should run by default |
+| P6 | `pandas>=2.0`, `numpy>=2.0` minimum versions set | Modern-only package; no legacy support needed |
+| P7 | `.pre-commit-config.yaml` updated to match scvi-tools (added blacken-docs, prettier, mdformat, markdownlint-fix, forbid-rej hooks) | Consistency with upstream tooling |
+| P8 | `docs/conf.py` expanded with full Sphinx extensions matching scvi-tools | Required for proper ReadTheDocs builds |
+| P9 | `.readthedocs.yaml` updated to ubuntu-24.04 | Match scvi-tools; ubuntu-22.04 EOL approaching |
+| P10 | `.codecov.yaml` expanded with per-flag tracking | Match scvi-tools coverage reporting |
+| P11 | `test_gpu.yml` changed to label-triggered (`cuda tests` / `all tests`) | Match scvi-tools pattern; prevents wasted self-hosted runner time |
+| P12 | `docs/tutorials/` restored with scVIVA, DestVI, resolVI notebooks | Were accidentally absent from feature branch |
+| P13 | `plot_cell_type_map` (all-types path): writes proportions to `adata.obs` before plotting | Fix: was passing column names not in obs to scanpy |
+| P14 | DestVI `get_latent_representation`: preserve tuple when `return_dist=True` on RAPIDS | Fix: `cp.asarray(tuple)` broke tuple unpacking |
+| P15 | ResolVI `differential_expression`: raise `ValueError` when `library_scaling=True` and `weights!="importance"` | Fix: parameter was silently ignored |

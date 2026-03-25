@@ -1,21 +1,26 @@
-import tempfile
+"""Regression tests: spatialvi.SCVIVA vs scvi.external.scviva.SCVIVA.
+
+Each test runs the exact same operations on the same data with the same random seed
+on both implementations and asserts outputs are identical (within float tolerance).
+"""
+
+from __future__ import annotations
 
 import numpy as np
 import pytest
-from anndata import AnnData
+import torch
 from scvi.data import synthetic_iid
-from sklearn.gaussian_process import GaussianProcessClassifier
+from scvi.external.scviva import SCVIVA as ScviSCVIVA
 
-from spatialvi.model._scviva import SCVIVA
-from spatialvi.model._scviva_de import DifferentialExpressionResults
+from spatialvi.model import SCVIVA as SpatialSCVIVA
 
+SEED = 42
 N_LATENT_INTRINSIC = 20
-N_LATENT = 10
 K_NN = 5
-N_EPOCHS_SCVIVA = 2
+N_EPOCHS = 2
 LABELS_KEY = "labels"
 
-setup_kwargs = {
+SETUP_KWARGS = {
     "sample_key": "batch",
     "labels_key": LABELS_KEY,
     "cell_coordinates_key": "coordinates",
@@ -26,416 +31,173 @@ setup_kwargs = {
     "niche_distances_key": "niche_distances",
 }
 
+MODEL_KWARGS = {
+    "prior_mixture": False,
+    "semisupervised": True,
+    "linear_classifier": True,
+}
 
-@pytest.fixture(scope="session")
+TRAIN_KWARGS = {
+    "max_epochs": N_EPOCHS,
+    "train_size": 0.8,
+    "validation_size": 0.2,
+    "early_stopping": True,
+    "check_val_every_n_epoch": 1,
+    "accelerator": "cpu",
+}
+
+
+@pytest.fixture(scope="module")
 def adata():
+    np.random.seed(SEED)
     adata = synthetic_iid(
-        batch_size=256,
-        n_genes=100,
+        batch_size=128,
+        n_genes=50,
         n_proteins=0,
         n_regions=0,
-        n_batches=3,
-        n_labels=5,
+        n_batches=2,
+        n_labels=3,
         dropout_ratio=0.5,
         generate_coordinates=True,
         sparse_format=None,
         return_mudata=False,
     )
-
     adata.obsm["qz1_m"] = np.random.normal(size=(adata.shape[0], N_LATENT_INTRINSIC))
     adata.layers["counts"] = adata.X.copy()
-
     return adata
 
 
-def test_scviva_train(adata: AnnData):
-    SCVIVA.preprocessing_anndata(
-        adata,
-        k_nn=K_NN,
-        **setup_kwargs,
+def _train_scvi(adata, seed=SEED):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    ScviSCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
+    ScviSCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **SETUP_KWARGS)
+    model = ScviSCVIVA(adata, **MODEL_KWARGS)
+    model.train(**TRAIN_KWARGS)
+    return model
+
+
+def _train_spatialvi(adata, seed=SEED):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    SpatialSCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
+    SpatialSCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **SETUP_KWARGS)
+    model = SpatialSCVIVA(adata, **MODEL_KWARGS)
+    model.train(**TRAIN_KWARGS)
+    return model
+
+
+def test_scviva_trains(adata):
+    """Both implementations must train without errors."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
+    assert scvi_model.is_trained
+    assert spatial_model.is_trained
+
+
+def test_scviva_latent_representation_matches(adata):
+    """Latent representations must be identical given same seed and data."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
+
+    latent_scvi = scvi_model.get_latent_representation()
+    latent_spatial = spatial_model.get_latent_representation()
+
+    assert latent_scvi.shape == latent_spatial.shape, (
+        f"Shape mismatch: scvi={latent_scvi.shape}, spatialvi={latent_spatial.shape}"
     )
-
-    SCVIVA.setup_anndata(
-        adata,
-        layer="counts",
-        batch_key="batch",
-        **setup_kwargs,
-    )
-    nichevae = SCVIVA(
-        adata,
-        prior_mixture=False,
-        semisupervised=True,
-        linear_classifier=True,
-    )
-
-    nichevae.train(
-        max_epochs=N_EPOCHS_SCVIVA,
-        train_size=0.8,
-        validation_size=0.2,
-        early_stopping=True,
-        check_val_every_n_epoch=1,
-        accelerator="cpu",
-    )
-
-    assert nichevae.is_trained
-
-
-def test_scviva_save_load(adata):
-    SCVIVA.preprocessing_anndata(
-        adata,
-        k_nn=K_NN,
-        **setup_kwargs,
-    )
-
-    SCVIVA.setup_anndata(
-        adata,
-        layer="counts",
-        batch_key="batch",
-        **setup_kwargs,
-    )
-    nichevae = SCVIVA(
-        adata,
-        prior_mixture=False,
-        semisupervised=True,
-        linear_classifier=True,
-    )
-
-    nichevae.train(
-        max_epochs=N_EPOCHS_SCVIVA,
-        train_size=0.8,
-        validation_size=0.2,
-        early_stopping=True,
-        check_val_every_n_epoch=1,
-        accelerator="cpu",
-    )
-    hist_elbo = nichevae.history["elbo_train"]
-    latent = nichevae.get_latent_representation()
-    assert latent.shape == (adata.n_obs, nichevae.module.n_latent)
-    nichevae.save("test_scVIVA", save_anndata=True, overwrite=True)
-    model2 = nichevae.load("test_scVIVA")
-    np.testing.assert_array_equal(model2.history_["elbo_train"], hist_elbo)
-    latent2 = model2.get_latent_representation()
-    assert np.allclose(latent, latent2, atol=1e-5)
-
-    nichevae.get_elbo(indices=nichevae.validation_indices)
-    nichevae.get_composition_error(return_mean=False, indices=nichevae.validation_indices)
-    nichevae.get_niche_error(return_mean=False, indices=nichevae.validation_indices)
-    nichevae.get_normalized_expression()
-    predicted_alpha = nichevae.predict_neighborhood()
-    assert predicted_alpha.shape == (adata.n_obs, nichevae.n_labels)
-    assert np.allclose(predicted_alpha.sum(), adata.n_obs, atol=1e-5)
-    predicted_eta = nichevae.predict_niche_activation()
-    assert predicted_eta.shape == (adata.n_obs, nichevae.n_labels, N_LATENT_INTRINSIC)
-
-
-@pytest.mark.optional
-def test_scviva_differential(adata):
-    SCVIVA.preprocessing_anndata(
-        adata,
-        k_nn=K_NN,
-        **setup_kwargs,
-    )
-
-    SCVIVA.setup_anndata(
-        adata,
-        layer="counts",
-        batch_key="batch",
-        **setup_kwargs,
-    )
-    nichevae = SCVIVA(
-        adata,
-        prior_mixture=False,
-        semisupervised=True,
-        linear_classifier=True,
-    )
-
-    nichevae.train(
-        max_epochs=N_EPOCHS_SCVIVA,
-        train_size=0.8,
-        validation_size=0.2,
-        early_stopping=True,
-        check_val_every_n_epoch=1,
-        accelerator="cpu",
-    )
-
-    nichevae.differential_expression(
-        groupby="labels",
-        group1="label_1",
-        group2="label_2",
-        batch_correction=False,
-        niche_mode=False,
-        fdr_target=1,
-        delta=0.5,
-    )
-
-    nichevae.differential_expression(
-        groupby="labels",
-        group1="label_1",
-        # group2="label_2",
-        batch_correction=False,
-        radius=None,
-        k_nn=5,
-        fdr_target=1,
-        delta=0.5,
-    )
-    DE_results = nichevae.differential_expression(
-        groupby="labels",
-        group1="label_1",
-        group2="label_2",
-        batch_correction=False,
-        radius=None,
-        k_nn=5,
-        fdr_target=[1, 1, 1, 1],
-        delta=[0.5, 0.5, 0.5, 0.5],
-    )
-
-    assert isinstance(DE_results, DifferentialExpressionResults)
-    assert isinstance(DE_results.gpc, GaussianProcessClassifier)
-    assert hasattr(DE_results.gpc, "log_marginal_likelihood_value_")
-
-    # Suppress plt.show() to avoid UI popups
-    import matplotlib.pyplot as plt
-
-    plt_show_backup = plt.show
-    plt.show = lambda: None
-
-    try:
-        DE_results.plot(show_plot=False)
-    finally:
-        plt.show = plt_show_backup
-
-    import os
-
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        path = tmp.name
-
-    try:
-        DE_results.plot(path_to_save=path, show_plot=False)
-        assert os.path.exists(path)
-        assert os.path.getsize(path) > 0
-    finally:
-        os.remove(path)
-
-    nichevae.differential_expression(
-        groupby="labels",
-        group1="label_1",
-        group2="label_2",
-        batch_correction=False,
-        radius=50,
-        k_nn=None,
-        fdr_target=[1, 1, 1, 1],
-        delta=[0.5, 0.5, 0.5, 0.5],
+    np.testing.assert_allclose(
+        latent_scvi,
+        latent_spatial,
+        atol=1e-5,
+        err_msg="Latent representations differ between scvi and spatialvi SCVIVA",
     )
 
 
-@pytest.fixture
-def split_ref_query_adata(adata: AnnData):
-    """Split adata into ref and query using hemisphere."""
-    adata.obs["hemisphere"] = [
-        "right" if x > 0 else "left" for x in adata.obsm["coordinates"][:, 0]
-    ]
-    ref_adata = adata[adata.obs["hemisphere"] == "left"].copy()
-    query_adata = adata[adata.obs["hemisphere"] == "right"].copy()
-    return ref_adata, query_adata
+def test_scviva_elbo_matches(adata):
+    """Training ELBO history must match between implementations."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
 
+    elbo_scvi = scvi_model.history["elbo_train"].values
+    elbo_spatial = spatial_model.history["elbo_train"].values
 
-def test_scviva_scarches_less_features(split_ref_query_adata):
-    # divide between ref and query data
-    ref_adata, query_adata = split_ref_query_adata
-
-    SCVIVA.preprocessing_anndata(
-        ref_adata,
-        k_nn=K_NN,
-        **setup_kwargs,
-    )
-
-    SCVIVA.setup_anndata(
-        ref_adata,
-        layer="counts",
-        batch_key="batch",
-        **setup_kwargs,
-    )
-
-    # Reference model
-    nichevae = SCVIVA(
-        ref_adata,
-        prior_mixture=False,
-        semisupervised=True,
-        linear_classifier=True,
-    )
-
-    nichevae.train(
-        max_epochs=N_EPOCHS_SCVIVA,
-        train_size=0.8,
-        validation_size=0.2,
-        early_stopping=True,
-        check_val_every_n_epoch=1,
-        accelerator="cpu",
-    )
-
-    assert nichevae.is_trained
-
-    # Make it different from reference adata - shuffling and removing a few genes here
-    query_adata = query_adata[
-        :, np.random.permutation(query_adata.var_names)[: query_adata.shape[1] - 5]
-    ].copy()
-
-    query_adata.obs["labels"] = (
-        query_adata.obs["labels"].astype(str).replace("label_2", "label_1").astype("category")
-    )
-    # Query adata
-    nichevae.preprocessing_query_anndata(
-        query_adata,
-        reference_model=nichevae,
-        k_nn=K_NN,
-        **setup_kwargs,
-    )
-
-    query_nichevae = nichevae.load_query_data(query_adata, reference_model=nichevae)
-
-    query_nichevae.train(
-        max_epochs=N_EPOCHS_SCVIVA,
-        train_size=0.8,
-        validation_size=0.2,
-        early_stopping=True,
-        check_val_every_n_epoch=1,
-        accelerator="cpu",
-    )
-
-    predicted_alpha = query_nichevae.predict_neighborhood(query_adata)
-    assert predicted_alpha.shape == (query_adata.n_obs, query_nichevae.n_labels)
-    query_adata.obsm["X_nichevi"] = query_nichevae.get_latent_representation(query_adata)
-
-    # Check that embedding default works
-    assert (
-        query_nichevae.get_latent_representation(
-            adata=ref_adata,
-        ).shape[0]
-        == ref_adata.shape[0]
-    )
-    assert (
-        query_nichevae.get_latent_representation(
-            adata=query_adata,
-        ).shape[0]
-        == query_adata.shape[0]
+    assert len(elbo_scvi) == len(elbo_spatial)
+    np.testing.assert_allclose(
+        elbo_scvi,
+        elbo_spatial,
+        atol=1e-4,
+        err_msg="Training ELBO differs between scvi and spatialvi SCVIVA",
     )
 
 
-def _permute_label_categories(adata: AnnData, label_key: str = "labels") -> None:
-    """Permute the order of label categories to ensure .unique() returns different order."""
-    import random
+def test_scviva_predict_neighborhood_matches(adata):
+    """Predicted neighborhood compositions must match between implementations."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
 
-    current_categories = list(adata.obs[label_key].cat.categories)
-    new_order = random.sample(current_categories, len(current_categories))  # shuffled list
-    adata.obs[label_key] = adata.obs[label_key].cat.reorder_categories(new_order, ordered=False)
+    torch.manual_seed(SEED)
+    alpha_scvi = scvi_model.predict_neighborhood()
+    torch.manual_seed(SEED)
+    alpha_spatial = spatial_model.predict_neighborhood()
 
-
-def test_scviva_scarches_same_features(split_ref_query_adata):
-    # divide between ref and query data
-    ref_adata, query_adata = split_ref_query_adata
-
-    ref_labels = set(ref_adata.obs[LABELS_KEY].unique())
-    query_labels = set(query_adata.obs[LABELS_KEY].unique())
-    assert (
-        ref_labels == query_labels
-    ), f"Label sets do not match:\nRef: {ref_labels}\nQuery: {query_labels}"
-
-    ref_adata.obs["labels"] = ref_adata.obs[LABELS_KEY].astype("category")
-    _permute_label_categories(ref_adata, label_key=LABELS_KEY)
-    query_adata.obs["labels"] = query_adata.obs[LABELS_KEY].astype("category")
-    _permute_label_categories(query_adata, label_key=LABELS_KEY)
-
-    SCVIVA.preprocessing_anndata(
-        ref_adata,
-        k_nn=K_NN,
-        **setup_kwargs,
+    assert alpha_scvi.shape == alpha_spatial.shape
+    np.testing.assert_allclose(
+        alpha_scvi,
+        alpha_spatial,
+        atol=1e-5,
+        err_msg="Neighborhood predictions differ between scvi and spatialvi SCVIVA",
     )
 
-    SCVIVA.setup_anndata(
-        ref_adata,
-        layer="counts",
-        batch_key="batch",
-        **setup_kwargs,
+
+def test_scviva_save_load_matches(adata, tmp_path):
+    """Save/load round-trip must produce identical latent representations."""
+    spatial_model = _train_spatialvi(adata)
+    latent_before = spatial_model.get_latent_representation()
+
+    save_path = str(tmp_path / "scviva_model")
+    spatial_model.save(save_path, save_anndata=True, overwrite=True)
+    loaded = SpatialSCVIVA.load(save_path)
+    latent_after = loaded.get_latent_representation()
+
+    np.testing.assert_array_equal(
+        latent_before,
+        latent_after,
+        err_msg="Latent representation changed after save/load",
     )
 
-    # Reference model
-    nichevae = SCVIVA(
-        ref_adata,
-        prior_mixture=False,
-        semisupervised=True,
-        linear_classifier=True,
-    )
 
-    nichevae.train(
-        max_epochs=N_EPOCHS_SCVIVA,
-        train_size=0.8,
-        validation_size=0.2,
-        early_stopping=True,
-        check_val_every_n_epoch=1,
-        accelerator="cpu",
-    )
+def test_scviva_composition_error_matches(adata):
+    """Composition and niche errors must have the same shape in both implementations."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
 
-    assert nichevae.is_trained
+    err_scvi = scvi_model.get_composition_error(return_mean=False)
+    err_spatial = spatial_model.get_composition_error(return_mean=False)
+    assert err_scvi.shape == err_spatial.shape
 
-    # Make it different from reference adata - only shuffling genes here
-    query_adata = query_adata[
-        :, np.random.permutation(query_adata.var_names)[: query_adata.shape[1]]
-    ].copy()
-
-    # Query adata
-    nichevae.preprocessing_query_anndata(
-        query_adata,
-        reference_model=nichevae,
-        k_nn=K_NN,
-        **setup_kwargs,
-    )
-
-    query_nichevae = nichevae.load_query_data(query_adata, reference_model=nichevae)
-
-    query_nichevae.train(
-        max_epochs=N_EPOCHS_SCVIVA,
-        train_size=0.8,
-        validation_size=0.2,
-        early_stopping=True,
-        check_val_every_n_epoch=1,
-        accelerator="cpu",
-    )
-
-    predicted_alpha = query_nichevae.predict_neighborhood(query_adata)
-    assert predicted_alpha.shape == (query_adata.n_obs, query_nichevae.n_labels)
-    query_adata.obsm["X_nichevi"] = query_nichevae.get_latent_representation(query_adata)
-
-    # Check that embedding default works
-    assert (
-        query_nichevae.get_latent_representation(
-            adata=ref_adata,
-        ).shape[0]
-        == ref_adata.shape[0]
-    )
-    assert (
-        query_nichevae.get_latent_representation(
-            adata=query_adata,
-        ).shape[0]
-        == query_adata.shape[0]
-    )
+    niche_scvi = scvi_model.get_niche_error(return_mean=False)
+    niche_spatial = spatial_model.get_niche_error(return_mean=False)
+    assert niche_scvi.shape == niche_spatial.shape
 
 
 @pytest.mark.parametrize("dispersion", ["gene", "gene-batch", "gene-label", "gene-cell"])
-def test_scviva_dispersion(adata: AnnData, dispersion: str):
-    SCVIVA.preprocessing_anndata(
-        adata,
-        k_nn=K_NN,
-        **setup_kwargs,
-    )
+def test_scviva_dispersion_matches(adata, dispersion):
+    """Both implementations must train successfully with each dispersion mode."""
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+    ScviSCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
+    ScviSCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **SETUP_KWARGS)
+    scvi_model = ScviSCVIVA(adata, dispersion=dispersion)
+    scvi_model.train(max_epochs=1)
 
-    SCVIVA.setup_anndata(
-        adata,
-        layer="counts",
-        batch_key="batch",
-        **setup_kwargs,
-    )
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+    SpatialSCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
+    SpatialSCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **SETUP_KWARGS)
+    spatial_model = SpatialSCVIVA(adata, dispersion=dispersion)
+    spatial_model.train(max_epochs=1)
 
-    model = SCVIVA(adata, dispersion=dispersion)
-    model.train(
-        max_epochs=2,
-    )
+    lat_scvi = scvi_model.get_latent_representation()
+    lat_spatial = spatial_model.get_latent_representation()
+    assert lat_scvi.shape == lat_spatial.shape

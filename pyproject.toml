@@ -10,14 +10,16 @@ readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
 authors = [{ name = "Ori Kronfeld", email = "ori.kronfeld@weizmann.ac.il" }]
+maintainers = [{ name = "Ori Kronfeld", email = "ori.kronfeld@weizmann.ac.il" }]
 keywords = ["spatial transcriptomics", "variational inference", "deep learning", "single-cell", "deconvolution"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: BSD License",
   "Natural Language :: English",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python :: 3 :: Only",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
@@ -26,8 +28,8 @@ classifiers = [
 dependencies = [
   "anndata>=0.11",
   "lightning>=2.0",
-  "numpy>=1.21",
-  "pandas>=1.5",
+  "numpy>=2.0",
+  "pandas>=2.0",
   "pyro-ppl>=1.8",
   "rich>=12.0",
   "scanpy>=1.10",
@@ -37,29 +39,102 @@ dependencies = [
   "tqdm>=4.60",
 ]
 
+[project.urls]
+Documentation = "https://github.com/YosefLab/spatialvi-tools"
+Source = "https://github.com/YosefLab/spatialvi-tools"
+"Bug Tracker" = "https://github.com/YosefLab/spatialvi-tools/issues"
+
 [project.optional-dependencies]
-spatial = ["spatialdata>=0.2", "squidpy>=1.4"]
+spatial  = ["spatialdata>=0.2", "squidpy>=1.4"]
 rapids   = ["cuml>=24.0", "cugraph>=24.0", "cupy-cuda12x"]
 dev      = ["pre-commit", "twine>=4.0.2"]
-test     = ["pytest>=7", "pytest-cov", "anndata", "scanpy"]
-doc      = ["sphinx", "myst-nb", "sphinx-book-theme", "ipykernel"]
-all      = ["spatialvi-tools[spatial,rapids,dev,doc,test]"]
+test     = ["pytest>=7", "pytest-pretty", "pytest-cov", "coverage", "anndata", "scanpy", "scikit-learn"]
+doc      = [
+    "sphinx<9",
+    "sphinx-book-theme>=1.0.1",
+    "sphinx_copybutton",
+    "sphinx-design",
+    "sphinxcontrib-bibtex",
+    "sphinx-autodoc-typehints",
+    "myst-nb",
+    "myst-parser",
+    "ipykernel",
+    "ipython",
+]
+tutorials = ["jupyter", "matplotlib", "seaborn", "umap-learn>=0.5.0", "spatialvi-tools[spatial]"]
+all       = ["spatialvi-tools[spatial,rapids,dev,doc,test,tutorials]"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/spatialvi"]
 
-[tool.ruff]
-src = ["src"]
-line-length = 99
-target-version = "py312"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["E501"]
+[tool.coverage.run]
+source = ["spatialvi"]
+omit = ["**/test_*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+xfail_strict = true
 addopts = "-v --tb=short"
 markers = [
-    "optional: marks tests as slow or requiring external resources (deselect with -m 'not optional')",
+    "cuda: mark tests that require CUDA GPU",
+    "optional: mark optional tests (usually slower or requiring external resources)",
 ]
+
+[tool.ruff]
+src = ["src"]
+line-length = 99
+indent-width = 4
+target-version = "py313"
+exclude = [
+    ".bzr", ".direnv", ".eggs", ".git", ".git-rewrite", ".hg", ".mypy_cache",
+    ".nox", ".pants.d", ".pytype", ".ruff_cache", ".svn", ".tox", ".venv",
+    "__pypackages__", "_build", "buck-out", "build", "dist", "node_modules", "venv",
+    "docs/tutorials",
+]
+
+[tool.ruff.lint]
+select = [
+    "F",    # Pyflakes
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "D",    # pydocstyle
+    "B",    # flake8-bugbear
+    "TID",  # flake8-tidy-imports
+    "C4",   # flake8-comprehensions
+    "BLE",  # flake8-blind-except
+    "UP",   # pyupgrade
+    "RUF100",
+    "PT",   # pytest style
+    "NPY",  # numpy
+    "TCH",  # flake8-type-checking
+    "FA",   # flake8-future-annotations
+]
+ignore = [
+    "E741",   # ambiguous variable names (I is identity matrix)
+    "D104",   # missing docstring in public package
+    "D100",   # missing docstring in public module
+    "D107",   # missing docstring in __init__
+    "B008",   # function calls in argument defaults
+    "D400",   # first line should end with period
+    "D401",   # imperative mood
+    "D213",   # multi-line docstring summary
+    "PT011",  # pytest.raises match
+    "NPY002", # np.random functions
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"docs/*" = ["I", "BLE001"]
+"tests/*" = ["D"]
+"*/__init__.py" = ["F401"]
+"src/spatialvi/__init__.py" = ["I"]
+
+[tool.ruff.format]
+docstring-code-format = true
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

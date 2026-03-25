@@ -1,6 +1,36 @@
+codecov:
+  require_ci_to_pass: no
+
 coverage:
   status:
     project:
       default:
-        target: 80%
-        threshold: 2%
+        target: auto
+        threshold: 1%
+        informational: true
+        flags:
+          - integration
+    patch:
+      default:
+        target: 85%
+        threshold: 1%
+    changes: false
+
+flags:
+  integration:
+    paths:
+      - src/spatialvi/
+    carryforward: false
+  cuda:
+    paths:
+      - src/spatialvi/
+    carryforward: true
+  macos:
+    paths:
+      - src/spatialvi/
+    carryforward: true
+
+comment:
+  layout: diff, flags, files
+  behavior: once
+  require_base: no

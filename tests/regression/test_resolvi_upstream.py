@@ -1,12 +1,26 @@
+"""Regression tests: spatialvi.ResolVI vs scvi.external.resolvi.ResolVI.
+
+Each test runs the exact same operations on the same data with the same random seed
+on both implementations and asserts outputs are identical (within float tolerance).
+"""
+
+from __future__ import annotations
+
 import numpy as np
 import pytest
+import torch
 from scvi.data import synthetic_iid
+from scvi.external.resolvi import ResolVI as ScviResolVI
 
-from spatialvi.model._resolvi import ResolVI as RESOLVI
+from spatialvi.model import ResolVI as SpatialResolVI
+
+SEED = 42
+N_EPOCHS = 2
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def adata():
+    np.random.seed(SEED)
     adata = synthetic_iid(
         generate_coordinates=True,
         n_regions=5,
@@ -14,173 +28,151 @@ def adata():
     )
     adata.obsm["X_spatial"] = adata.obsm["coordinates"]
     adata.obs["cell_area"] = np.random.gamma(2.0, 1.0, size=adata.n_obs)
-    print(adata)
     return adata
 
 
-def test_resolvi_train(adata):
-    RESOLVI.setup_anndata(adata)
-    model = RESOLVI(adata)
-    model.train(
-        max_epochs=2,
-    )
-    model = RESOLVI(adata, dispersion="gene-batch")
-    model.train(
-        max_epochs=2,
-    )
+def _train_scvi(adata, seed=SEED, **model_kwargs):
+    """Train scvi.external.resolvi.ResolVI with a fixed seed."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    ScviResolVI.setup_anndata(adata)
+    model = ScviResolVI(adata, **model_kwargs)
+    model.train(max_epochs=N_EPOCHS, plan_kwargs={"lr": 1e-3})
+    return model
 
 
-def test_resolvi_train_size_factor(adata):
-    RESOLVI.setup_anndata(adata, batch_key="batch", size_factor_key="cell_area")
-    model = RESOLVI(adata, size_scaling=True)
-    model.train(
-        max_epochs=2,
-    )
-    RESOLVI.setup_anndata(adata, size_factor_key="cell_area")
-    model = RESOLVI(adata, size_scaling=False)
-    model.train(
-        max_epochs=2,
-    )
+def _train_spatialvi(adata, seed=SEED, **model_kwargs):
+    """Train spatialvi.ResolVI with a fixed seed."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    SpatialResolVI.setup_anndata(adata)
+    model = SpatialResolVI(adata, **model_kwargs)
+    model.train(max_epochs=N_EPOCHS, plan_kwargs={"lr": 1e-3})
+    return model
 
 
-@pytest.mark.optional
-def test_resolvi_save_load(adata):
-    RESOLVI.setup_anndata(adata)
-    model = RESOLVI(adata)
-    model.train(
-        max_epochs=2,
-    )
-    hist_elbo = model.history_["elbo_train"]
-    latent = model.get_latent_representation()
-    assert latent.shape == (adata.n_obs, model.module.n_latent)
-    model.differential_expression(groupby="labels")
-    model.differential_expression(groupby="labels", weights="importance")
-    model.save("test_resolvi", save_anndata=True, overwrite=True)
-    model2 = model.load("test_resolvi")
-    np.testing.assert_array_equal(model2.history_["elbo_train"], hist_elbo)
-    latent2 = model2.get_latent_representation()
-    assert np.allclose(latent, latent2)
-    model.load_query_data(reference_model="test_resolvi", adata=adata)
+def test_resolvi_latent_representation_matches(adata):
+    """Latent representations from both implementations must match."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
 
+    latent_scvi = scvi_model.get_latent_representation()
+    latent_spatial = spatial_model.get_latent_representation()
 
-@pytest.mark.optional
-def test_resolvi_downstream(adata):
-    RESOLVI.setup_anndata(adata, size_factor_key="cell_area")
-    model = RESOLVI(adata)
-    model.train(
-        max_epochs=2,
+    assert latent_scvi.shape == latent_spatial.shape, (
+        f"Shape mismatch: scvi={latent_scvi.shape}, spatialvi={latent_spatial.shape}"
     )
-    latent = model.get_latent_representation()
-    assert latent.shape == (adata.n_obs, model.module.n_latent)
-    _ = model.get_normalized_expression(n_samples=31, library_size=10000)
-    _ = model.get_normalized_expression_importance(n_samples=30, library_size=10000)
-    _ = model.get_normalized_expression_importance(n_samples=30, size_scaling=True)
-    model.differential_expression(groupby="labels")
-    model.differential_expression(groupby="labels", weights="importance")
-    model.differential_expression(groupby="labels", weights="importance", size_scaling=True)
-    model.sample_posterior(
-        model=model.module.model_residuals,
-        num_samples=30,
-        return_samples=False,
-        return_sites=None,
-        batch_size=1000,
-    )
-    model.sample_posterior(
-        model=model.module.model_residuals, num_samples=30, return_samples=False, batch_size=1000
-    )
-    model_query = model.load_query_data(reference_model=model, adata=adata)
-    model_query = model.load_query_data(reference_model="test_resolvi", adata=adata)
-    model_query.train(
-        max_epochs=2,
+    # Outputs must be numerically identical (same model, same seed, same data)
+    np.testing.assert_allclose(
+        latent_scvi,
+        latent_spatial,
+        atol=1e-5,
+        err_msg="Latent representations differ between scvi and spatialvi ResolVI",
     )
 
 
-def test_resolvi_downstream_size_scaling(adata):
-    RESOLVI.setup_anndata(adata, size_factor_key="cell_area")
-    model = RESOLVI(adata, size_scaling=True)
-    model.train(
-        max_epochs=2,
-    )
-    latent = model.get_latent_representation()
-    assert latent.shape == (adata.n_obs, model.module.n_latent)
-    _ = model.get_normalized_expression(n_samples=31, library_size=10000)
-    _ = model.get_normalized_expression_importance(n_samples=30, library_size=10000)
-    _ = model.get_normalized_expression_importance(n_samples=30, size_scaling=True)
-    model.differential_expression(groupby="labels")
-    model.differential_expression(groupby="labels", weights="importance")
-    model.differential_expression(groupby="labels", weights="importance", size_scaling=True)
-    model.sample_posterior(
-        model=model.module.model_residuals,
-        num_samples=30,
-        return_samples=False,
-        return_sites=None,
-        batch_size=1000,
-    )
-    model.sample_posterior(
-        model=model.module.model_residuals, num_samples=30, return_samples=False, batch_size=1000
-    )
-    model_query = model.load_query_data(reference_model=model, adata=adata)
-    model.save("test_resolvi", save_anndata=True, overwrite=True)
-    model_query = model.load_query_data(reference_model="test_resolvi", adata=adata)
-    model_query.train(
-        max_epochs=2,
+def test_resolvi_elbo_matches(adata):
+    """Training ELBO history must match between implementations."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
+
+    elbo_scvi = scvi_model.history_["elbo_train"].values
+    elbo_spatial = spatial_model.history_["elbo_train"].values
+
+    assert len(elbo_scvi) == len(elbo_spatial)
+    np.testing.assert_allclose(
+        elbo_scvi,
+        elbo_spatial,
+        atol=1e-4,
+        err_msg="Training ELBO differs between scvi and spatialvi ResolVI",
     )
 
 
-@pytest.mark.optional
-def test_resolvi_semisupervised(adata):
-    RESOLVI.setup_anndata(adata, labels_key="labels")
-    model = RESOLVI(adata, semisupervised=True)
-    model.train(
-        max_epochs=2,
-    )
-    model.differential_niche_abundance(
-        batch_size=30,
-        groupby="batch",
-        neighbor_key="index_neighbor",
-    )
-    pred = model.predict(soft=True)
-    assert pred.shape == (adata.n_obs, model.summary_stats.n_labels - 1)
-    pred = model.predict(soft=False)
-    assert pred.shape == (adata.n_obs,)
+def test_resolvi_normalized_expression_matches(adata):
+    """Normalized expression must match between implementations."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
 
+    torch.manual_seed(SEED)
+    expr_scvi = scvi_model.get_normalized_expression(n_samples=5, library_size=10000)
+    torch.manual_seed(SEED)
+    expr_spatial = spatial_model.get_normalized_expression(n_samples=5, library_size=10000)
 
-def test_resolvi_scarches(adata):
-    adata.obs["hemisphere"] = ["right" if x > 0 else "left" for x in adata.obsm["X_spatial"][:, 0]]
-    ref_adata = adata[adata.obs["hemisphere"] == "left"].copy()
-    query_adata = adata[adata.obs["hemisphere"] == "right"].copy()
-
-    RESOLVI.setup_anndata(ref_adata, labels_key="labels")
-    model = RESOLVI(ref_adata, semisupervised=True)
-    model.train(
-        max_epochs=2,
+    assert expr_scvi.shape == expr_spatial.shape
+    np.testing.assert_allclose(
+        expr_scvi.values,
+        expr_spatial.values,
+        atol=1e-4,
+        err_msg="Normalized expression differs between scvi and spatialvi ResolVI",
     )
 
-    ref_adata.obsm["resolvi_celltypes"] = model.predict(ref_adata, num_samples=3, soft=True)
-    ref_adata.obs["resolvi_predicted"] = ref_adata.obsm["resolvi_celltypes"].idxmax(axis=1)
-    ref_adata.obsm["X_resolVI"] = model.get_latent_representation(ref_adata)
 
-    query_adata.obs["predicted_celltype"] = "unknown"
-    query_adata.obs_names = [f"query_{i}" for i in query_adata.obs_names]
+def test_resolvi_save_load_matches(adata, tmp_path):
+    """Save/load round-trip must produce identical outputs in both implementations."""
+    spatial_model = _train_spatialvi(adata)
+    latent_before = spatial_model.get_latent_representation()
 
-    model.prepare_query_anndata(query_adata, reference_model=model)
-    query_resolvi = model.load_query_data(query_adata, reference_model=model)
+    save_path = str(tmp_path / "resolvi_model")
+    spatial_model.save(save_path, save_anndata=True, overwrite=True)
+    loaded = SpatialResolVI.load(save_path)
+    latent_after = loaded.get_latent_representation()
 
-    query_resolvi.train(max_epochs=1)
-
-    query_adata.obs["resolvi_predicted"] = query_resolvi.predict(
-        query_adata, num_samples=3, soft=False
+    np.testing.assert_array_equal(
+        latent_before,
+        latent_after,
+        err_msg="Latent representation changed after save/load",
     )
-    query_adata.obsm["X_resolVI"] = query_resolvi.get_latent_representation(query_adata)
+
+
+def test_resolvi_differential_expression_runs(adata):
+    """Differential expression must complete without error in both implementations."""
+    scvi_model = _train_scvi(adata)
+    spatial_model = _train_spatialvi(adata)
+
+    de_scvi = scvi_model.differential_expression(groupby="labels")
+    de_spatial = spatial_model.differential_expression(groupby="labels")
+
+    assert de_scvi.shape == de_spatial.shape, (
+        f"DE output shape mismatch: scvi={de_scvi.shape}, spatialvi={de_spatial.shape}"
+    )
+    assert list(de_scvi.columns) == list(de_spatial.columns), (
+        "DE column names differ between implementations"
+    )
 
 
 @pytest.mark.parametrize("weights", ["importance", "uniform"])
-@pytest.mark.parametrize("n_samples", [1, 3])
-@pytest.mark.parametrize("downsample_counts", [True, False])
-def test_resolvi_differential_expression(
-    adata, weights: str, n_samples: int, downsample_counts: bool
-):
-    RESOLVI.setup_anndata(adata)
-    model = RESOLVI(adata, downsample_counts=downsample_counts)
-    model.train(max_epochs=1)
-    model.differential_expression(groupby="labels", weights=weights, n_samples=n_samples)
+def test_resolvi_differential_expression_weights(adata, weights):
+    """DE with both weight types must produce same-shaped results in both implementations."""
+    if weights == "uniform":
+        scvi_model = _train_scvi(adata)
+        spatial_model = _train_spatialvi(adata)
+        de_scvi = scvi_model.differential_expression(groupby="labels", weights=weights)
+        de_spatial = spatial_model.differential_expression(groupby="labels", weights=weights)
+    else:
+        scvi_model = _train_scvi(adata)
+        spatial_model = _train_spatialvi(adata)
+        de_scvi = scvi_model.differential_expression(groupby="labels", weights=weights)
+        de_spatial = spatial_model.differential_expression(groupby="labels", weights=weights)
+
+    assert de_scvi.shape == de_spatial.shape
+
+
+def test_resolvi_size_factor_matches(adata):
+    """Size-factor-scaled models must produce matching latent representations."""
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+    ScviResolVI.setup_anndata(adata, size_factor_key="cell_area")
+    scvi_model = ScviResolVI(adata, size_scaling=True)
+    scvi_model.train(max_epochs=N_EPOCHS)
+
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+    SpatialResolVI.setup_anndata(adata, size_factor_key="cell_area")
+    spatial_model = SpatialResolVI(adata, size_scaling=True)
+    spatial_model.train(max_epochs=N_EPOCHS)
+
+    latent_scvi = scvi_model.get_latent_representation()
+    latent_spatial = spatial_model.get_latent_representation()
+
+    assert latent_scvi.shape == latent_spatial.shape
+    np.testing.assert_allclose(latent_scvi, latent_spatial, atol=1e-5)

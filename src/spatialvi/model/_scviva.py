@@ -680,7 +680,7 @@ class SCVIVA(
         -----
         This is not the negative reconstruction error, so higher is better.
         """
-        from spatialvi.module._nichevae_log_likelihood import compute_composition_error
+        from spatialvi.module._nichevae import compute_composition_error
 
         if adata is not None and dataloader is not None:
             raise ValueError("Only one of `adata` or `dataloader` can be provided.")
@@ -742,7 +742,7 @@ class SCVIVA(
         -----
         This is not the negative reconstruction error, so higher is better.
         """
-        from spatialvi.module._nichevae_log_likelihood import compute_niche_error
+        from spatialvi.module._nichevae import compute_niche_error
 
         if adata is not None and dataloader is not None:
             raise ValueError("Only one of `adata` or `dataloader` can be provided.")
@@ -1143,9 +1143,9 @@ def _pad_and_sort_query_anndata(
     # sort columns anyway to match reference
     adata.obsm[niche_composition_key] = adata.obsm[niche_composition_key][reference_label_names]
     pad_and_sorted_query_label_names = pd.Index(adata.obsm[niche_composition_key].columns)
-    assert pad_and_sorted_query_label_names.equals(
-        reference_label_names
-    ), "Error when sorting query label names to match reference."
+    assert pad_and_sorted_query_label_names.equals(reference_label_names), (
+        "Error when sorting query label names to match reference."
+    )
 
     # pad eta niche activation if needed
     cell_type_to_int = adata.uns["cell_type_to_int"]

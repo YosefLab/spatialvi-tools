@@ -633,3 +633,87 @@ class NicheLossOutput(LossOutput):
 
         object.__setattr__(self, "composition_loss", self._as_dict("composition_loss"))
         object.__setattr__(self, "niche_loss", self._as_dict("niche_loss"))
+
+
+def compute_composition_error(
+    module,
+    dataloader,
+    return_mean: bool = True,
+    **kwargs,
+):
+    """Compute the composition prediction error on the data.
+
+    The error is the negative log likelihood of the data (alpha) given the latent variables.
+
+    Parameters
+    ----------
+    module
+        A callable that takes a dictionary of tensors and returns a tuple whose last element
+        is a :class:`NicheLossOutput`.
+    dataloader
+        Iterator over minibatches of data formatted as expected by ``module.forward``.
+    return_mean
+        If ``True``, return the mean error across the dataset; otherwise per-cell.
+    **kwargs
+        Additional keyword arguments forwarded to ``module``.
+
+    Returns
+    -------
+    The composition prediction error.
+    """
+    import torch
+
+    composition_loss = []
+    for tensors in dataloader:
+        _, _, losses = module(tensors, **kwargs)
+        if isinstance(losses.composition_loss, dict):
+            recon = torch.stack(list(losses.composition_loss.values())).sum(dim=0)
+        else:
+            recon = losses.composition_loss
+        composition_loss.append(recon)
+    composition_loss = torch.cat(composition_loss, dim=0)
+    if return_mean:
+        composition_loss = composition_loss.mean()
+    return composition_loss
+
+
+def compute_niche_error(
+    module,
+    dataloader,
+    return_mean: bool = True,
+    **kwargs,
+):
+    """Compute the niche state prediction error on the data.
+
+    The error is the negative log likelihood of the data (eta) given the latent variables.
+
+    Parameters
+    ----------
+    module
+        A callable that takes a dictionary of tensors and returns a tuple whose last element
+        is a :class:`NicheLossOutput`.
+    dataloader
+        Iterator over minibatches of data formatted as expected by ``module.forward``.
+    return_mean
+        If ``True``, return the mean error across the dataset; otherwise per-cell.
+    **kwargs
+        Additional keyword arguments forwarded to ``module``.
+
+    Returns
+    -------
+    The niche state prediction error.
+    """
+    import torch
+
+    niche_loss = []
+    for tensors in dataloader:
+        _, _, losses = module(tensors, **kwargs)
+        if isinstance(losses.niche_loss, dict):
+            recon = torch.stack(list(losses.niche_loss.values())).sum(dim=0)
+        else:
+            recon = losses.niche_loss
+        niche_loss.append(recon)
+    niche_loss = torch.cat(niche_loss, dim=0)
+    if return_mean:
+        niche_loss = niche_loss.mean()
+    return niche_loss

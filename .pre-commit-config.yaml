@@ -1,18 +1,42 @@
+fail_fast: false
+default_language_version:
+  python: python3
+default_stages:
+  - pre-commit
+  - pre-push
+minimum_pre_commit_version: 2.16.0
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.0
+    rev: v0.15.7
     hooks:
       - id: ruff
-        args: [--fix]
+        args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
-      - id: trailing-whitespace
+      - id: detect-private-key
+      - id: check-ast
       - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: trailing-whitespace
+      - id: check-case-conflict
       - id: check-yaml
+
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
+    rev: v2.4.1
     hooks:
       - id: codespell
-        args: ["--ignore-words=.codespell-ignore-words"]
+        args: ["--skip=docs/tutorials/*.ipynb"]
+
+  - repo: local
+    hooks:
+      - id: forbid-to-commit
+        name: Don't commit rej files
+        entry: |
+          Cannot commit .rej files. These indicate merge conflicts from automated template updates.
+          Fix the conflicts manually and remove the .rej files.
+        language: fail
+        files: '.*\.rej$'
