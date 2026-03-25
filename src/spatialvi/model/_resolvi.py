@@ -20,7 +20,6 @@ from scvi.data.fields import (
     ObsmField,
 )
 from scvi.dataloaders import AnnTorchDataset
-from scvi.external.resolvi._utils import ResolVIPredictiveMixin
 from scvi.model._utils import (
     scrna_raw_counts_properties,
 )
@@ -30,6 +29,7 @@ from scvi.train._config import merge_kwargs
 from scvi.utils import de_dsp, setup_anndata_dsp
 
 from spatialvi.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
+from spatialvi.model.base._resolvi_predictive import ResolVIPredictiveMixin
 from spatialvi.module._resolvae import RESOLVAE
 
 if TYPE_CHECKING:
@@ -338,7 +338,7 @@ class ResolVI(
         size_factor_key: str | None = None,
         categorical_covariate_keys: list[str] | None = None,
         prepare_data: bool | None = True,
-        prepare_data_kwargs: dict = None,
+        prepare_data_kwargs: dict | None = None,
         unlabeled_category: str = "unknown",
         **kwargs,
     ):

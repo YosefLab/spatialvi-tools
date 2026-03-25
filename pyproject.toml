@@ -60,3 +60,6 @@ ignore = ["E501"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+markers = [
+    "optional: marks tests as slow or requiring external resources (deselect with -m 'not optional')",
+]

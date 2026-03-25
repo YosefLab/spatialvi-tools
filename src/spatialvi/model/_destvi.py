@@ -407,6 +407,7 @@ class DestVI(
         mc_samples: int = 5000,
         batch_size: int | None = None,
         return_dist: bool = False,
+        backend: str = "cpu",
     ) -> np.ndarray:
         """Return the latent representation for each cell.
 
@@ -457,11 +458,22 @@ class DestVI(
                 latent += [z.cpu()]
             latent_qzm += [qz.loc[0, ...].cpu()]
             latent_qzv += [qz.scale[0, ...].square().cpu()]
-        return (
+        latent = (
             (torch.cat(latent_qzm).numpy(), torch.cat(latent_qzv).numpy())
             if return_dist
             else torch.cat(latent).numpy()
         )
+        if backend == "rapids":
+            try:
+                import cupy as cp
+
+                return cp.asarray(latent)
+            except ImportError as e:
+                raise ImportError(
+                    "backend='rapids' requires cupy. "
+                    "Install with: pip install 'spatialvi-tools[rapids]'"
+                ) from e
+        return latent
 
     @torch.inference_mode()
     def get_scale_for_ct(
