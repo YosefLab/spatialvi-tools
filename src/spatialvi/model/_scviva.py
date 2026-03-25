@@ -217,6 +217,37 @@ class SCVIVA(
 
         self.init_params_ = self._get_init_params(locals())
 
+    def get_latent_representation(
+        self,
+        adata=None,
+        indices=None,
+        give_mean: bool = True,
+        batch_size=None,
+        backend: str = "cpu",
+        **kwargs,
+    ):
+        """Return latent representation with optional RAPIDS backend.
+
+        Parameters
+        ----------
+        backend
+            ``"cpu"`` (default) or ``"rapids"`` for cupy array output.
+        """
+        latent = super().get_latent_representation(
+            adata=adata, indices=indices, give_mean=give_mean, batch_size=batch_size, **kwargs
+        )
+        if backend == "rapids":
+            try:
+                import cupy as cp
+
+                return cp.asarray(latent)
+            except ImportError as e:
+                raise ImportError(
+                    "backend='rapids' requires cupy. "
+                    "Install with: pip install 'spatialvi-tools[rapids]'"
+                ) from e
+        return latent
+
     @staticmethod
     def preprocessing_anndata(
         adata: AnnData,

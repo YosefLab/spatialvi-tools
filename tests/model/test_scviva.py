@@ -53,7 +53,7 @@ def test_scviva_get_latent_cpu(scviva_adata):
     SCVIVA.setup_anndata(scviva_adata, layer="counts", batch_key="batch", **setup_kwargs)
     model = SCVIVA(scviva_adata)
     model.train(max_epochs=N_EPOCHS, accelerator="cpu")
-    latent = model.get_latent_representation()
+    latent = model.get_latent_representation(backend="cpu")
     assert latent.shape[0] == scviva_adata.n_obs
 
 
