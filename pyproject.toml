@@ -1,0 +1,62 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[project]
+name = "spatialvi-tools"
+version = "0.1.0"
+description = "Consolidated spatial transcriptomics analysis toolkit with variational inference methods"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+authors = [{ name = "Ori Kronfeld", email = "ori.kronfeld@weizmann.ac.il" }]
+keywords = ["spatial transcriptomics", "variational inference", "deep learning", "single-cell", "deconvolution"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: BSD License",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = [
+  "anndata>=0.11",
+  "lightning>=2",
+  "numpy>=1.21",
+  "pandas",
+  "pyro-ppl",
+  "rich",
+  "scanpy>=1.10",
+  "scipy",
+  "scvi-tools",
+  "torch",
+  "tqdm",
+]
+
+[project.optional-dependencies]
+spatial = ["spatialdata>=0.2", "squidpy>=1.4"]
+rapids   = ["cuml>=24.0", "cugraph>=24.0", "cupy-cuda12x"]
+dev      = ["pre-commit", "twine>=4.0.2"]
+test     = ["pytest>=7", "pytest-cov", "anndata", "scanpy"]
+doc      = ["sphinx", "myst-nb", "sphinx-book-theme", "ipykernel"]
+all      = ["spatialvi-tools[spatial,rapids,dev,doc,test]"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spatialvi"]
+
+[tool.ruff]
+src = ["src"]
+line-length = 99
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
