@@ -469,3 +469,36 @@ These are tracked in `/Users/orikr/PycharmProjects/spatialvi-tools`.
 - Minified model support (beyond what scvi provides)
 - Any model from `spatialvi.external`
 - `CondSCVI` wrapper (imported directly from `scvi.model` by users)
+
+---
+
+## Implementation Plan Summary
+
+The full plan is at `docs/superpowers/plans/2026-03-25-spatialvi-implementation.md`.
+All 21 tasks were completed on 2026-03-25. Final state: **50/50 tests pass**, package builds successfully.
+
+| # | Task | Description |
+|---|------|-------------|
+| 1 | Package Scaffolding | `pyproject.toml`, `README.md`, `CHANGELOG.md`, `LICENSE`, `.gitignore`, `.pre-commit-config.yaml`, `.readthedocs.yaml`, `.editorconfig`, `.markdownlint.yaml`, `.codecov.yaml`, `Dockerfile`, `CONTRIBUTING.md` |
+| 2 | GitHub Workflows & Issue Templates | `build.yml`, `test_linux.yml` (3.12/3.13/3.14*), `test_macos.yml`, `test_gpu.yml`, `release.yml`; ISSUE_TEMPLATE, PR template |
+| 3 | Package Skeleton | `src/spatialvi/__init__.py` (lazy imports), `_constants.py`, `_settings.py`, `model/__init__.py`, `external/__init__.py`, `train/_config.py` |
+| 4 | Custom AnnData Fields | `src/spatialvi/data/_fields.py`: `SpatialCoordsField` (2D/3D validation), `NeighborhoodGraphField` (CSR→dense conversion) |
+| 5 | `SpatialBaseModel` | `src/spatialvi/model/base/_spatial_base.py`: `setup_spatialdata`, `from_spatialdata`, `get_latent_representation(backend=)`, `plot_spatial_embedding`, `plot_spatial_predictions` |
+| 6 | `SpatialNeighborhoodMixin` | `src/spatialvi/model/base/_neighborhood_mixin.py`: `compute_neighbors(backend="squidpy"\|"rapids")`, `_setup_neighbor_field` |
+| 7 | `SpatialDeconvolutionMixin` | `src/spatialvi/model/base/_deconvolution_mixin.py`: `get_proportions_df()`, `plot_cell_type_map()` |
+| 8 | `utils/_spatial.py` | Shared spatial helper utilities |
+| 9 | Base Infrastructure Smoke Test | Full import + fixture validation; `tests/conftest.py` with `_MinimalSpatialModel`, `make_spatial_adata()` |
+| 10 | scVIVA Module | `src/spatialvi/module/_nichevae.py` (nicheVAE), `_nichevae_components.py` (Encoder, DirichletDecoder, NicheDecoder), `_nichevae_log_likelihood.py` |
+| 11 | scVIVA Model + DE | `src/spatialvi/model/_scviva.py` (SCVIVA class, MRO with explicit `get_latent_representation` override), `model/_scviva_de/` (niche DE sub-package) |
+| 12 | scVIVA Tests | `tests/model/test_scviva.py`: setup_anndata, train, get_latent_representation (CPU + RAPIDS optional), compute_neighbors |
+| 13 | DestVI Module | `src/spatialvi/module/_mrdeconv.py` (MRDeconv, ported from scvi-tools) |
+| 14 | DestVI Model | `src/spatialvi/model/_destvi.py` (DestVI class with `SpatialDeconvolutionMixin`, `from_rna_model` inherited) |
+| 15 | DestVI Tests | `tests/model/test_destvi.py`: from_rna_model, get_proportions, get_proportions_df, get_latent_representation |
+| 16 | ResolVI Module | `src/spatialvi/module/_resolvae.py` (RESOLVAE Pyro module, ported from scvi-tools) |
+| 17 | ResolVI Model | `src/spatialvi/model/_resolvi.py` (ResolVI class: SpatialNeighborhoodMixin + PyroSviTrainMixin + ResolVIPredictiveMixin); vendored `_resolvi_predictive.py` |
+| 18 | ResolVI Tests | `tests/model/test_resolvi.py`: setup_anndata, compute_neighbors, train, get_latent_representation |
+| 19 | Documentation | `docs/conf.py` (Sphinx + myst_nb), `docs/user_guide/models/scviva.md`, `destvi.md`, `resolvi.md` |
+| 20 | Final Integration & Smoke Test | Full test suite (25/25 pass), package build (`dist/*.whl`, `dist/*.tar.gz`), lazy import validation |
+| 21 | Code Consolidation & Regression | `tests/regression/test_scviva_upstream.py`, `test_resolvi_upstream.py`; 50/50 tests pass total |
+
+\* Python 3.14 CI job uses `continue-on-error: true` — aspirational target.

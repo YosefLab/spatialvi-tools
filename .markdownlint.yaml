@@ -1,0 +1,28 @@
+# Markdownlint configuration for spatialvi-tools
+# https://github.com/DavidAnson/markdownlint
+
+default: true
+
+# Allow long lines in tables and code blocks
+MD013:
+  line_length: 120
+  heading_line_length: 80
+  code_block_line_length: 120
+  tables: false
+
+# Allow inline HTML
+MD033: false
+
+# Allow duplicate headings in different sections
+MD024:
+  siblings_only: true
+
+# Allow trailing punctuation in headings (for ? in FAQs)
+MD026:
+  punctuation: ".,;:!"
+
+# Allow multiple top-level headings (for CHANGELOG)
+MD025: false
+
+# Allow bare URLs
+MD034: false
