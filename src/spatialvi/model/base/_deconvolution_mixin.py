@@ -37,10 +37,25 @@ class SpatialDeconvolutionMixin:
         if adata is None and hasattr(self, "adata"):
             adata = self.adata
 
-        # get_proportions() uses self.adata internally and returns a DataFrame.
-        # We call it with no arguments and let it handle the data access.
-        proportions_df = self.get_proportions()  # returns pd.DataFrame (n_spots, n_cell_types)
-        return proportions_df
+        import inspect
+
+        sig = inspect.signature(self.get_proportions)
+        params = list(sig.parameters.keys())
+        # Call with adata only if the method accepts it as the first positional argument.
+        if params and params[0] == "adata":
+            proportions = self.get_proportions(adata)
+        else:
+            proportions = self.get_proportions()
+
+        if isinstance(proportions, pd.DataFrame):
+            return proportions
+
+        # Wrap numpy array in a DataFrame with cell type names as columns.
+        import numpy as np
+
+        proportions = np.asarray(proportions)
+        columns = list(self.cell_type_mapping) if hasattr(self, "cell_type_mapping") else None
+        return pd.DataFrame(proportions, columns=columns)
 
     def plot_cell_type_map(
         self,
