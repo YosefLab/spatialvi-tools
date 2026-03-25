@@ -362,9 +362,9 @@ class ResolVI(
         """
         setup_method_args = cls._get_setup_method_args(**locals())
         x = adata.X if layer is None else adata.layers[layer]
-        assert (
-            np.min(x.sum(axis=1)) > 0
-        ), "Please filter cells with less than 5 counts prior to running ResolVI."
+        assert np.min(x.sum(axis=1)) > 0, (
+            "Please filter cells with less than 5 counts prior to running ResolVI."
+        )
         if prepare_data:
             if prepare_data_kwargs is None:
                 prepare_data_kwargs = {}
@@ -384,9 +384,9 @@ class ResolVI(
         else:
             adata.obs["_indices"] = adata.obs_names.astype(str)
         adata.obs["_indices"] = adata.obs["_indices"].astype("category")
-        assert (
-            not adata.obs["_indices"].duplicated(keep="first").any()
-        ), "obs_names need to be unique prior to running ResolVI."
+        assert not adata.obs["_indices"].duplicated(keep="first").any(), (
+            "obs_names need to be unique prior to running ResolVI."
+        )
         if labels_key is None:
             label_field = CategoricalObsField(REGISTRY_KEYS.LABELS_KEY, labels_key)
         else:
@@ -503,18 +503,27 @@ class ResolVI(
                 "Pass weights='importance' or set library_scaling=False."
             )
 
-        model_fn = partial(
-            self.get_normalized_expression_importance
-            if weights == "importance"
-            else self.get_normalized_expression,
-            return_numpy=True,
-            n_samples=n_samples,
-            batch_size=batch_size,
-            weights=weights,
-            return_mean=False,
-            size_scaling=size_scaling,
-            library_scaling=library_scaling,
-        )
+        if weights == "importance":
+            model_fn = partial(
+                self.get_normalized_expression_importance,
+                return_numpy=True,
+                n_samples=n_samples,
+                batch_size=batch_size,
+                weights=weights,
+                return_mean=False,
+                size_scaling=size_scaling,
+                library_scaling=library_scaling,
+            )
+        else:
+            model_fn = partial(
+                self.get_normalized_expression,
+                return_numpy=True,
+                n_samples=n_samples,
+                batch_size=batch_size,
+                weights=weights,
+                return_mean=False,
+                size_scaling=size_scaling,
+            )
 
         representation_fn = self.get_latent_representation if filter_outlier_cells else None
 

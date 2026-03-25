@@ -169,9 +169,9 @@ class DestVI(
             var_vprior = torch.exp(load_state_dict["prior_log_std"]) ** 2
             mp_vprior = torch.nn.Softmax(dim=-1)(load_state_dict["prior_logits"])
         else:
-            assert (
-                sc_model is not str
-            ), "VampPrior requires loading CondSCVI model and providing it"
+            assert sc_model is not str, (
+                "VampPrior requires loading CondSCVI model and providing it"
+            )
             vamp_prior = sc_model.get_vamp_prior(sc_model.adata, p=vamp_prior_p)
             mean_vprior = torch.tensor(vamp_prior["mean_vprior"], dtype=torch.float32)
             var_vprior = torch.tensor(vamp_prior["var_vprior"], dtype=torch.float32)
@@ -437,9 +437,9 @@ class DestVI(
         -------
         Low-dimensional representation for each cell or a tuple containing its mean and variance.
         """
-        assert (
-            self.module.n_latent_amortization is not None
-        ), "Model has no latent representation for amortized values."
+        assert self.module.n_latent_amortization is not None, (
+            "Model has no latent representation for amortized values."
+        )
         self._check_if_trained(warn=False)
 
         adata = self._validate_anndata(adata)
@@ -467,7 +467,7 @@ class DestVI(
             try:
                 import cupy as cp
 
-                if isinstance(latent, tuple):
+                if return_dist:
                     return tuple(cp.asarray(x) for x in latent)
                 return cp.asarray(latent)
             except ImportError as e:

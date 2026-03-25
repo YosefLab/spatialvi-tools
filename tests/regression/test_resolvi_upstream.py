@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 import torch
 from scvi.data import synthetic_iid
-from scvi.external.resolvi import ResolVI as ScviResolVI
+from scvi.external.resolvi import RESOLVI as ScviResolVI
 
 from spatialvi.model import ResolVI as SpatialResolVI
 
