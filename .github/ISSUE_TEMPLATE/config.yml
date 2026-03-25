@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: scvi-tools documentation
+    url: https://docs.scvi-tools.org
+    about: spatialvi-tools is built on scvi-tools. Check their docs for base model questions.

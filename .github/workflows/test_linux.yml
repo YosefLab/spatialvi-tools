@@ -1,0 +1,25 @@
+name: Test Linux
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # continue-on-error must be at job level (not inside matrix.include) to take effect
+    continue-on-error: ${{ matrix.python-version == '3.14' }}
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[test,spatial]"
+      - run: pytest tests/ -v --cov=spatialvi --cov-report=xml
+      - uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.13'
