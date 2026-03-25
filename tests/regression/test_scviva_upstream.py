@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+import scvi as scvi_pkg
 import torch
 from scvi.data import synthetic_iid
 from scvi.external.scviva import SCVIVA as ScviSCVIVA
@@ -67,6 +68,7 @@ def adata():
 
 
 def _train_scvi(adata, seed=SEED):
+    scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
     ScviSCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
@@ -77,6 +79,7 @@ def _train_scvi(adata, seed=SEED):
 
 
 def _train_spatialvi(adata, seed=SEED):
+    scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
     SpatialSCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
