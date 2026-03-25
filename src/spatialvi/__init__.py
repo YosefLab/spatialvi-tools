@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from importlib import import_module
 
+from spatialvi._settings import settings
+
 __version__ = "0.1.0"
 
 _lazy_map = {
@@ -18,4 +20,4 @@ def __getattr__(name: str):
     raise AttributeError(f"module 'spatialvi' has no attribute {name!r}")
 
 
-__all__ = ["SCVIVA", "DestVI", "ResolVI", "__version__"]
+__all__ = ["SCVIVA", "DestVI", "ResolVI", "__version__", "settings"]

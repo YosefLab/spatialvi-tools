@@ -18,7 +18,7 @@ The limitations of scVIVA include:
 
 ```{topic} Tutorials:
 
--   {doc}`/tutorials/notebooks/spatial/scVIVA_tutorial`
+-   {doc}`/tutorials/scVIVA_tutorial`
 ```
 
 ## Preliminaries
