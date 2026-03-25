@@ -467,6 +467,8 @@ class DestVI(
             try:
                 import cupy as cp
 
+                if isinstance(latent, tuple):
+                    return tuple(cp.asarray(x) for x in latent)
                 return cp.asarray(latent)
             except ImportError as e:
                 raise ImportError(

@@ -95,6 +95,11 @@ class SpatialDeconvolutionMixin:
             adata.obs[key] = df[cell_type].values
             return sc.pl.embedding(adata, basis=basis, color=key, ax=ax, **kwargs)
 
-        # No cell_type specified — plot all as a grid
+        # No cell_type specified — plot all as a grid; write each column to obs first
         logger.info("No cell_type specified; plotting all %d cell types.", len(df.columns))
-        return sc.pl.embedding(adata, basis=basis, color=list(df.columns), **kwargs)
+        keys = []
+        for ct in df.columns:
+            obs_key = f"_spatialvi_prop_{ct}"
+            adata.obs[obs_key] = df[ct].values
+            keys.append(obs_key)
+        return sc.pl.embedding(adata, basis=basis, color=keys, **kwargs)

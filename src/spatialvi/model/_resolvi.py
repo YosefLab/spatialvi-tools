@@ -497,6 +497,12 @@ class ResolVI(
         """
         adata = self._validate_anndata(adata)
 
+        if library_scaling and weights != "importance":
+            raise ValueError(
+                "library_scaling=True is only supported with weights='importance'. "
+                "Pass weights='importance' or set library_scaling=False."
+            )
+
         model_fn = partial(
             self.get_normalized_expression_importance
             if weights == "importance"
