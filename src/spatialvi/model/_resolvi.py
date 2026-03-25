@@ -262,6 +262,71 @@ class ResolVI(
             **kwargs,
         )
 
+    @staticmethod
+    def _prepare_data(
+        adata: AnnData,
+        n_neighbors: int = 10,
+        spatial_rep: str = "X_spatial",
+        batch_key: str | None = None,
+        slice_key: str | None = None,
+        **kwargs,
+    ) -> None:
+        """Compute spatial neighbors and store in ``adata.obsm``.
+
+        Parameters
+        ----------
+        adata
+            AnnData object with spatial coordinates.
+        n_neighbors
+            Number of spatial neighbors to compute.
+        spatial_rep
+            Key in ``adata.obsm`` containing spatial coordinates.
+        batch_key
+            Key in ``adata.obs`` for batch/slice grouping of neighbor computation.
+        slice_key
+            Alias for ``batch_key``.
+        """
+        if slice_key is not None:
+            batch_key = slice_key
+        try:
+            import scanpy
+            from sklearn.neighbors._base import _kneighbors_from_graph
+        except ImportError as err:
+            raise ImportError(
+                "Please install scanpy and scikit-learn -- `pip install scanpy`"
+            ) from err
+
+        if batch_key is None:
+            indices = [np.arange(adata.n_obs)]
+        else:
+            indices = [
+                np.where(adata.obs[batch_key] == i)[0] for i in adata.obs[batch_key].unique()
+            ]
+
+        distance_neighbor = 1e6 * np.ones([adata.n_obs, n_neighbors])
+        index_neighbor = np.zeros([adata.n_obs, n_neighbors], dtype=int)
+
+        for index in indices:
+            sub_data = adata[index].copy()
+            try:
+                import rapids_singlecell
+
+                rapids_singlecell.pp.neighbors(
+                    sub_data, n_neighbors=n_neighbors + 5, use_rep=spatial_rep
+                )
+            except ImportError:
+                scanpy.pp.neighbors(sub_data, n_neighbors=n_neighbors + 5, use_rep=spatial_rep)
+            distances = sub_data.obsp["distances"] ** 2
+
+            distance_neighbor[index, :], index_neighbor_batch = _kneighbors_from_graph(
+                distances, n_neighbors, return_distance=True
+            )
+            index_neighbor[index, :] = index[index_neighbor_batch]
+
+        adata.obsm["X_spatial"] = adata.obsm[spatial_rep]
+        adata.obsm["index_neighbor"] = index_neighbor
+        adata.obsm["distance_neighbor"] = distance_neighbor
+
     @classmethod
     @setup_anndata_dsp.dedent
     def setup_anndata(
@@ -272,6 +337,7 @@ class ResolVI(
         labels_key: str | None = None,
         size_factor_key: str | None = None,
         categorical_covariate_keys: list[str] | None = None,
+        prepare_data: bool | None = True,
         prepare_data_kwargs: dict = None,
         unlabeled_category: str = "unknown",
         **kwargs,
@@ -287,8 +353,11 @@ class ResolVI(
         size_factor_key
             Key in ``adata.obs`` corresponding to pre-computed size factors.
         %(param_cat_cov_keys)s
+        prepare_data
+            If ``True``, automatically compute spatial neighbors via :meth:`_prepare_data`.
+            Set to ``False`` if neighbors are already in ``adata.obsm``.
         prepare_data_kwargs
-            Keyword args for neighbor computation (unused; call compute_neighbors separately).
+            Keyword args for :meth:`_prepare_data` (e.g. ``n_neighbors``, ``spatial_rep``).
         %(param_unlabeled_category)s
         """
         setup_method_args = cls._get_setup_method_args(**locals())
@@ -296,6 +365,18 @@ class ResolVI(
         assert (
             np.min(x.sum(axis=1)) > 0
         ), "Please filter cells with less than 5 counts prior to running ResolVI."
+        if prepare_data:
+            if prepare_data_kwargs is None:
+                prepare_data_kwargs = {}
+            spatial_rep = prepare_data_kwargs.get("spatial_rep", "X_spatial")
+            if spatial_rep in adata.obsm:
+                cls._prepare_data(adata, batch_key=batch_key, **prepare_data_kwargs)
+            elif "index_neighbor" not in adata.obsm:
+                raise KeyError(
+                    f"Spatial key '{spatial_rep}' not found in adata.obsm and no pre-computed "
+                    "neighbors found. Either provide spatial coordinates or pre-compute "
+                    "neighbors manually and call setup_anndata with prepare_data=False."
+                )
         if batch_key is not None:
             adata.obs["_indices"] = (
                 adata.obs[batch_key].astype(str) + "_" + adata.obs_names.astype(str)
