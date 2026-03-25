@@ -164,7 +164,7 @@ class DestVI(
         if vamp_prior_p is None:
             mean_vprior = None
             var_vprior = None
-        elif attr_dict["init_params_"]["kwargs"]["module_kwargs"]["prior"] == "mog":
+        elif attr_dict["init_params_"]["kwargs"]["module_kwargs"].get("prior") == "mog":
             mean_vprior = load_state_dict["prior_means"].clone().detach()
             var_vprior = torch.exp(load_state_dict["prior_log_std"]) ** 2
             mp_vprior = torch.nn.Softmax(dim=-1)(load_state_dict["prior_logits"])
@@ -172,9 +172,10 @@ class DestVI(
             assert (
                 sc_model is not str
             ), "VampPrior requires loading CondSCVI model and providing it"
-            mean_vprior, var_vprior, mp_vprior = sc_model.get_vamp_prior(
-                sc_model.adata, p=vamp_prior_p
-            ).values()
+            vamp_prior = sc_model.get_vamp_prior(sc_model.adata, p=vamp_prior_p)
+            mean_vprior = torch.tensor(vamp_prior["mean_vprior"], dtype=torch.float32)
+            var_vprior = torch.tensor(vamp_prior["var_vprior"], dtype=torch.float32)
+            mp_vprior = torch.tensor(vamp_prior["weights_vprior"], dtype=torch.float32)
 
         if anndata_setup_kwargs is None:
             anndata_setup_kwargs = {}
