@@ -1,5 +1,8 @@
 """Tests for DestVI model."""
 
+import sys
+import types
+
 import numpy as np
 import pytest
 from scvi.data import synthetic_iid
@@ -52,6 +55,25 @@ def test_destvi_get_latent_cpu(destvi_data):
     st_model.train(max_epochs=2, accelerator="cpu")
     latent = st_model.get_latent_representation(backend="cpu")
     assert latent.shape[0] == st_adata.n_obs
+
+
+def test_destvi_get_latent_dist_rapids_preserves_tuple(destvi_data, monkeypatch):
+    sc_adata, st_adata = destvi_data
+    CondSCVI.setup_anndata(sc_adata, layer="counts", labels_key="labels")
+    sc_model = CondSCVI(sc_adata, weight_obs=False)
+    sc_model.train(max_epochs=2, accelerator="cpu")
+    DestVI.setup_anndata(st_adata, layer="counts")
+    st_model = DestVI.from_rna_model(st_adata, sc_model, n_latent_amortization=10)
+    st_model.train(max_epochs=2, accelerator="cpu")
+
+    monkeypatch.setitem(sys.modules, "cupy", types.SimpleNamespace(asarray=np.asarray))
+
+    latent = st_model.get_latent_representation(return_dist=True, backend="rapids")
+
+    assert isinstance(latent, tuple)
+    assert len(latent) == 2
+    assert latent[0].shape[0] == st_adata.n_obs
+    assert latent[1].shape == latent[0].shape
 
 
 def test_condscvi_not_re_exported():
