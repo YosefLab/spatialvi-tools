@@ -37,13 +37,10 @@ class SpatialDeconvolutionMixin:
         if adata is None and hasattr(self, "adata"):
             adata = self.adata
 
-        proportions = self.get_proportions(adata)  # (n_spots, n_cell_types)
-        cell_types = self.cell_type_mapping
-
-        df = pd.DataFrame(proportions, columns=cell_types)
-        if adata is not None and adata.obs_names is not None:
-            df.index = adata.obs_names
-        return df
+        # get_proportions() uses self.adata internally and returns a DataFrame.
+        # We call it with no arguments and let it handle the data access.
+        proportions_df = self.get_proportions()  # returns pd.DataFrame (n_spots, n_cell_types)
+        return proportions_df
 
     def plot_cell_type_map(
         self,
