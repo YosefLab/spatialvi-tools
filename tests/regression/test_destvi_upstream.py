@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+import scvi as scvi_pkg
 import torch
 from scvi.data import synthetic_iid
 from scvi.model import CondSCVI
@@ -53,6 +54,7 @@ def condscvi_model(sc_adata):
 
 
 def _train_scvi_destvi(st_adata, condscvi_model, seed=SEED):
+    scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
     ScviDestVI.setup_anndata(st_adata, layer="counts")
@@ -62,6 +64,7 @@ def _train_scvi_destvi(st_adata, condscvi_model, seed=SEED):
 
 
 def _train_spatial_destvi(st_adata, condscvi_model, seed=SEED):
+    scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
     SpatialDestVI.setup_anndata(st_adata, layer="counts")

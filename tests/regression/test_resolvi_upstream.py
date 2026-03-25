@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+import scvi as scvi_pkg
 import torch
 from scvi.data import synthetic_iid
 from scvi.external.resolvi import RESOLVI as ScviResolVI
@@ -33,6 +34,7 @@ def adata():
 
 def _train_scvi(adata, seed=SEED, **model_kwargs):
     """Train scvi.external.resolvi.ResolVI with a fixed seed."""
+    scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
     ScviResolVI.setup_anndata(adata)
@@ -43,6 +45,7 @@ def _train_scvi(adata, seed=SEED, **model_kwargs):
 
 def _train_spatialvi(adata, seed=SEED, **model_kwargs):
     """Train spatialvi.ResolVI with a fixed seed."""
+    scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
     SpatialResolVI.setup_anndata(adata)
@@ -159,12 +162,14 @@ def test_resolvi_differential_expression_weights(adata, weights):
 
 def test_resolvi_size_factor_matches(adata):
     """Size-factor-scaled models must produce matching latent representations."""
+    scvi_pkg.settings.seed = SEED
     torch.manual_seed(SEED)
     np.random.seed(SEED)
     ScviResolVI.setup_anndata(adata, size_factor_key="cell_area")
     scvi_model = ScviResolVI(adata, size_scaling=True)
     scvi_model.train(max_epochs=N_EPOCHS)
 
+    scvi_pkg.settings.seed = SEED
     torch.manual_seed(SEED)
     np.random.seed(SEED)
     SpatialResolVI.setup_anndata(adata, size_factor_key="cell_area")

@@ -16,7 +16,7 @@ The limitations of ResolVI include:
 
 ```{topic} Tutorials:
 
--   {doc}`/tutorials/notebooks/spatial/resolVI_tutorial`
+-   {doc}`/tutorials/resolVI_tutorial`
 ```
 
 ## Preliminaries
