@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-import numpy as np
 from scvi.model.base import BaseModelClass
 
 if TYPE_CHECKING:
-    pass
+    import numpy as np
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-from anndata import AnnData
+
+if TYPE_CHECKING:
+    from anndata import AnnData
 
 
 def get_spatial_coords(adata: AnnData, key: str = "spatial") -> np.ndarray:
@@ -20,7 +24,7 @@ def get_spatial_coords(adata: AnnData, key: str = "spatial") -> np.ndarray:
     """
     if key not in adata.obsm:
         raise KeyError(
-            f"'{key}' not found in adata.obsm. " f"Available keys: {list(adata.obsm.keys())}"
+            f"'{key}' not found in adata.obsm. Available keys: {list(adata.obsm.keys())}"
         )
     return np.asarray(adata.obsm[key])
 

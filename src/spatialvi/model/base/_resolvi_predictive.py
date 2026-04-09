@@ -7,17 +7,21 @@ from __future__ import annotations
 
 import logging
 import warnings
-from collections.abc import Sequence
 from functools import partial
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 import torch
-from anndata import AnnData
 from pyro import infer
 from scvi import settings
 from scvi.model._utils import _get_batch_code_from_category, parse_device_args
 from scvi.utils import track
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from anndata import AnnData
 
 logger = logging.getLogger(__name__)
 
