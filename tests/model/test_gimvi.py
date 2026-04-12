@@ -112,6 +112,23 @@ def test_gimvi_setup_spatialdata_inherits():
     assert hasattr(GIMVI, "from_spatialdata")
 
 
+def test_gimvi_gene_label_dispersion():
+    """dispersion='gene-label' must not crash (y.type was a method object bug)."""
+    np.random.seed(0)
+    adata_seq = synthetic_iid(n_genes=50, n_batches=2, n_labels=3, sparse_format=None)
+    adata_seq.layers["counts"] = adata_seq.X.copy()
+    adata_spatial = synthetic_iid(n_genes=20, n_batches=1, sparse_format=None)
+    adata_spatial.layers["counts"] = adata_spatial.X.copy()
+    adata_spatial.var_names = adata_seq.var_names[:20]
+
+    GIMVI.setup_anndata(adata_seq, layer="counts", batch_key="batch", labels_key="labels")
+    GIMVI.setup_anndata(adata_spatial, layer="counts")
+    n_labels = adata_seq.obs["labels"].nunique()
+    model = GIMVI(adata_seq, adata_spatial, dispersion="gene-label", n_labels=n_labels)
+    model.train(max_epochs=2, accelerator="cpu")
+    assert model.is_trained
+
+
 def test_gimvi_lazy_import():
     """GIMVI must be accessible via spatialvi top-level lazy import."""
     import spatialvi
