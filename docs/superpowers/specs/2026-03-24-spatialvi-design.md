@@ -575,3 +575,92 @@ Changes applied after initial implementation, tracked here for spec completeness
 | P15 | ResolVI `differential_expression`: raise `ValueError` when `library_scaling=True` and `weights!="importance"` | Fix: parameter was silently ignored |
 
 \* Python 3.14 CI job uses `continue-on-error: true` — aspirational target.
+
+---
+
+## Post-Implementation Changes (2026-04-12)
+
+### GIMVI — core model added to `spatialvi.model`
+
+GIMVI (Joint VAE for spatial gene imputation, :cite:p:`Lopez19`) was ported from
+`scvi.external.gimvi` and added as a core model. It takes two AnnData objects
+(scRNA-seq + spatial) and learns a joint latent space for imputing missing spatial genes.
+
+**Architecture decision:** `GIMVI(SpatialBaseModel)` — inherits the base class for
+`setup_spatialdata` (applied to the spatial AnnData component), `from_spatialdata`, and
+`plot_spatial_*`. `get_latent_representation` is fully overridden to return
+`list[np.ndarray]` (one array per dataset) with a `backend="rapids"` parameter that
+transfers each array to cupy. `VAEMixin` / `RNASeqMixin` are **not** inherited — GIMVI's
+dual-dataset interface is fundamentally incompatible with their single-adata assumptions.
+
+**New files:**
+
+| File | Contents |
+|------|----------|
+| `src/spatialvi/module/_jvae.py` | `JVAE` module (MultiEncoder + MultiDecoder) |
+| `src/spatialvi/train/_gimvi_task.py` | `GIMVITrainingPlan` (adversarial domain adaptation) |
+| `src/spatialvi/utils/_gimvi_utils.py` | `_load_saved_gimvi_files`, `_load_legacy_saved_gimvi_files` |
+| `src/spatialvi/model/_gimvi.py` | `GIMVI` model class |
+| `tests/model/test_gimvi.py` | 9 unit tests |
+| `tests/regression/test_gimvi_upstream.py` | 4 regression tests (shape + structural parity vs scvi) |
+
+**Exports added:** `spatialvi.GIMVI`, `spatialvi.model.GIMVI`, `spatialvi.module.JVAE`,
+`spatialvi.train.GIMVITrainingPlan`.
+
+**SpatialData support:** `setup_spatialdata` (from `SpatialBaseModel`) sets up the spatial
+AnnData component. The scRNA-seq component always uses `setup_anndata` directly — documented
+in the docstring.
+
+---
+
+### Stereoscope — external model added to `spatialvi.external`
+
+Stereoscope (:cite:p:`Andersson20`) was ported from `scvi.external.stereoscope` and placed
+in `spatialvi.external` following the package's external model convention.
+
+**Architecture decision:** Two model classes:
+
+```
+RNAStereoscope(UnsupervisedTrainingMixin, SpatialBaseModel)
+SpatialStereoscope(SpatialDeconvolutionMixin, UnsupervisedTrainingMixin, SpatialBaseModel)
+```
+
+`SpatialStereoscope` reuses `SpatialDeconvolutionMixin` (previously DestVI-only). The mixin's
+`get_proportions_df()` detects that `get_proportions()` already returns a `pd.DataFrame` and
+passes it through without wrapping. `plot_cell_type_map()` works out of the box via
+`self.cell_type_mapping`. Both models gain `setup_spatialdata` / `from_spatialdata` from
+`SpatialBaseModel`.
+
+**New files:**
+
+| File | Contents |
+|------|----------|
+| `src/spatialvi/external/stereoscope/_module.py` | `RNADeconv`, `SpatialDeconv` |
+| `src/spatialvi/external/stereoscope/_model.py` | `RNAStereoscope`, `SpatialStereoscope` |
+| `src/spatialvi/external/stereoscope/__init__.py` | Package exports |
+| `tests/external/test_stereoscope.py` | 7 unit tests |
+| `tests/regression/test_stereoscope_upstream.py` | 6 regression tests (proportion shapes/columns vs scvi) |
+
+**Exports added:** `spatialvi.external.RNAStereoscope`,
+`spatialvi.external.SpatialStereoscope` (and subpackage
+`spatialvi.external.stereoscope`).
+
+**`spatialvi.external.__init__.py`** populated (was empty in v1).
+
+---
+
+### Tutorials index updated (2026-04-12)
+
+`docs/tutorials/index.md` updated to include:
+- `gimvi_tutorial`
+- `stereoscope_heart_LV_tutorial`
+- `cell2location_lymph_node_spatial_tutorial`
+
+---
+
+### Test count
+
+| Date | Tests passing |
+|------|--------------|
+| 2026-03-25 (v1) | 50/50 |
+| 2026-04-12 (GIMVI + Stereoscope) | 76/76 |

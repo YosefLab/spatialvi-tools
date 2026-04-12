@@ -64,7 +64,14 @@ optional-dependencies.test = [
   "scanpy",
   "scikit-learn",
 ]
-optional-dependencies.tutorials = [ "jupyter", "matplotlib", "seaborn", "spatialvi-tools[spatial]", "umap-learn>=0.5" ]
+optional-dependencies.tutorials = [
+  "cell2location",
+  "jupyter",
+  "matplotlib",
+  "seaborn",
+  "spatialvi-tools[spatial]",
+  "umap-learn>=0.5",
+]
 urls."Bug Tracker" = "https://github.com/YosefLab/spatialvi-tools/issues"
 urls.Documentation = "https://github.com/YosefLab/spatialvi-tools"
 urls.Source = "https://github.com/YosefLab/spatialvi-tools"

@@ -8,6 +8,7 @@ _lazy_model_map = {
     "SCVIVA": "spatialvi.model._scviva",
     "DestVI": "spatialvi.model._destvi",
     "ResolVI": "spatialvi.model._resolvi",
+    "GIMVI": "spatialvi.model._gimvi",
 }
 
 
@@ -18,4 +19,4 @@ def __getattr__(name: str):
     raise AttributeError(f"module 'spatialvi.model' has no attribute {name!r}")
 
 
-__all__ = ["SCVIVA", "DestVI", "ResolVI"]
+__all__ = ["SCVIVA", "DestVI", "ResolVI", "GIMVI"]
