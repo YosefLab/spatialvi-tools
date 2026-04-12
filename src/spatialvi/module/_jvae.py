@@ -329,7 +329,7 @@ class JVAE(BaseModuleClass):
             z, mode, library, self.dispersion, batch_index, y
         )
         if self.dispersion == "gene-label":
-            px_r = F.linear(F.one_hot(y.type.squeeze(-1), self.n_labels).float(), self.px_r)
+            px_r = F.linear(F.one_hot(y.squeeze(-1).long(), self.n_labels).float(), self.px_r)
         elif self.dispersion == "gene-batch":
             px_r = F.linear(F.one_hot(batch_index.squeeze(-1), self.n_batch).float(), self.px_r)
         elif self.dispersion == "gene":

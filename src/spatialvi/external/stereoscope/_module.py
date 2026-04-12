@@ -43,7 +43,7 @@ class RNADeconv(BaseModuleClass):
         self.W = torch.nn.Parameter(torch.randn(self.n_genes, self.n_labels))
 
         if "ct_weight" in model_kwargs:
-            ct_weight = torch.tensor(model_kwargs["ct_prop"], dtype=torch.float32)
+            ct_weight = torch.tensor(model_kwargs["ct_weight"], dtype=torch.float32)
         else:
             ct_weight = torch.ones((self.n_labels,), dtype=torch.float32)
         self.register_buffer("ct_weight", ct_weight)

@@ -96,6 +96,19 @@ def test_spatial_stereoscope_spatialdata_methods():
     assert hasattr(RNAStereoscope, "setup_spatialdata")
 
 
+def test_rna_stereoscope_ct_weight(stereo_data):
+    """ct_weight kwarg must be read from model_kwargs['ct_weight'], not ['ct_prop']."""
+    sc_adata, _ = stereo_data
+    ct_weight = np.array([1.0, 2.0, 1.0, 0.5], dtype=np.float32)
+    RNAStereoscope.setup_anndata(sc_adata, labels_key="labels", layer="counts")
+    # This must not raise KeyError
+    sc_model = RNAStereoscope(sc_adata, ct_weight=ct_weight)
+
+    np.testing.assert_allclose(sc_model.module.ct_weight.numpy(), ct_weight)
+    sc_model.train(max_epochs=2, accelerator="cpu")
+    assert sc_model.is_trained
+
+
 def test_stereoscope_external_import():
     """Must be accessible from spatialvi.external namespace."""
     from spatialvi.external import RNAStereoscope as R
