@@ -1,5 +1,5 @@
 from __future__ import annotations
 
-from ._gimvi_task import GIMVITrainingPlan
+from ._gimvi_trainingplans import GIMVITrainingPlan
 
 __all__ = ["GIMVITrainingPlan"]

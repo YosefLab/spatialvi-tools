@@ -4,4 +4,6 @@
 :maxdepth: 2
 
 models/index
+background/index
+use_cases/index
 ```

@@ -23,9 +23,9 @@ from scvi.utils._docstrings import devices_dsp
 from torch.utils.data import DataLoader
 
 from spatialvi.model.base._spatial_base import SpatialBaseModel
+from spatialvi.model.utils._gimvi_utils import _load_saved_gimvi_files
 from spatialvi.module._jvae import JVAE
-from spatialvi.train._gimvi_task import GIMVITrainingPlan
-from spatialvi.utils._gimvi_utils import _load_saved_gimvi_files
+from spatialvi.train._gimvi_trainingplans import GIMVITrainingPlan
 
 if TYPE_CHECKING:
     from anndata import AnnData

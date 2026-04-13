@@ -6,8 +6,12 @@
 :maxdepth: 1
 :hidden:
 
+installation
 user_guide/index
+api/index
+developer/index
 tutorials/index
+faq
 references
 ```
 

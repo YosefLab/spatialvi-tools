@@ -5,12 +5,12 @@ import warnings
 from functools import partial
 from typing import TYPE_CHECKING
 
-import anndata
 import joblib
 import numpy as np
 import pandas as pd
 import torch
 from anndata import AnnData
+from anndata import concat as anndata_concat
 from rich import print
 from scvi import REGISTRY_KEYS, settings
 from scvi.data import AnnDataManager
@@ -38,8 +38,8 @@ from scvi.model.base._de_core import _de_core
 from scvi.utils import de_dsp, setup_anndata_dsp, unsupported_if_adata_minified
 
 from spatialvi._constants import SCVIVA_REGISTRY_KEYS
-from spatialvi.model._scviva_de import _niche_de_core
 from spatialvi.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
+from spatialvi.model.utils._scviva_de import _niche_de_core
 from spatialvi.module._nichevae import nicheVAE
 
 if TYPE_CHECKING:
@@ -51,9 +51,7 @@ if TYPE_CHECKING:
     )
     from torch import Tensor
 
-    from spatialvi.model._scviva_de import DifferentialExpressionResults
-
-from scipy.sparse import csr_matrix
+    from spatialvi.model.utils._scviva_de import DifferentialExpressionResults
 
 _SCVI_LATENT_QZM = "_scvi_latent_qzm"
 _SCVI_LATENT_QZV = "_scvi_latent_qzv"
@@ -384,6 +382,39 @@ class SCVIVA(
         adata_manager.register_fields(adata, **kwargs)
         cls.register_manager(adata_manager)
 
+    def _run_spatial_decoder(self, decoder_fn, adata, indices, batch_size):
+        """Run a spatial decoder over mini-batches and return concatenated numpy output.
+
+        Parameters
+        ----------
+        decoder_fn
+            Callable ``(decoder_input, batch_index) -> tensor | tuple``.
+            When a tuple is returned its first element is collected.
+        adata
+            AnnData object or ``None`` (falls back to model adata).
+        indices
+            Cell indices or ``None`` for all cells.
+        batch_size
+            Mini-batch size.
+        """
+        self._check_if_trained(warn=False)
+        adata = self._validate_anndata(adata)
+        scdl = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+
+        results = []
+        for tensors in scdl:
+            inference_inputs = self.module._get_inference_input(tensors)
+            outputs = self.module.inference(**inference_inputs)
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            decoder_input = outputs["qz"].loc
+            batch_index = batch_index.to(decoder_input.device)
+            out = decoder_fn(decoder_input, batch_index)
+            if isinstance(out, tuple):
+                out = out[0]
+            results.append(out.detach().cpu())
+
+        return torch.cat(results).numpy()
+
     @torch.inference_mode()
     def predict_neighborhood(
         self,
@@ -409,37 +440,12 @@ class SCVIVA(
             Predicted cell type composition of each cell niche in the dataset.
             It is computed as the expectation of the Dirichlet distribution.
         """
-        self._check_if_trained(warn=False)
 
-        adata = self._validate_anndata(adata)
-        scdl = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+        def _decoder(decoder_input, batch_index):
+            dist = self.module.composition_decoder(decoder_input, batch_index)
+            return dist.concentration / dist.concentration.sum(dim=1).unsqueeze(1)
 
-        ct_prediction = []
-        for tensors in scdl:
-            inference_inputs = self.module._get_inference_input(tensors)
-            outputs = self.module.inference(**inference_inputs)
-
-            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
-            decoder_input = outputs["qz"].loc
-
-            # put batch_index in the same device as decoder_input
-            batch_index = batch_index.to(decoder_input.device)
-
-            predicted_ct_prob = self.module.composition_decoder(
-                decoder_input,
-                batch_index,
-            )  # no batch correction here
-
-            ct_prediction.append(
-                (
-                    predicted_ct_prob.concentration
-                    / predicted_ct_prob.concentration.sum(dim=1).unsqueeze(1)
-                )
-                .detach()
-                .cpu()
-            )
-
-        return torch.cat(ct_prediction).numpy()
+        return self._run_spatial_decoder(_decoder, adata, indices, batch_size)
 
     @torch.inference_mode()
     def predict_niche_activation(
@@ -465,30 +471,7 @@ class SCVIVA(
         niche_activation
             Predicted activation of each cell niche in the dataset.
         """
-        self._check_if_trained(warn=False)
-
-        adata = self._validate_anndata(adata)
-        scdl = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
-
-        ct_prediction = []
-        for tensors in scdl:
-            inference_inputs = self.module._get_inference_input(tensors)
-            outputs = self.module.inference(**inference_inputs)
-
-            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
-            decoder_input = outputs["qz"].loc
-
-            # put batch_index in the same device as decoder_input
-            batch_index = batch_index.to(decoder_input.device)
-
-            p_m, p_v = self.module.niche_decoder(
-                decoder_input,
-                batch_index,
-            )  # no batch correction here
-
-            ct_prediction.append(p_m.detach().cpu())
-
-        return torch.cat(ct_prediction).numpy()
+        return self._run_spatial_decoder(self.module.niche_decoder, adata, indices, batch_size)
 
     @de_dsp.dedent
     def differential_expression(
@@ -1168,6 +1151,8 @@ def _pad_and_sort_query_anndata(
     genes_to_add = reference_var_names.difference(adata.var_names)
     needs_padding = len(genes_to_add) > 0
     if needs_padding:
+        from scipy.sparse import csr_matrix
+
         padding_mtx = csr_matrix(np.zeros((adata.n_obs, len(genes_to_add))))
         adata_padding = AnnData(
             X=padding_mtx.copy(),
@@ -1176,7 +1161,7 @@ def _pad_and_sort_query_anndata(
         adata_padding.var_names = genes_to_add
         adata_padding.obs_names = adata.obs_names
         # Concatenate object
-        adata_out = anndata.concat(
+        adata_out = anndata_concat(
             [adata, adata_padding],
             axis=1,
             join="outer",
