@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-# Model imports are deferred to avoid ImportError while model files are being built.
-# Populated fully in Task 20 (final integration).
 from importlib import import_module
 
 _lazy_model_map = {

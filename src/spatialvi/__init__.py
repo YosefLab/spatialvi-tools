@@ -6,17 +6,12 @@ from spatialvi._settings import settings
 
 __version__ = "0.1.0"
 
-_lazy_map = {
-    "SCVIVA": "spatialvi.model._scviva",
-    "DestVI": "spatialvi.model._destvi",
-    "ResolVI": "spatialvi.model._resolvi",
-    "GIMVI": "spatialvi.model._gimvi",
-}
+_MODEL_NAMES = {"SCVIVA", "DestVI", "ResolVI", "GIMVI"}
 
 
 def __getattr__(name: str):
-    if name in _lazy_map:
-        mod = import_module(_lazy_map[name])
+    if name in _MODEL_NAMES:
+        mod = import_module("spatialvi.model")
         return getattr(mod, name)
     raise AttributeError(f"module 'spatialvi' has no attribute {name!r}")
 

@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "spatialvi-tools"
-version = "0.1.0"
+version = "0.1.3"
 description = "Consolidated spatial transcriptomics analysis toolkit with variational inference methods"
 readme = "README.md"
 keywords = [ "deconvolution", "deep learning", "single-cell", "spatial transcriptomics", "variational inference" ]
@@ -32,9 +32,10 @@ dependencies = [
   "pandas>=2",
   "pyro-ppl>=1.8",
   "rich>=12",
-  "scanpy>=1.10",
+  "scanpy[skmisc]>=1.10",
+  "scikit-learn>=1.4",
   "scipy>=1.12",
-  "scvi-tools>=1.3",
+  "scvi-tools>=1.4",
   "torch>=2",
   "tqdm>=4.60",
 ]
@@ -56,13 +57,10 @@ optional-dependencies.doc = [
 optional-dependencies.rapids = [ "cugraph>=24", "cuml>=24", "cupy-cuda12x" ]
 optional-dependencies.spatial = [ "spatialdata>=0.2", "squidpy>=1.4" ]
 optional-dependencies.test = [
-  "anndata",
   "coverage",
   "pytest>=7",
   "pytest-cov",
   "pytest-pretty",
-  "scanpy",
-  "scikit-learn",
 ]
 optional-dependencies.tutorials = [
   "cell2location",

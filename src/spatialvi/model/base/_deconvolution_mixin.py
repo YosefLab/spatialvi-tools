@@ -89,7 +89,7 @@ class SpatialDeconvolutionMixin:
         if cell_type is not None:
             if cell_type not in df.columns:
                 raise ValueError(
-                    f"cell_type '{cell_type}' not found. " f"Available: {list(df.columns)}"
+                    f"cell_type '{cell_type}' not found. Available: {list(df.columns)}"
                 )
             key = f"_spatialvi_prop_{cell_type}"
             adata.obs[key] = df[cell_type].values
