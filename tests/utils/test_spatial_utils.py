@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from anndata import AnnData
 
-from spatialvi.utils._spatial import get_spatial_coords, validate_spatial_coords
+from scviva.utils._spatial import get_spatial_coords, validate_spatial_coords
 
 
 def test_get_spatial_coords_2d():

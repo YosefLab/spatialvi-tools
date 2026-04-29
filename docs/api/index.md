@@ -1,9 +1,9 @@
 # API Reference
 
-Import spatialvi-tools as:
+Import scviva-tools as:
 
 ```python
-import spatialvi
+import scviva
 ```
 
 ```{toctree}

@@ -4,8 +4,8 @@ import pytest
 from anndata import AnnData
 from scvi.model.base import UnsupervisedTrainingMixin
 
-from spatialvi.model.base._neighborhood_mixin import SpatialNeighborhoodMixin
-from spatialvi.model.base._spatial_base import SpatialBaseModel
+from scviva.model.base._neighborhood_mixin import SpatialNeighborhoodMixin
+from scviva.model.base._spatial_base import SpatialBaseModel
 
 
 def _make_coords_adata(n=100, n_genes=20):

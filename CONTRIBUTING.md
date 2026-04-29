@@ -1,12 +1,12 @@
-# Contributing to spatialvi-tools
+# Contributing to scviva-tools
 
 We welcome contributions! Please follow the guidelines below.
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/your-org/spatialvi-tools
-cd spatialvi-tools
+git clone https://github.com/your-org/scviva-tools
+cd scviva-tools
 pip install -e ".[dev,test]"
 pre-commit install
 ```

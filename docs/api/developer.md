@@ -1,11 +1,11 @@
 # Developer API
 
-Internal base classes and mixins used to build new spatialvi models.
+Internal base classes and mixins used to build new scviva models.
 
 ## Base classes
 
 ```{eval-rst}
-.. currentmodule:: spatialvi.model.base
+.. currentmodule:: scviva.model.base
 
 .. autosummary::
    :toctree: reference/
@@ -20,7 +20,7 @@ Internal base classes and mixins used to build new spatialvi models.
 ## Data fields
 
 ```{eval-rst}
-.. currentmodule:: spatialvi.data
+.. currentmodule:: scviva.data
 
 .. autosummary::
    :toctree: reference/
@@ -33,7 +33,7 @@ Internal base classes and mixins used to build new spatialvi models.
 ## Modules (neural networks)
 
 ```{eval-rst}
-.. currentmodule:: spatialvi.module
+.. currentmodule:: scviva.module
 
 .. autosummary::
    :toctree: reference/

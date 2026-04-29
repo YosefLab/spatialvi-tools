@@ -19,7 +19,7 @@ cells or spots within the tissue. Key platforms include:
 
 ## Neighbour graphs
 
-Spatial neighbour graphs encode tissue topology. spatialvi-tools computes these via
+Spatial neighbour graphs encode tissue topology. scviva-tools computes these via
 `model.compute_neighbors()` using squidpy (CPU) or RAPIDS (GPU). The resulting
 `index_neighbor` and `distance_neighbor` arrays in `adata.obsm` are consumed by ResolVI
 and scVIVA during training.

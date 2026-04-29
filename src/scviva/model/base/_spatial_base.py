@@ -12,14 +12,14 @@ logger = logging.getLogger(__name__)
 
 
 class SpatialBaseModel(BaseModelClass):
-    """Base class for all spatialvi models.
+    """Base class for all scviva models.
 
     Extends scvi's BaseModelClass with:
     - SpatialData integration (setup_spatialdata / from_spatialdata)
     - RAPIDS-accelerated latent representation
     - Spatial embedding and prediction plots
 
-    All spatialvi core models (SCVIVA, DestVI, ResolVI) inherit from this class.
+    All scviva core models (SCVIVA, DestVI, ResolVI) inherit from this class.
     """
 
     # ------------------------------------------------------------------ #
@@ -57,7 +57,7 @@ class SpatialBaseModel(BaseModelClass):
         except ImportError as e:
             raise ImportError(
                 "spatialdata is required for setup_spatialdata. "
-                "Install with: pip install 'spatialvi-tools[spatial]'"
+                "Install with: pip install 'scviva-tools[spatial]'"
             ) from e
 
         if not hasattr(sdata, "__getitem__"):
@@ -158,7 +158,7 @@ class SpatialBaseModel(BaseModelClass):
             except ImportError as e:
                 raise ImportError(
                     "backend='rapids' requires cupy. "
-                    "Install with: pip install 'spatialvi-tools[rapids]'"
+                    "Install with: pip install 'scviva-tools[rapids]'"
                 ) from e
         return latent
 

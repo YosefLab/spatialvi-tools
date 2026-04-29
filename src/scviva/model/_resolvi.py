@@ -28,9 +28,9 @@ from scvi.model.base._de_core import _de_core
 from scvi.train._config import merge_kwargs
 from scvi.utils import de_dsp, setup_anndata_dsp
 
-from spatialvi.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
-from spatialvi.model.base._resolvi_predictive import ResolVIPredictiveMixin
-from spatialvi.module._resolvae import RESOLVAE
+from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
+from scviva.model.base._resolvi_predictive import ResolVIPredictiveMixin
+from scviva.module._resolvae import RESOLVAE
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -56,7 +56,7 @@ class ResolVI(
     Parameters
     ----------
     adata
-        AnnData object that has been registered via :meth:`~spatialvi.model.ResolVI.setup_anndata`.
+        AnnData object that has been registered via :meth:`~scviva.model.ResolVI.setup_anndata`.
     n_hidden
         Number of nodes per hidden layer.
     n_latent
@@ -76,7 +76,7 @@ class ResolVI(
         * ``'nb'`` - Negative binomial distribution
         * ``'poisson'`` - Poisson distribution
     **model_kwargs
-        Keyword args for :class:`~spatialvi.module.RESOLVAE`
+        Keyword args for :class:`~scviva.module.RESOLVAE`
 
     Examples
     --------

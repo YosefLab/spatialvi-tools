@@ -10,8 +10,8 @@ sys.path[:0] = [str(HERE.parent / "src")]
 
 # -- Project information -----------------------------------------------------
 
-info = metadata("spatialvi-tools")
-project_name = "spatialvi-tools"
+info = metadata("scviva-tools")
+project_name = "scviva-tools"
 author = "Ori Kronfeld"
 copyright = f"{datetime.now():%Y}, {author}."
 version = info["Version"]
@@ -52,16 +52,16 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "superpowers"]
 # -- HTML output -------------------------------------------------------------
 
 html_theme = "sphinx_book_theme"
-html_title = "spatialvi-tools"
+html_title = "scviva-tools"
 html_context = {
     "display_github": True,
     "github_user": "YosefLab",
-    "github_repo": "spatialvi-tools",
+    "github_repo": "scviva-tools",
     "github_version": "main",
     "conf_py_path": "/docs/",
 }
 html_theme_options = {
-    "repository_url": "https://github.com/YosefLab/spatialvi-tools",
+    "repository_url": "https://github.com/YosefLab/scviva-tools",
     "use_repository_button": True,
     "use_issues_button": True,
     "use_edit_page_button": True,

@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for spatialvi test suite."""
+"""Shared pytest fixtures for scviva test suite."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from scvi.data import AnnDataManager
 from scvi.data.fields import LayerField
 from scvi.model.base import UnsupervisedTrainingMixin
 
-from spatialvi.data._fields import SpatialCoordsField
-from spatialvi.model.base._spatial_base import SpatialBaseModel
+from scviva.data._fields import SpatialCoordsField
+from scviva.model.base._spatial_base import SpatialBaseModel
 
 
 class _MinimalSpatialModel(SpatialBaseModel, UnsupervisedTrainingMixin):

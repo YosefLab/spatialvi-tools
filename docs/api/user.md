@@ -1,15 +1,15 @@
 # User API
 
-Import spatialvi-tools as:
+Import scviva-tools as:
 
 ```python
-import spatialvi
+import scviva
 ```
 
 ## Models
 
 ```{eval-rst}
-.. currentmodule:: spatialvi
+.. currentmodule:: scviva
 
 .. autosummary::
    :toctree: reference/
@@ -24,7 +24,7 @@ import spatialvi
 ## External models
 
 ```{eval-rst}
-.. currentmodule:: spatialvi
+.. currentmodule:: scviva
 
 .. autosummary::
    :toctree: reference/
@@ -37,7 +37,7 @@ import spatialvi
 ## Settings
 
 ```{eval-rst}
-.. currentmodule:: spatialvi
+.. currentmodule:: scviva
 
 .. autosummary::
    :toctree: reference/

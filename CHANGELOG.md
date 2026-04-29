@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Package renamed** from `spatialvi-tools` to `scviva-tools` on PyPI; the importable
+  module name (`import spatialvi`) is unchanged
+- All documentation, GitHub workflow references, and install-hint strings updated to
+  `scviva-tools` (e.g. `pip install "scviva-tools[spatial]"`)
+
+### Tests
+
+- All `model.train()` calls across the test suite reduced from `max_epochs=2` to
+  `max_epochs=1` to cut unnecessary wall-clock time
+- Removed spurious `accelerator="cpu"` from every test that does not explicitly verify
+  CPU inference; kept only in `test_*_get_latent_*_cpu` tests that exercise the
+  `backend="cpu"` inference path
+
 ## [0.1.3] - 2026-04-13
 
 ### Changed

@@ -2,13 +2,13 @@
 
 ## Setting up a development environment
 
-1. Fork the [repository](https://github.com/YosefLab/spatialvi-tools) on GitHub.
+1. Fork the [repository](https://github.com/YosefLab/scviva-tools) on GitHub.
 
 2. Clone your fork:
 
    ```bash
-   git clone https://github.com/{your-username}/spatialvi-tools.git
-   cd spatialvi-tools
+   git clone https://github.com/{your-username}/scviva-tools.git
+   cd scviva-tools
    ```
 
 3. Install the development dependencies in editable mode:
@@ -48,15 +48,15 @@ Pre-commit hooks run these automatically on every commit.
 
 ## Adding a new model
 
-1. Add the neural-network module under `src/spatialvi/module/`.
-2. Add the model class under `src/spatialvi/model/`, inheriting from `SpatialBaseModel`.
-3. Register it in `src/spatialvi/model/__init__.py` and `src/spatialvi/__init__.py`.
+1. Add the neural-network module under `src/scviva/module/`.
+2. Add the model class under `src/scviva/model/`, inheriting from `SpatialBaseModel`.
+3. Register it in `src/scviva/model/__init__.py` and `src/scviva/__init__.py`.
 4. Write tests under `tests/model/`.
 
 ## Package layout
 
 ```
-src/spatialvi/
+src/scviva/
 ├── model/           # High-level model classes
 │   ├── base/        # Shared mixins and base class
 │   └── utils/       # Model-level utilities and DE sub-packages

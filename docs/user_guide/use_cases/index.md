@@ -1,6 +1,6 @@
 # Use Cases
 
-Practical guides for common analysis workflows with spatialvi-tools.
+Practical guides for common analysis workflows with scviva-tools.
 
 ```{toctree}
 :maxdepth: 2

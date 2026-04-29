@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from scvi.data import synthetic_iid
 
-from spatialvi.external.stereoscope._model import RNAStereoscope, SpatialStereoscope
+from scviva.external.stereoscope._model import RNAStereoscope, SpatialStereoscope
 
 
 @pytest.fixture(scope="module")
@@ -26,7 +26,7 @@ def stereo_data():
 def _train_rna_model(sc_adata):
     RNAStereoscope.setup_anndata(sc_adata, labels_key="labels", layer="counts")
     sc_model = RNAStereoscope(sc_adata)
-    sc_model.train(max_epochs=2, accelerator="cpu")
+    sc_model.train(max_epochs=1)
     return sc_model
 
 
@@ -42,7 +42,7 @@ def test_spatial_stereoscope_from_rna_model(stereo_data):
 
     SpatialStereoscope.setup_anndata(st_adata, layer="counts")
     st_model = SpatialStereoscope.from_rna_model(st_adata, sc_model)
-    st_model.train(max_epochs=2, accelerator="cpu")
+    st_model.train(max_epochs=1)
     assert st_model.is_trained
 
 
@@ -52,7 +52,7 @@ def test_spatial_stereoscope_get_proportions(stereo_data):
 
     SpatialStereoscope.setup_anndata(st_adata, layer="counts")
     st_model = SpatialStereoscope.from_rna_model(st_adata, sc_model)
-    st_model.train(max_epochs=2, accelerator="cpu")
+    st_model.train(max_epochs=1)
 
     props = st_model.get_proportions()
     import pandas as pd
@@ -69,7 +69,7 @@ def test_spatial_stereoscope_get_proportions_df_via_mixin(stereo_data):
 
     SpatialStereoscope.setup_anndata(st_adata, layer="counts")
     st_model = SpatialStereoscope.from_rna_model(st_adata, sc_model)
-    st_model.train(max_epochs=2, accelerator="cpu")
+    st_model.train(max_epochs=1)
 
     df = st_model.get_proportions_df()
     assert df.shape[1] == 4
@@ -82,7 +82,7 @@ def test_spatial_stereoscope_get_scale_for_ct(stereo_data):
 
     SpatialStereoscope.setup_anndata(st_adata, layer="counts")
     st_model = SpatialStereoscope.from_rna_model(st_adata, sc_model)
-    st_model.train(max_epochs=2, accelerator="cpu")
+    st_model.train(max_epochs=1)
 
     cell_types = np.array([st_model.cell_type_mapping[0]])
     expr = st_model.get_scale_for_ct(cell_types)
@@ -105,14 +105,14 @@ def test_rna_stereoscope_ct_weight(stereo_data):
     sc_model = RNAStereoscope(sc_adata, ct_weight=ct_weight)
 
     np.testing.assert_allclose(sc_model.module.ct_weight.numpy(), ct_weight)
-    sc_model.train(max_epochs=2, accelerator="cpu")
+    sc_model.train(max_epochs=1)
     assert sc_model.is_trained
 
 
 def test_stereoscope_external_import():
-    """Must be accessible from spatialvi.external namespace."""
-    from spatialvi.external import RNAStereoscope as R
-    from spatialvi.external import SpatialStereoscope as S
+    """Must be accessible from scviva.external namespace."""
+    from scviva.external import RNAStereoscope as R
+    from scviva.external import SpatialStereoscope as S
 
     assert R is RNAStereoscope
     assert S is SpatialStereoscope

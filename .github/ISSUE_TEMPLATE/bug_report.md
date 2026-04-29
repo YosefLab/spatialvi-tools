@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve spatialvi-tools
+about: Create a report to help us improve scviva-tools
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -15,7 +15,7 @@ A clear and concise description of what the bug is.
 Steps to reproduce the behavior:
 
 ```python
-import spatialvi
+import scviva
 # minimal reproducible example
 ```
 
@@ -25,7 +25,7 @@ A clear and concise description of what you expected to happen.
 
 ## Environment
 
-- spatialvi-tools version:
+- scviva-tools version:
 - Python version:
 - scvi-tools version:
 - OS:

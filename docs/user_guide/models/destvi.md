@@ -206,7 +206,7 @@ impute the spatial pattern of the cell-type-specific gene expression with:
 
 ```python
 import scvi
-import spatialvi
+import scviva
 
 # Step 1: Train CondSCVI reference on scRNA-seq
 scvi.model.CondSCVI.setup_anndata(sc_adata, labels_key="cell_type", layer="counts")
@@ -214,8 +214,8 @@ sc_model = scvi.model.CondSCVI(sc_adata)
 sc_model.train()
 
 # Step 2: Deconvolve spatial spots
-spatialvi.DestVI.setup_anndata(st_adata, layer="counts")
-st_model = spatialvi.DestVI.from_rna_model(st_adata, sc_model)
+scviva.DestVI.setup_anndata(st_adata, layer="counts")
+st_model = scviva.DestVI.from_rna_model(st_adata, sc_model)
 st_model.train()
 
 # Step 3: Get cell type proportions

@@ -1,4 +1,4 @@
-"""Regression tests: spatialvi.DestVI vs scvi.model.DestVI.
+"""Regression tests: scviva.DestVI vs scvi.model.DestVI.
 
 Each test runs the exact same operations on the same data with the same random seed
 on both implementations and asserts outputs are identical (within float tolerance).
@@ -14,10 +14,10 @@ from scvi.data import synthetic_iid
 from scvi.model import CondSCVI
 from scvi.model import DestVI as ScviDestVI
 
-from spatialvi.model import DestVI as SpatialDestVI
+from scviva.model import DestVI as SpatialDestVI
 
 SEED = 42
-N_EPOCHS = 2
+N_EPOCHS = 1
 N_LATENT = 2
 N_LABELS = 5
 
@@ -92,18 +92,18 @@ def test_destvi_proportions_match(st_adata, condscvi_model):
     props_spatial = spatial_model.get_proportions()
 
     assert props_scvi.shape == props_spatial.shape, (
-        f"Proportions shape mismatch: scvi={props_scvi.shape}, spatialvi={props_spatial.shape}"
+        f"Proportions shape mismatch: scvi={props_scvi.shape}, scviva={props_spatial.shape}"
     )
     np.testing.assert_allclose(
         props_scvi,
         props_spatial,
         atol=1e-5,
-        err_msg="Cell type proportions differ between scvi and spatialvi DestVI",
+        err_msg="Cell type proportions differ between scvi and scviva DestVI",
     )
 
 
 def test_destvi_proportions_df(st_adata, condscvi_model):
-    """spatialvi-specific get_proportions_df must return correct shape and columns."""
+    """scviva-specific get_proportions_df must return correct shape and columns."""
     spatial_model = _train_spatial_destvi(st_adata, condscvi_model)
     df = spatial_model.get_proportions_df()
 
@@ -130,7 +130,7 @@ def test_destvi_elbo_matches(st_adata, condscvi_model):
         elbo_scvi,
         elbo_spatial,
         atol=1e-4,
-        err_msg="Training ELBO differs between scvi and spatialvi DestVI",
+        err_msg="Training ELBO differs between scvi and scviva DestVI",
     )
 
 

@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 
-from spatialvi.model.base._deconvolution_mixin import SpatialDeconvolutionMixin
+from scviva.model.base._deconvolution_mixin import SpatialDeconvolutionMixin
 
 
 class _MockDeconvModel(SpatialDeconvolutionMixin):

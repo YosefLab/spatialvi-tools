@@ -7,7 +7,7 @@ We follow [Semantic Versioning](https://semver.org). Each release is tagged `MAJ
 ### Creating a release
 
 1. Update `CHANGELOG.md` — move items from `[Unreleased]` to a new versioned section.
-2. Bump the version in `pyproject.toml` and `src/spatialvi/__init__.py`.
+2. Bump the version in `pyproject.toml` and `src/scviva/__init__.py`.
 3. Open a PR, merge, then create a GitHub release tag.
 
 ## Updating dependencies

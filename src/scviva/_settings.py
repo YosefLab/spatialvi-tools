@@ -12,34 +12,34 @@ from rich.logging import RichHandler
 if TYPE_CHECKING:
     from typing import Literal
 
-spatialvi_logger = logging.getLogger("spatialvi")
+scviva_logger = logging.getLogger("scviva")
 
 
-class SpatialviConfig:
-    """Config manager for spatialvi.
+class SCVIVAToolsConfig:
+    """Config manager for scviva.
 
     Examples
     --------
     To set the seed
 
-    >>> spatialvi.settings.seed = 1
+    >>> scviva.settings.seed = 1
 
     To set the batch size for functions like `SCVIVA.get_latent_representation`
 
-    >>> spatialvi.settings.batch_size = 1024
+    >>> scviva.settings.batch_size = 1024
 
     To set the progress bar style, choose one of "rich", "tqdm"
 
-    >>> spatialvi.settings.progress_bar_style = "rich"
+    >>> scviva.settings.progress_bar_style = "rich"
 
     To set the verbosity
 
     >>> import logging
-    >>> spatialvi.settings.verbosity = logging.INFO
+    >>> scviva.settings.verbosity = logging.INFO
 
     To set the number of threads, PyTorch will use
 
-    >>> spatialvi.settings.num_threads = 2
+    >>> scviva.settings.num_threads = 2
     """
 
     def __init__(
@@ -48,7 +48,7 @@ class SpatialviConfig:
         progress_bar_style: Literal["rich", "tqdm"] = "tqdm",
         batch_size: int = 128,
         seed: int | None = None,
-        logging_dir: str = "./spatialvi_log/",
+        logging_dir: str = "./scviva_log/",
         dl_num_workers: int = 0,
         dl_persistent_workers: bool = False,
         warnings_stacklevel: int = 2,
@@ -105,7 +105,7 @@ class SpatialviConfig:
 
     @property
     def logging_dir(self) -> Path:
-        """Directory for training logs (default `'./spatialvi_log/'`)."""
+        """Directory for training logs (default `'./scviva_log/'`)."""
         return self._logging_dir
 
     @logging_dir.setter
@@ -156,30 +156,30 @@ class SpatialviConfig:
 
     @verbosity.setter
     def verbosity(self, level: str | int):
-        """Sets logging configuration for spatialvi based on the chosen level of verbosity.
+        """Sets logging configuration for scviva based on the chosen level of verbosity.
 
-        If the "spatialvi" logger has no StreamHandler, add one.
+        If the "scviva" logger has no StreamHandler, add one.
         Else, set its level to `level`.
 
         Parameters
         ----------
         level
-            Sets "spatialvi" logging level to `level`
+            Sets "scviva" logging level to `level`
         force_terminal
             Rich logging option, set to False if piping to file output.
         """
         self._verbosity = level
-        spatialvi_logger.setLevel(level)
-        if len(spatialvi_logger.handlers) == 0:
+        scviva_logger.setLevel(level)
+        if len(scviva_logger.handlers) == 0:
             console = Console(force_terminal=True)
             if console.is_jupyter is True:
                 console.is_jupyter = False
             ch = RichHandler(level=level, show_path=False, console=console, show_time=False)
             formatter = logging.Formatter("%(message)s")
             ch.setFormatter(formatter)
-            spatialvi_logger.addHandler(ch)
+            scviva_logger.addHandler(ch)
         else:
-            spatialvi_logger.setLevel(level)
+            scviva_logger.setLevel(level)
 
     @property
     def warnings_stacklevel(self) -> int:
@@ -192,15 +192,15 @@ class SpatialviConfig:
         self._warnings_stacklevel = stacklevel
 
     def reset_logging_handler(self):
-        """Resets "spatialvi" log handler to a basic RichHandler().
+        """Resets "scviva" log handler to a basic RichHandler().
 
         This is useful if piping outputs to a file.
         """
-        spatialvi_logger.removeHandler(spatialvi_logger.handlers[0])
+        scviva_logger.removeHandler(scviva_logger.handlers[0])
         ch = RichHandler(level=self._verbosity, show_path=False, show_time=False)
         formatter = logging.Formatter("%(message)s")
         ch.setFormatter(formatter)
-        spatialvi_logger.addHandler(ch)
+        scviva_logger.addHandler(ch)
 
 
-settings = SpatialviConfig()
+settings = SCVIVAToolsConfig()

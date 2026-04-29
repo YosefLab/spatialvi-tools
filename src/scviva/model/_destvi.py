@@ -18,8 +18,8 @@ from scvi.train._config import merge_kwargs
 from scvi.utils import setup_anndata_dsp
 from scvi.utils._docstrings import devices_dsp
 
-from spatialvi.model.base import SpatialBaseModel, SpatialDeconvolutionMixin
-from spatialvi.module._mrdeconv import MRDeconv
+from scviva.model.base import SpatialBaseModel, SpatialDeconvolutionMixin
+from scviva.module._mrdeconv import MRDeconv
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -43,7 +43,7 @@ class DestVI(
     ----------
     st_adata
         spatial transcriptomics AnnData object that has been registered via
-        :meth:`~spatialvi.model.DestVI.setup_anndata`.
+        :meth:`~scviva.model.DestVI.setup_anndata`.
     cell_type_mapping
         mapping between numerals and cell type labels
     decoder_state_dict
@@ -59,7 +59,7 @@ class DestVI(
     n_layers
         Number of hidden layers used for encoder and decoder NNs.
     **module_kwargs
-        Keyword args for :class:`~spatialvi.module.MRDeconv`
+        Keyword args for :class:`~scviva.module.MRDeconv`
 
     Examples
     --------
@@ -141,9 +141,9 @@ class DestVI(
         vamp_prior_p
             number of mixture parameter for VampPrior calculations
         anndata_setup_kwargs
-            Keyword args for :meth:`~spatialvi.model.DestVI.setup_anndata`
+            Keyword args for :meth:`~scviva.model.DestVI.setup_anndata`
         **model_kwargs
-            Keyword args for :class:`~spatialvi.model.DestVI`
+            Keyword args for :class:`~scviva.model.DestVI`
         """
         attr_dict, var_names, load_state_dict, _ = _get_loaded_data(sc_model)
         registry = attr_dict.pop("registry_")
@@ -473,7 +473,7 @@ class DestVI(
             except ImportError as e:
                 raise ImportError(
                     "backend='rapids' requires cupy. "
-                    "Install with: pip install 'spatialvi-tools[rapids]'"
+                    "Install with: pip install 'scviva-tools[rapids]'"
                 ) from e
         return latent
 

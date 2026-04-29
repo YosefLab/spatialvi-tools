@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from spatialvi.external.stereoscope._model import RNAStereoscope, SpatialStereoscope
-from spatialvi.external.stereoscope._module import RNADeconv, SpatialDeconv
+from scviva.external.stereoscope._model import RNAStereoscope, SpatialStereoscope
+from scviva.external.stereoscope._module import RNADeconv, SpatialDeconv
 
 __all__ = ["RNAStereoscope", "SpatialStereoscope", "RNADeconv", "SpatialDeconv"]

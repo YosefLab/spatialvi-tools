@@ -22,10 +22,10 @@ from scvi.utils import setup_anndata_dsp
 from scvi.utils._docstrings import devices_dsp
 from torch.utils.data import DataLoader
 
-from spatialvi.model.base._spatial_base import SpatialBaseModel
-from spatialvi.model.utils._gimvi_utils import _load_saved_gimvi_files
-from spatialvi.module._jvae import JVAE
-from spatialvi.train._gimvi_trainingplans import GIMVITrainingPlan
+from scviva.model.base._spatial_base import SpatialBaseModel
+from scviva.model.utils._gimvi_utils import _load_saved_gimvi_files
+from scviva.module._jvae import JVAE
+from scviva.train._gimvi_trainingplans import GIMVITrainingPlan
 
 if TYPE_CHECKING:
     from anndata import AnnData
@@ -50,10 +50,10 @@ class GIMVI(SpatialBaseModel):
     Parameters
     ----------
     adata_seq
-        AnnData object registered via :meth:`~spatialvi.model.GIMVI.setup_anndata`
+        AnnData object registered via :meth:`~scviva.model.GIMVI.setup_anndata`
         containing scRNA-seq data.
     adata_spatial
-        AnnData object registered via :meth:`~spatialvi.model.GIMVI.setup_anndata`
+        AnnData object registered via :meth:`~scviva.model.GIMVI.setup_anndata`
         containing spatial transcriptomics data.
     generative_distributions
         List of generative distributions for seq and spatial data.
@@ -63,15 +63,15 @@ class GIMVI(SpatialBaseModel):
     n_latent
         Dimensionality of the latent space.
     **model_kwargs
-        Keyword args for :class:`~spatialvi.module.JVAE`.
+        Keyword args for :class:`~scviva.module.JVAE`.
 
     Examples
     --------
     >>> adata_seq = anndata.read_h5ad(path_to_seq)
     >>> adata_spatial = anndata.read_h5ad(path_to_spatial)
-    >>> spatialvi.model.GIMVI.setup_anndata(adata_seq)
-    >>> spatialvi.model.GIMVI.setup_anndata(adata_spatial)
-    >>> model = spatialvi.model.GIMVI(adata_seq, adata_spatial)
+    >>> scviva.model.GIMVI.setup_anndata(adata_seq)
+    >>> scviva.model.GIMVI.setup_anndata(adata_spatial)
+    >>> model = scviva.model.GIMVI(adata_seq, adata_spatial)
     >>> model.train(max_epochs=200)
 
     Notes
@@ -358,7 +358,7 @@ class GIMVI(SpatialBaseModel):
             except ImportError as e:
                 raise ImportError(
                     "backend='rapids' requires cupy. "
-                    "Install with: pip install 'spatialvi-tools[rapids]'"
+                    "Install with: pip install 'scviva-tools[rapids]'"
                 ) from e
 
         return latents

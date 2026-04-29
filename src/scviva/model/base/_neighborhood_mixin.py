@@ -71,7 +71,7 @@ class SpatialNeighborhoodMixin:
         except ImportError as e:
             raise ImportError(
                 "squidpy is required for backend='squidpy'. "
-                "Install with: pip install 'spatialvi-tools[spatial]'"
+                "Install with: pip install 'scviva-tools[spatial]'"
             ) from e
 
         sq.gr.spatial_neighbors(
@@ -121,7 +121,7 @@ class SpatialNeighborhoodMixin:
         except ImportError as e:
             raise ImportError(
                 "backend='rapids' requires cuml and cupy. "
-                "Install with: pip install 'spatialvi-tools[rapids]'"
+                "Install with: pip install 'scviva-tools[rapids]'"
             ) from e
 
         coords = cp.asarray(adata.obsm[spatial_key].astype(np.float32))
@@ -140,7 +140,7 @@ class SpatialNeighborhoodMixin:
         a list of NeighborhoodGraphField instances to include in the
         AnnDataManager fields list.
         """
-        from spatialvi.data._fields import NeighborhoodGraphField
+        from scviva.data._fields import NeighborhoodGraphField
 
         for key in ("index_neighbor", "distance_neighbor"):
             if key not in adata.obsm:

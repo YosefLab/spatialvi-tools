@@ -16,9 +16,9 @@ from scvi.train._config import merge_kwargs
 from scvi.utils import setup_anndata_dsp
 from scvi.utils._docstrings import devices_dsp
 
-from spatialvi.external.stereoscope._module import RNADeconv, SpatialDeconv
-from spatialvi.model.base._deconvolution_mixin import SpatialDeconvolutionMixin
-from spatialvi.model.base._spatial_base import SpatialBaseModel
+from scviva.external.stereoscope._module import RNADeconv, SpatialDeconv
+from scviva.model.base._deconvolution_mixin import SpatialDeconvolutionMixin
+from scviva.model.base._spatial_base import SpatialBaseModel
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -32,7 +32,7 @@ class RNAStereoscope(UnsupervisedTrainingMixin, SpatialBaseModel):
     """Reimplementation of Stereoscope for the scRNA-seq component :cite:p:`Andersson20`.
 
     Trains the RNA model whose parameters are then transferred to
-    :class:`~spatialvi.external.SpatialStereoscope` for spatial deconvolution.
+    :class:`~scviva.external.SpatialStereoscope` for spatial deconvolution.
 
     Original implementation: https://github.com/almaan/stereoscope.
 
@@ -40,9 +40,9 @@ class RNAStereoscope(UnsupervisedTrainingMixin, SpatialBaseModel):
     ----------
     sc_adata
         Single-cell AnnData registered via
-        :meth:`~spatialvi.external.RNAStereoscope.setup_anndata`.
+        :meth:`~scviva.external.RNAStereoscope.setup_anndata`.
     **model_kwargs
-        Keyword args for :class:`~spatialvi.external.stereoscope.RNADeconv`.
+        Keyword args for :class:`~scviva.external.stereoscope.RNADeconv`.
 
     Examples
     --------
@@ -156,25 +156,25 @@ class SpatialStereoscope(SpatialDeconvolutionMixin, UnsupervisedTrainingMixin, S
     """Reimplementation of Stereoscope for the spatial component :cite:p:`Andersson20`.
 
     Deconvolves spatial transcriptomics spots into cell type proportions using
-    parameters learned by a pre-trained :class:`~spatialvi.external.RNAStereoscope` model.
+    parameters learned by a pre-trained :class:`~scviva.external.RNAStereoscope` model.
 
-    Inherits :class:`~spatialvi.model.base.SpatialDeconvolutionMixin` which provides
+    Inherits :class:`~scviva.model.base.SpatialDeconvolutionMixin` which provides
     :meth:`get_proportions_df` and :meth:`plot_cell_type_map`.
 
     Parameters
     ----------
     st_adata
         Spatial AnnData registered via
-        :meth:`~spatialvi.external.SpatialStereoscope.setup_anndata`.
+        :meth:`~scviva.external.SpatialStereoscope.setup_anndata`.
     sc_params
-        Parameters from the RNA model (from :meth:`~spatialvi.external.RNAStereoscope.get_params`).
+        Parameters from the RNA model (from :meth:`~scviva.external.RNAStereoscope.get_params`).
     cell_type_mapping
         numpy array mapping for the cell types used in the deconvolution.
     prior_weight
         How to reweight minibatches. ``"n_obs"`` is statistically correct;
         ``"minibatch"`` reproduces the original Stereoscope paper.
     **model_kwargs
-        Keyword args for :class:`~spatialvi.external.stereoscope.SpatialDeconv`.
+        Keyword args for :class:`~scviva.external.stereoscope.SpatialDeconv`.
 
     Examples
     --------
@@ -229,11 +229,11 @@ class SpatialStereoscope(SpatialDeconvolutionMixin, UnsupervisedTrainingMixin, S
         st_adata
             Registered spatial AnnData.
         sc_model
-            Trained :class:`~spatialvi.external.RNAStereoscope` model.
+            Trained :class:`~scviva.external.RNAStereoscope` model.
         prior_weight
             How to reweight minibatches for stochastic optimization.
         **model_kwargs
-            Keyword args for :class:`~spatialvi.external.stereoscope.SpatialDeconv`.
+            Keyword args for :class:`~scviva.external.stereoscope.SpatialDeconv`.
         """
         return cls(
             st_adata,
