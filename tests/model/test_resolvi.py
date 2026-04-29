@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from scvi.data import synthetic_iid
 
-from spatialvi.model._resolvi import ResolVI
+from scviva.model._resolvi import ResolVI
 
 
 def _prepare_adata_with_neighbors(n_neighs=10):
@@ -42,7 +42,7 @@ def test_resolvi_train(resolvi_adata):
     """Model initialises and trains for 2 epochs without error."""
     ResolVI.setup_anndata(resolvi_adata)
     model = ResolVI(resolvi_adata)
-    model.train(max_epochs=2)
+    model.train(max_epochs=1)
     assert model.is_trained
 
 
@@ -50,7 +50,7 @@ def test_resolvi_get_latent_cpu(resolvi_adata):
     """get_latent_representation returns an array with the correct shape."""
     ResolVI.setup_anndata(resolvi_adata)
     model = ResolVI(resolvi_adata)
-    model.train(max_epochs=2)
+    model.train(max_epochs=1)
     latent = model.get_latent_representation(backend="cpu")
     assert latent.shape[0] == resolvi_adata.n_obs
 

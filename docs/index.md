@@ -1,6 +1,6 @@
-# spatialvi-tools
+# scviva-tools
 
-**spatialvi-tools** is a consolidated spatial transcriptomics analysis toolkit built on top of [scvi-tools](https://scvi-tools.org), exposing ResolVI, DestVI, and scVIVA through a clean, unified API.
+**scviva-tools** is a consolidated spatial transcriptomics analysis toolkit built on top of [scvi-tools](https://scvi-tools.org), exposing ResolVI, DestVI, and scVIVA through a clean, unified API.
 
 ```{toctree}
 :maxdepth: 1

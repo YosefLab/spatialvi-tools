@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for spatialvi-tools
+about: Suggest an idea for scviva-tools
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''

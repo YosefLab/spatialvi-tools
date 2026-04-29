@@ -11,4 +11,4 @@ RUN apt-get update && apt-get install -y \
 COPY . .
 RUN pip install -e ".[spatial]"
 
-CMD ["python", "-c", "import spatialvi; print(spatialvi.__version__)"]
+CMD ["python", "-c", "import scviva; print(scviva.__version__)"]

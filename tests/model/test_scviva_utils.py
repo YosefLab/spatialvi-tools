@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 
-from spatialvi.model._scviva import get_niche_indexes
+from scviva.model._scviva import get_niche_indexes
 
 
 def _make_adata(n_cells=20, n_genes=10, seed=0):

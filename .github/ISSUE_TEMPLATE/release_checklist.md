@@ -11,5 +11,5 @@ assignees: ""
     branch off `main` with the appropriate rules
 - [ ] Run the tutorials and verify they complete without errors
 - [ ] Run the release workflow
-- [ ] Check that the version updates correctly on [PyPI](https://pypi.org/project/spatialvi-tools/)
+- [ ] Check that the version updates correctly on [PyPI](https://pypi.org/project/scviva-tools/)
 - [ ] (Optional) Post threads on Discourse and Twitter

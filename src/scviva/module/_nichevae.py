@@ -14,8 +14,8 @@ from scvi.module.base import (
 )
 from torch.nn.functional import one_hot
 
-from spatialvi._constants import SCVIVA_MODULE_KEYS, SCVIVA_REGISTRY_KEYS
-from spatialvi.module.utils._nichevae_components import DirichletDecoder, Encoder, NicheDecoder
+from scviva._constants import SCVIVA_MODULE_KEYS, SCVIVA_REGISTRY_KEYS
+from scviva.module.utils._nichevae_components import DirichletDecoder, Encoder, NicheDecoder
 
 if TYPE_CHECKING:
     from typing import Literal

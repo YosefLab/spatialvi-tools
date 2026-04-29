@@ -1,6 +1,6 @@
 # scVIVA
 
-**scVIVA** (Python class {class}`~spatialvi.SCVIVA`) is a generative model of single-cell resolved spatial
+**scVIVA** (Python class {class}`~scviva.SCVIVA`) is a generative model of single-cell resolved spatial
 transcriptomics that can subsequently be used for many common downstream tasks.
 
 The advantages of scVIVA are:
@@ -99,7 +99,7 @@ scVIVA uses variational inference, specifically auto-encoding variational Bayes 
 
 ## Tasks
 
-Here we provide an overview of some of the tasks that scVIVA can perform. Please see {class}`spatialvi.SCVIVA`
+Here we provide an overview of some of the tasks that scVIVA can perform. Please see {class}`scviva.SCVIVA`
 for the full API reference.
 
 ### Dimensionality reduction
@@ -116,7 +116,7 @@ Users may also return samples from this distribution, as opposed to the mean, by
 
 ### Estimation of normalized expression
 
-In {meth}`~spatialvi.SCVIVA.get_normalized_expression` scVIVA returns the expected true expression value of $\rho_n$ under the approximate posterior. For one cell $n$, this can be written as:
+In {meth}`~scviva.SCVIVA.get_normalized_expression` scVIVA returns the expected true expression value of $\rho_n$ under the approximate posterior. For one cell $n$, this can be written as:
 
 ```{math}
 :nowrap: true
@@ -128,7 +128,7 @@ In {meth}`~spatialvi.SCVIVA.get_normalized_expression` scVIVA returns the expect
 
 ### Differential Expression (DE)
 
-Differential expression analysis is achieved with {meth}`~spatialvi.SCVIVA.differential_expression`.
+Differential expression analysis is achieved with {meth}`~scviva.SCVIVA.differential_expression`.
 We leverage the lvm-DE method and adapt it to spatial data by taking into account cell neighborhood expression in a bid to discard false positives due to contamination.
 Considering two groups of cells $\textit{C1}$ and $\textit{C2}$ corresponding to different spatial contexts (for instance, astrocytes in two brain regions), the goal is to determine which genes have different expression levels between the two groups. When setting `niche_mode="true"`, we compute the group spatial neighborhoods $\textit{N1}$ and $\textit{N2}$, which are the spatial nearest neighbors of a different type than the cells in $\textit{C1}$, and $\textit{C2}$ respectively.
 
@@ -151,14 +151,14 @@ We train a Gaussian process classifier on $\mathbf{X} = [LFC_{C1~vs~C2}~,~LFC_{N
 ## Quick Start
 
 ```python
-import spatialvi
+import scviva
 
 # Preprocess: compute spatial neighbors
-spatialvi.SCVIVA.preprocessing_anndata(adata, k_nn=6)
+scviva.SCVIVA.preprocessing_anndata(adata, k_nn=6)
 
 # Setup and train
-spatialvi.SCVIVA.setup_anndata(adata, layer="counts", batch_key="batch")
-model = spatialvi.SCVIVA(adata)
+scviva.SCVIVA.setup_anndata(adata, layer="counts", batch_key="batch")
+model = scviva.SCVIVA(adata)
 model.train()
 
 # Get latent representation

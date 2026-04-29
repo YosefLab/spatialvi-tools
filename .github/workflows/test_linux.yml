@@ -44,8 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip wheel uv
-          python -m uv pip install --system "spatialvi-tools[test] @ ."
-          python -m uv pip install --system "squidpy>=1.4"
+          python -m uv pip install --system "scviva-tools[test,spatial] @ ."
 
       - name: Run pytest
         env:

@@ -1,4 +1,4 @@
-# spatialvi-tools
+# scviva-tools
 
 Consolidated spatial transcriptomics analysis toolkit based on [scvi-tools](https://scvi-tools.org).
 
@@ -10,19 +10,19 @@ Provides three spatial transcriptomics models as first-class citizens:
 ## Installation
 
 ```bash
-pip install spatialvi-tools
+pip install scviva-tools
 # With SpatialData and squidpy integration:
-pip install "spatialvi-tools[spatial]"
+pip install "scviva-tools[spatial]"
 ```
 
 ## Quick Start
 
 ```python
-import spatialvi
+import scviva
 
 # scVIVA
-spatialvi.SCVIVA.setup_anndata(adata, layer="counts", spatial_key="spatial")
-model = spatialvi.SCVIVA(adata)
+scviva.SCVIVA.setup_anndata(adata, layer="counts", spatial_key="spatial")
+model = scviva.SCVIVA(adata)
 model.train()
 
 # DestVI
@@ -31,13 +31,13 @@ scvi.model.CondSCVI.setup_anndata(sc_adata, labels_key="cell_type", layer="count
 sc_model = scvi.model.CondSCVI(sc_adata)
 sc_model.train()
 
-spatialvi.DestVI.setup_anndata(st_adata, layer="counts")
-st_model = spatialvi.DestVI.from_rna_model(st_adata, sc_model)
+scviva.DestVI.setup_anndata(st_adata, layer="counts")
+st_model = scviva.DestVI.from_rna_model(st_adata, sc_model)
 st_model.train()
 
 # ResolVI
-spatialvi.ResolVI.setup_anndata(adata, layer="counts", spatial_key="spatial")
-model = spatialvi.ResolVI(adata)
+scviva.ResolVI.setup_anndata(adata, layer="counts", spatial_key="spatial")
+model = scviva.ResolVI(adata)
 model.train()
 ```
 

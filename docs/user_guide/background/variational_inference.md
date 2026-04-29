@@ -2,7 +2,7 @@
 
 ## The generative model
 
-All spatialvi-tools models are based on **amortized variational inference** (AVI). The core idea
+All scviva-tools models are based on **amortized variational inference** (AVI). The core idea
 is to learn a probabilistic generative model $p_\theta(x \mid z)$ of observed gene expression $x$
 conditioned on a low-dimensional latent variable $z$, alongside an approximate posterior
 $q_\phi(z \mid x)$ parameterized by an encoder neural network.

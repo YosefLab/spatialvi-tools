@@ -4,7 +4,7 @@ from typing import NamedTuple
 
 from scvi import REGISTRY_KEYS as _SCVI_REGISTRY_KEYS
 
-# Re-export all scvi registry keys so spatialvi code can import from one place
+# Re-export all scvi registry keys so scviva code can import from one place
 REGISTRY_KEYS = _SCVI_REGISTRY_KEYS
 
 # Spatial-specific keys used across models

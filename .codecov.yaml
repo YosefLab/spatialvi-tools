@@ -19,15 +19,15 @@ coverage:
 flags:
   integration:
     paths:
-      - src/spatialvi/
+      - src/scviva/
     carryforward: false
   cuda:
     paths:
-      - src/spatialvi/
+      - src/scviva/
     carryforward: true
   macos:
     paths:
-      - src/spatialvi/
+      - src/scviva/
     carryforward: true
 
 comment:

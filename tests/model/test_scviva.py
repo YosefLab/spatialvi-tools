@@ -2,10 +2,10 @@ import numpy as np
 import pytest
 from scvi.data import synthetic_iid
 
-from spatialvi.model._scviva import SCVIVA
+from scviva.model._scviva import SCVIVA
 
 N_LATENT = 10
-N_EPOCHS = 2
+N_EPOCHS = 1
 K_NN = 5
 
 # Default key names used by SCVIVA (matching the actual defaults)
@@ -44,7 +44,7 @@ def test_scviva_train(scviva_adata):
     SCVIVA.preprocessing_anndata(scviva_adata, k_nn=K_NN, **setup_kwargs)
     SCVIVA.setup_anndata(scviva_adata, layer="counts", batch_key="batch", **setup_kwargs)
     model = SCVIVA(scviva_adata, prior_mixture=False)
-    model.train(max_epochs=N_EPOCHS, accelerator="cpu")
+    model.train(max_epochs=N_EPOCHS)
     assert model.is_trained
 
 

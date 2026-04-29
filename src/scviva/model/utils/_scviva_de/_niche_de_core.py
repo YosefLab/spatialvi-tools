@@ -7,7 +7,7 @@ from scvi.model.base._de_core import _fdr_de_prediction, _prepare_obs
 from scvi.model.base._differential import DifferentialComputation
 from scvi.utils import track
 
-from spatialvi._constants import SCVIVA_REGISTRY_KEYS
+from scviva._constants import SCVIVA_REGISTRY_KEYS
 
 from ._de_utils import _get_nonzero_indices_from_rows, adjusted_nearest_neighbors
 from ._marker_classifier import _gaussian_process_classifier

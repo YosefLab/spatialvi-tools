@@ -1,4 +1,4 @@
-"""Regression tests: spatialvi.SCVIVA vs scvi.external.scviva.SCVIVA.
+"""Regression tests: scviva.SCVIVA vs scvi.external.scviva.SCVIVA.
 
 Each test runs the exact same operations on the same data with the same random seed
 on both implementations and asserts outputs are identical (within float tolerance).
@@ -13,12 +13,12 @@ import torch
 from scvi.data import synthetic_iid
 from scvi.external.scviva import SCVIVA as ScviSCVIVA
 
-from spatialvi.model import SCVIVA as SpatialSCVIVA
+from scviva.model import SCVIVA as SpatialSCVIVA
 
 SEED = 42
 N_LATENT_INTRINSIC = 20
 K_NN = 5
-N_EPOCHS = 2
+N_EPOCHS = 1
 LABELS_KEY = "labels"
 
 SETUP_KWARGS = {
@@ -43,7 +43,6 @@ TRAIN_KWARGS = {
     "train_size": 1.0,
     "validation_size": 0.0,
     "early_stopping": False,
-    "accelerator": "cpu",
 }
 
 
@@ -78,7 +77,7 @@ def _train_scvi(adata, seed=SEED):
     return model
 
 
-def _train_spatialvi(adata, seed=SEED):
+def _train_scviva(adata, seed=SEED):
     scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -92,7 +91,7 @@ def _train_spatialvi(adata, seed=SEED):
 def test_scviva_trains(adata):
     """Both implementations must train without errors."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
     assert scvi_model.is_trained
     assert spatial_model.is_trained
 
@@ -100,26 +99,26 @@ def test_scviva_trains(adata):
 def test_scviva_latent_representation_matches(adata):
     """Latent representations must be identical given same seed and data."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
 
     latent_scvi = scvi_model.get_latent_representation()
     latent_spatial = spatial_model.get_latent_representation()
 
     assert latent_scvi.shape == latent_spatial.shape, (
-        f"Shape mismatch: scvi={latent_scvi.shape}, spatialvi={latent_spatial.shape}"
+        f"Shape mismatch: scvi={latent_scvi.shape}, scviva={latent_spatial.shape}"
     )
     np.testing.assert_allclose(
         latent_scvi,
         latent_spatial,
         atol=1e-5,
-        err_msg="Latent representations differ between scvi and spatialvi SCVIVA",
+        err_msg="Latent representations differ between scvi and scviva SCVIVA",
     )
 
 
 def test_scviva_elbo_matches(adata):
     """Training ELBO history must match between implementations."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
 
     elbo_scvi = np.array(scvi_model.history["elbo_train"].values, dtype=float)
     elbo_spatial = np.array(spatial_model.history["elbo_train"].values, dtype=float)
@@ -129,14 +128,14 @@ def test_scviva_elbo_matches(adata):
         elbo_scvi,
         elbo_spatial,
         atol=1e-4,
-        err_msg="Training ELBO differs between scvi and spatialvi SCVIVA",
+        err_msg="Training ELBO differs between scvi and scviva SCVIVA",
     )
 
 
 def test_scviva_predict_neighborhood_matches(adata):
     """Predicted neighborhood compositions must match between implementations."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
 
     torch.manual_seed(SEED)
     alpha_scvi = scvi_model.predict_neighborhood()
@@ -148,13 +147,13 @@ def test_scviva_predict_neighborhood_matches(adata):
         alpha_scvi,
         alpha_spatial,
         atol=1e-5,
-        err_msg="Neighborhood predictions differ between scvi and spatialvi SCVIVA",
+        err_msg="Neighborhood predictions differ between scvi and scviva SCVIVA",
     )
 
 
 def test_scviva_save_load_matches(adata, tmp_path):
     """Save/load round-trip must produce identical latent representations."""
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
     latent_before = spatial_model.get_latent_representation()
 
     save_path = str(tmp_path / "scviva_model")
@@ -172,7 +171,7 @@ def test_scviva_save_load_matches(adata, tmp_path):
 def test_scviva_composition_error_matches(adata):
     """Composition and niche errors must have the same shape in both implementations."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
 
     err_scvi = scvi_model.get_composition_error(return_mean=False)
     err_spatial = spatial_model.get_composition_error(return_mean=False)

@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from anndata import AnnData
 
-from spatialvi.data._fields import NeighborhoodGraphField, SpatialCoordsField
+from scviva.data._fields import NeighborhoodGraphField, SpatialCoordsField
 
 
 def _make_adata(coords_2d=True):

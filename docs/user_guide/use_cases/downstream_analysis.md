@@ -5,7 +5,7 @@
 Extract the latent representation and store it in `adata.obsm`:
 
 ```python
-adata.obsm["X_spatialvi"] = model.get_latent_representation()
+adata.obsm["X_scviva"] = model.get_latent_representation()
 ```
 
 Use RAPIDS for GPU-accelerated downstream analysis:
@@ -21,7 +21,7 @@ Apply standard scanpy clustering to the latent space:
 ```python
 import scanpy as sc
 
-sc.pp.neighbors(adata, use_rep="X_spatialvi")
+sc.pp.neighbors(adata, use_rep="X_scviva")
 sc.tl.leiden(adata)
 sc.pl.embedding(adata, basis="spatial", color="leiden")
 ```

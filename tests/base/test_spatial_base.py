@@ -6,8 +6,8 @@ from scvi.data import AnnDataManager
 from scvi.data.fields import LayerField
 from scvi.model.base import UnsupervisedTrainingMixin
 
-from spatialvi.data._fields import SpatialCoordsField
-from spatialvi.model.base._spatial_base import SpatialBaseModel
+from scviva.data._fields import SpatialCoordsField
+from scviva.model.base._spatial_base import SpatialBaseModel
 
 
 # Minimal concrete subclass — SpatialBaseModel cannot be instantiated directly

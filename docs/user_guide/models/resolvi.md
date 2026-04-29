@@ -1,6 +1,6 @@
 # ResolVI
 
-**ResolVI** (Python class {class}`~spatialvi.ResolVI`) is a generative model of single-cell resolved spatial
+**ResolVI** (Python class {class}`~scviva.ResolVI`) is a generative model of single-cell resolved spatial
 transcriptomics that can subsequently be used for many common downstream tasks.
 
 The advantages of ResolVI are:
@@ -109,7 +109,7 @@ for each cell.
 
 ## Tasks
 
-Here we provide an overview of some of the tasks that ResolVI can perform. Please see {class}`spatialvi.ResolVI`
+Here we provide an overview of some of the tasks that ResolVI can perform. Please see {class}`scviva.ResolVI`
 for the full API reference.
 
 ### Dimensionality reduction
@@ -132,11 +132,11 @@ The latent representation can be used to create a nearest neighbor graph with sc
 
 ### Transfer learning
 
-A ResolVI model can be pre-trained on reference data and updated with query data using {meth}`~spatialvi.ResolVI.load_query_data`, which then facilitates transfer of metadata like cell type annotations.
+A ResolVI model can be pre-trained on reference data and updated with query data using {meth}`~scviva.ResolVI.load_query_data`, which then facilitates transfer of metadata like cell type annotations.
 
 ### Estimation of true expression levels
 
-In {meth}`~spatialvi.ResolVI.get_normalized_expression` ResolVI returns the expected true expression value of $\rho_n$ under the approximate posterior. For one cell $n$, this can be written as:
+In {meth}`~scviva.ResolVI.get_normalized_expression` ResolVI returns the expected true expression value of $\rho_n$ under the approximate posterior. For one cell $n$, this can be written as:
 
 ```{math}
 :nowrap: true
@@ -148,27 +148,27 @@ In {meth}`~spatialvi.ResolVI.get_normalized_expression` ResolVI returns the expe
 
 ### Differential expression
 
-Differential expression analysis is achieved with {meth}`~spatialvi.ResolVI.differential_expression`.
+Differential expression analysis is achieved with {meth}`~scviva.ResolVI.differential_expression`.
 ResolVI tests differences in expression levels $\rho_{n} = f_{\theta}\left(z_n, s_n\right)$.
 
 ### Cell-type prediction
 
-Prediction of cell-type labels is performed with {meth}`~spatialvi.ResolVI.predict`.
+Prediction of cell-type labels is performed with {meth}`~scviva.ResolVI.predict`.
 A semisupervised model is necessary to perform this analysis as it leverages the cell-type classifier.
 
 ### Differential niche abundance
 
-Differential niche abundance analysis is achieved with {meth}`~spatialvi.ResolVI.differential_niche_abundance`.
+Differential niche abundance analysis is achieved with {meth}`~scviva.ResolVI.differential_niche_abundance`.
 A semisupervised model is necessary to perform this analysis as it leverages the cell-type classifier.
 
 ## Quick Start
 
 ```python
-import spatialvi
+import scviva
 
 # Setup and train
-spatialvi.ResolVI.setup_anndata(adata, layer="counts", spatial_key="spatial")
-model = spatialvi.ResolVI(adata)
+scviva.ResolVI.setup_anndata(adata, layer="counts", spatial_key="spatial")
+model = scviva.ResolVI(adata)
 model.train()
 
 # Get corrected expression

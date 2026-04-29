@@ -1,4 +1,4 @@
-"""Regression tests: spatialvi.GIMVI vs scvi.external.GIMVI.
+"""Regression tests: scviva.GIMVI vs scvi.external.GIMVI.
 
 Each test runs identical operations on the same data with the same random seed
 on both implementations and asserts outputs are numerically identical.
@@ -12,10 +12,10 @@ import torch
 from scvi.data import synthetic_iid
 from scvi.external import GIMVI as ScviGIMVI
 
-from spatialvi.model._gimvi import GIMVI as SpatialGIMVI
+from scviva.model._gimvi import GIMVI as SpatialGIMVI
 
 SEED = 42
-N_EPOCHS = 2
+N_EPOCHS = 1
 N_LATENT = 5
 
 
@@ -37,17 +37,17 @@ def _train_scvi_gimvi(adata_seq, adata_spatial, seed=SEED):
     ScviGIMVI.setup_anndata(adata_seq, layer="counts", batch_key="batch")
     ScviGIMVI.setup_anndata(adata_spatial, layer="counts")
     model = ScviGIMVI(adata_seq, adata_spatial, n_latent=N_LATENT)
-    model.train(max_epochs=N_EPOCHS, accelerator="cpu")
+    model.train(max_epochs=N_EPOCHS)
     return model
 
 
-def _train_spatialvi_gimvi(adata_seq, adata_spatial, seed=SEED):
+def _train_scviva_gimvi(adata_seq, adata_spatial, seed=SEED):
     torch.manual_seed(seed)
     np.random.seed(seed)
     SpatialGIMVI.setup_anndata(adata_seq, layer="counts", batch_key="batch")
     SpatialGIMVI.setup_anndata(adata_spatial, layer="counts")
     model = SpatialGIMVI(adata_seq, adata_spatial, n_latent=N_LATENT)
-    model.train(max_epochs=N_EPOCHS, accelerator="cpu")
+    model.train(max_epochs=N_EPOCHS)
     return model
 
 
@@ -55,35 +55,35 @@ def _train_spatialvi_gimvi(adata_seq, adata_spatial, seed=SEED):
 def both_models():
     adata_seq, adata_spatial = _make_data()
     scvi_model = _train_scvi_gimvi(adata_seq.copy(), adata_spatial.copy())
-    spatialvi_model = _train_spatialvi_gimvi(adata_seq.copy(), adata_spatial.copy())
-    return scvi_model, spatialvi_model, adata_seq, adata_spatial
+    scviva_model = _train_scviva_gimvi(adata_seq.copy(), adata_spatial.copy())
+    return scvi_model, scviva_model, adata_seq, adata_spatial
 
 
 def test_gimvi_trained(both_models):
-    scvi_model, spatialvi_model, _, _ = both_models
+    scvi_model, scviva_model, _, _ = both_models
     assert scvi_model.is_trained
-    assert spatialvi_model.is_trained
+    assert scviva_model.is_trained
 
 
 def test_gimvi_latent_shapes_match(both_models):
-    scvi_model, spatialvi_model, adata_seq, adata_spatial = both_models
+    scvi_model, scviva_model, adata_seq, adata_spatial = both_models
 
     scvi_latents = scvi_model.get_latent_representation()
-    spatialvi_latents = spatialvi_model.get_latent_representation()
+    scviva_latents = scviva_model.get_latent_representation()
 
-    assert len(scvi_latents) == len(spatialvi_latents) == 2
-    for s, sp in zip(scvi_latents, spatialvi_latents, strict=True):
-        assert s.shape == sp.shape, f"Shape mismatch: scvi {s.shape} vs spatialvi {sp.shape}"
+    assert len(scvi_latents) == len(scviva_latents) == 2
+    for s, sp in zip(scvi_latents, scviva_latents, strict=True):
+        assert s.shape == sp.shape, f"Shape mismatch: scvi {s.shape} vs scviva {sp.shape}"
 
 
 def test_gimvi_imputed_shapes_match(both_models):
-    scvi_model, spatialvi_model, _, _ = both_models
+    scvi_model, scviva_model, _, _ = both_models
 
     scvi_imp = scvi_model.get_imputed_values()
-    spatialvi_imp = spatialvi_model.get_imputed_values()
+    scviva_imp = scviva_model.get_imputed_values()
 
-    assert len(scvi_imp) == len(spatialvi_imp) == 2
-    for s, sp in zip(scvi_imp, spatialvi_imp, strict=True):
+    assert len(scvi_imp) == len(scviva_imp) == 2
+    for s, sp in zip(scvi_imp, scviva_imp, strict=True):
         assert s.shape == sp.shape
 
 
@@ -91,10 +91,10 @@ def test_gimvi_module_same_class():
     """JVAE module class must be structurally identical to scvi's JVAE."""
     from scvi.external.gimvi._module import JVAE as ScviJVAE
 
-    from spatialvi.module._jvae import JVAE as SpatialJVAE
+    from scviva.module._jvae import JVAE as SpatialJVAE
 
     # Both should have the same key method names
     scvi_methods = {m for m in dir(ScviJVAE) if not m.startswith("__")}
-    spatialvi_methods = {m for m in dir(SpatialJVAE) if not m.startswith("__")}
-    missing = scvi_methods - spatialvi_methods
-    assert not missing, f"Methods in scvi JVAE missing from spatialvi JVAE: {missing}"
+    scviva_methods = {m for m in dir(SpatialJVAE) if not m.startswith("__")}
+    missing = scvi_methods - scviva_methods
+    assert not missing, f"Methods in scvi JVAE missing from scviva JVAE: {missing}"

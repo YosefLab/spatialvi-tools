@@ -4,12 +4,12 @@
 
 ### Which Python versions are supported?
 
-spatialvi-tools requires Python 3.12 or later.
+scviva-tools requires Python 3.12 or later.
 
-### Can I install spatialvi-tools without GPU support?
+### Can I install scviva-tools without GPU support?
 
 Yes. The base package runs entirely on CPU. GPU acceleration is available via the optional
-`rapids` extra: `pip install "spatialvi-tools[rapids]"`.
+`rapids` extra: `pip install "scviva-tools[rapids]"`.
 
 ## Data preparation
 
@@ -48,7 +48,7 @@ larger datasets).
 ### Do I need squidpy installed?
 
 squidpy is required for the default `backend="squidpy"` in `compute_neighbors`. Install it with
-`pip install "spatialvi-tools[spatial]"`. A RAPIDS GPU backend is also available.
+`pip install "scviva-tools[spatial]"`. A RAPIDS GPU backend is also available.
 
 ### Can I use SpatialData objects directly?
 

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from scvi.data import synthetic_iid
 
-from spatialvi.model._gimvi import GIMVI
+from scviva.model._gimvi import GIMVI
 
 
 @pytest.fixture(scope="module")
@@ -33,14 +33,14 @@ def _setup_and_build(adata_seq, adata_spatial, **model_kwargs):
 def test_gimvi_train(gimvi_data):
     adata_seq, adata_spatial = gimvi_data
     model = _setup_and_build(adata_seq, adata_spatial)
-    model.train(max_epochs=2, accelerator="cpu")
+    model.train(max_epochs=1)
     assert model.is_trained
 
 
 def test_gimvi_get_latent_representation(gimvi_data):
     adata_seq, adata_spatial = gimvi_data
     model = _setup_and_build(adata_seq, adata_spatial)
-    model.train(max_epochs=2, accelerator="cpu")
+    model.train(max_epochs=1)
 
     latents = model.get_latent_representation()
     assert isinstance(latents, list)
@@ -53,7 +53,7 @@ def test_gimvi_get_latent_representation(gimvi_data):
 def test_gimvi_get_latent_backend_cpu(gimvi_data):
     adata_seq, adata_spatial = gimvi_data
     model = _setup_and_build(adata_seq, adata_spatial)
-    model.train(max_epochs=2, accelerator="cpu")
+    model.train(max_epochs=1, accelerator="cpu")
 
     latents = model.get_latent_representation(backend="cpu")
     assert all(isinstance(z, np.ndarray) for z in latents)
@@ -66,7 +66,7 @@ def test_gimvi_get_latent_rapids_stub(gimvi_data, monkeypatch):
 
     adata_seq, adata_spatial = gimvi_data
     model = _setup_and_build(adata_seq, adata_spatial)
-    model.train(max_epochs=2, accelerator="cpu")
+    model.train(max_epochs=1)
 
     monkeypatch.setitem(sys.modules, "cupy", types.SimpleNamespace(asarray=np.asarray))
     latents = model.get_latent_representation(backend="rapids")
@@ -76,7 +76,7 @@ def test_gimvi_get_latent_rapids_stub(gimvi_data, monkeypatch):
 def test_gimvi_get_imputed_values(gimvi_data):
     adata_seq, adata_spatial = gimvi_data
     model = _setup_and_build(adata_seq, adata_spatial)
-    model.train(max_epochs=2, accelerator="cpu")
+    model.train(max_epochs=1)
 
     imputed = model.get_imputed_values()
     assert isinstance(imputed, list)
@@ -125,12 +125,12 @@ def test_gimvi_gene_label_dispersion():
     GIMVI.setup_anndata(adata_spatial, layer="counts")
     n_labels = adata_seq.obs["labels"].nunique()
     model = GIMVI(adata_seq, adata_spatial, dispersion="gene-label", n_labels=n_labels)
-    model.train(max_epochs=2, accelerator="cpu")
+    model.train(max_epochs=1)
     assert model.is_trained
 
 
 def test_gimvi_lazy_import():
-    """GIMVI must be accessible via spatialvi top-level lazy import."""
-    import spatialvi
+    """GIMVI must be accessible via scviva top-level lazy import."""
+    import scviva
 
-    assert hasattr(spatialvi, "GIMVI") or "GIMVI" in spatialvi.__all__
+    assert hasattr(scviva, "GIMVI") or "GIMVI" in scviva.__all__

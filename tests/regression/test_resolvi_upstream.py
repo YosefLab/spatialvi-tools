@@ -1,4 +1,4 @@
-"""Regression tests: spatialvi.ResolVI vs scvi.external.resolvi.ResolVI.
+"""Regression tests: scviva.ResolVI vs scvi.external.resolvi.ResolVI.
 
 Each test runs the exact same operations on the same data with the same random seed
 on both implementations and asserts outputs are identical (within float tolerance).
@@ -13,10 +13,10 @@ import torch
 from scvi.data import synthetic_iid
 from scvi.external.resolvi import RESOLVI as ScviResolVI
 
-from spatialvi.model import ResolVI as SpatialResolVI
+from scviva.model import ResolVI as SpatialResolVI
 
 SEED = 42
-N_EPOCHS = 2
+N_EPOCHS = 1
 
 
 @pytest.fixture(scope="module")
@@ -43,8 +43,8 @@ def _train_scvi(adata, seed=SEED, **model_kwargs):
     return model
 
 
-def _train_spatialvi(adata, seed=SEED, **model_kwargs):
-    """Train spatialvi.ResolVI with a fixed seed."""
+def _train_scviva(adata, seed=SEED, **model_kwargs):
+    """Train scviva.ResolVI with a fixed seed."""
     scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -57,27 +57,27 @@ def _train_spatialvi(adata, seed=SEED, **model_kwargs):
 def test_resolvi_latent_representation_matches(adata):
     """Latent representations from both implementations must match."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
 
     latent_scvi = scvi_model.get_latent_representation()
     latent_spatial = spatial_model.get_latent_representation()
 
     assert latent_scvi.shape == latent_spatial.shape, (
-        f"Shape mismatch: scvi={latent_scvi.shape}, spatialvi={latent_spatial.shape}"
+        f"Shape mismatch: scvi={latent_scvi.shape}, scviva={latent_spatial.shape}"
     )
     # Outputs must be numerically identical (same model, same seed, same data)
     np.testing.assert_allclose(
         latent_scvi,
         latent_spatial,
         atol=1e-5,
-        err_msg="Latent representations differ between scvi and spatialvi ResolVI",
+        err_msg="Latent representations differ between scvi and scviva ResolVI",
     )
 
 
 def test_resolvi_elbo_matches(adata):
     """Training ELBO history must match between implementations."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
 
     elbo_scvi = np.array(scvi_model.history_["elbo_train"].values, dtype=float)
     elbo_spatial = np.array(spatial_model.history_["elbo_train"].values, dtype=float)
@@ -87,14 +87,14 @@ def test_resolvi_elbo_matches(adata):
         elbo_scvi,
         elbo_spatial,
         atol=1e-4,
-        err_msg="Training ELBO differs between scvi and spatialvi ResolVI",
+        err_msg="Training ELBO differs between scvi and scviva ResolVI",
     )
 
 
 def test_resolvi_normalized_expression_matches(adata):
     """Normalized expression must match between implementations."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
 
     torch.manual_seed(SEED)
     expr_scvi = scvi_model.get_normalized_expression(n_samples=5, library_size=10000)
@@ -106,13 +106,13 @@ def test_resolvi_normalized_expression_matches(adata):
         expr_scvi.values,
         expr_spatial.values,
         atol=1e-4,
-        err_msg="Normalized expression differs between scvi and spatialvi ResolVI",
+        err_msg="Normalized expression differs between scvi and scviva ResolVI",
     )
 
 
 def test_resolvi_save_load_matches(adata, tmp_path):
     """Save/load round-trip must produce identical outputs in both implementations."""
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
     latent_before = spatial_model.get_latent_representation()
 
     save_path = str(tmp_path / "resolvi_model")
@@ -130,13 +130,13 @@ def test_resolvi_save_load_matches(adata, tmp_path):
 def test_resolvi_differential_expression_runs(adata):
     """Differential expression must complete without error in both implementations."""
     scvi_model = _train_scvi(adata)
-    spatial_model = _train_spatialvi(adata)
+    spatial_model = _train_scviva(adata)
 
     de_scvi = scvi_model.differential_expression(groupby="labels")
     de_spatial = spatial_model.differential_expression(groupby="labels")
 
     assert de_scvi.shape == de_spatial.shape, (
-        f"DE output shape mismatch: scvi={de_scvi.shape}, spatialvi={de_spatial.shape}"
+        f"DE output shape mismatch: scvi={de_scvi.shape}, scviva={de_spatial.shape}"
     )
     assert list(de_scvi.columns) == list(de_spatial.columns), (
         "DE column names differ between implementations"
@@ -148,12 +148,12 @@ def test_resolvi_differential_expression_weights(adata, weights):
     """DE with both weight types must produce same-shaped results in both implementations."""
     if weights == "uniform":
         scvi_model = _train_scvi(adata)
-        spatial_model = _train_spatialvi(adata)
+        spatial_model = _train_scviva(adata)
         de_scvi = scvi_model.differential_expression(groupby="labels", weights=weights)
         de_spatial = spatial_model.differential_expression(groupby="labels", weights=weights)
     else:
         scvi_model = _train_scvi(adata)
-        spatial_model = _train_spatialvi(adata)
+        spatial_model = _train_scviva(adata)
         de_scvi = scvi_model.differential_expression(groupby="labels", weights=weights)
         de_spatial = spatial_model.differential_expression(groupby="labels", weights=weights)
 

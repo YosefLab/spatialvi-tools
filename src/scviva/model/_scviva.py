@@ -37,10 +37,10 @@ from scvi.model.base._archesmixin import _get_loaded_data
 from scvi.model.base._de_core import _de_core
 from scvi.utils import de_dsp, setup_anndata_dsp, unsupported_if_adata_minified
 
-from spatialvi._constants import SCVIVA_REGISTRY_KEYS
-from spatialvi.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
-from spatialvi.model.utils._scviva_de import _niche_de_core
-from spatialvi.module._nichevae import nicheVAE
+from scviva._constants import SCVIVA_REGISTRY_KEYS
+from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
+from scviva.model.utils._scviva_de import _niche_de_core
+from scviva.module._nichevae import nicheVAE
 
 if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     )
     from torch import Tensor
 
-    from spatialvi.model.utils._scviva_de import DifferentialExpressionResults
+    from scviva.model.utils._scviva_de import DifferentialExpressionResults
 
 _SCVI_LATENT_QZM = "_scvi_latent_qzm"
 _SCVI_LATENT_QZV = "_scvi_latent_qzv"
@@ -75,7 +75,7 @@ class SCVIVA(
     Parameters
     ----------
     adata
-        AnnData object that has been registered via :meth:`~spatialvi.model.SCVIVA.setup_anndata`.
+        AnnData object that has been registered via :meth:`~scviva.model.SCVIVA.setup_anndata`.
         If ``None``, then the underlying module will not be initialized until training, and a
         :class:`~lightning.pytorch.core.LightningDataModule` must be passed in during training.
     n_hidden
@@ -105,12 +105,12 @@ class SCVIVA(
         * ``'normal'`` - Normal distribution
         * ``'ln'`` - Logistic normal distribution (Normal(0, I) transformed by softmax)
     **kwargs
-        Additional keyword arguments for :class:`~spatialvi.module._nichevae.nicheVAE`.
+        Additional keyword arguments for :class:`~scviva.module._nichevae.nicheVAE`.
 
     Examples
     --------
     >>> adata = anndata.read_h5ad(path_to_anndata)
-    >>> spatialvi.model.SCVIVA.preprocessing_anndata(
+    >>> scviva.model.SCVIVA.preprocessing_anndata(
         adata,
         k_nn = 20,
         sample_key = 'slide_ID',
@@ -119,8 +119,8 @@ class SCVIVA(
         expression_embedding_key = "X_scVI",
         **kwargs
     )
-    >>> spatialvi.model.SCVIVA.setup_anndata(adata, batch_key="batch")
-    >>> vae = spatialvi.model.SCVIVA(adata)
+    >>> scviva.model.SCVIVA.setup_anndata(adata, batch_key="batch")
+    >>> vae = scviva.model.SCVIVA(adata)
     >>> vae.train()
     >>> adata.obsm["X_scVIVA"] = vae.get_latent_representation()
     >>> adata.obsm["X_normalized_scVIVA"] = vae.get_normalized_expression()
@@ -133,7 +133,7 @@ class SCVIVA(
 
     See Also
     --------
-    :class:`~spatialvi.module._nichevae.nicheVAE`
+    :class:`~scviva.module._nichevae.nicheVAE`
     """
 
     _module_cls = nicheVAE
@@ -242,7 +242,7 @@ class SCVIVA(
             except ImportError as e:
                 raise ImportError(
                     "backend='rapids' requires cupy. "
-                    "Install with: pip install 'spatialvi-tools[rapids]'"
+                    "Install with: pip install 'scviva-tools[rapids]'"
                 ) from e
         return latent
 
@@ -663,7 +663,7 @@ class SCVIVA(
         -----
         This is not the negative reconstruction error, so higher is better.
         """
-        from spatialvi.module._nichevae import compute_composition_error
+        from scviva.module._nichevae import compute_composition_error
 
         if adata is not None and dataloader is not None:
             raise ValueError("Only one of `adata` or `dataloader` can be provided.")
@@ -725,7 +725,7 @@ class SCVIVA(
         -----
         This is not the negative reconstruction error, so higher is better.
         """
-        from spatialvi.module._nichevae import compute_niche_error
+        from scviva.module._nichevae import compute_niche_error
 
         if adata is not None and dataloader is not None:
             raise ValueError("Only one of `adata` or `dataloader` can be provided.")

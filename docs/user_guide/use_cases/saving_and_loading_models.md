@@ -14,7 +14,7 @@ can be reconstructed exactly.
 ## Loading
 
 ```python
-from spatialvi import SCVIVA
+from scviva import SCVIVA
 
 model = SCVIVA.load("my_model/", adata=adata)
 ```
