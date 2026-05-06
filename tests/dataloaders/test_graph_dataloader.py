@@ -307,3 +307,19 @@ def test_graph_datasplitter_forwards_neighbor_expression_flag(adata_manager):
     splitter.setup()
 
     assert splitter.train_dataloader().load_neighbor_expression is False
+
+
+def test_graph_datasplitter_n_samples_per_label_no_type_error(adata_manager):
+    """n_samples_per_label must not leak into GraphDataLoader and cause TypeError."""
+    from scviva.dataloaders import GraphDataSplitter
+
+    splitter = GraphDataSplitter(
+        adata_manager,
+        batch_size=16,
+        train_size=0.8,
+        n_samples_per_label=10,
+    )
+    splitter.setup()
+    # Must not raise TypeError from unknown kwarg reaching AnnDataLoader
+    dl = splitter.train_dataloader()
+    assert dl is not None

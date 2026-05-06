@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from scvi import REGISTRY_KEYS
 from scvi.data import AnnTorchDataset
+from scvi.data._utils import get_anndata_attribute
 from scvi.dataloaders._ann_dataloader import AnnDataLoader
 from scvi.dataloaders._data_splitting import DataSplitter
 from torch.utils.data import default_convert
@@ -155,10 +156,19 @@ class GraphDataSplitter(DataSplitter):
 
     Parameters
     ----------
+    neighbor_indices_key
+        Forwarded to :class:`GraphDataLoader`.
+    edge_obsm_keys
+        Forwarded to :class:`GraphDataLoader`.
     load_sparse_neighbor_tensor
         Forwarded to :class:`GraphDataLoader`.
     load_neighbor_expression
         Forwarded to :class:`GraphDataLoader`.
+    n_samples_per_label
+        Number of subsampled labeled observations per class appended to each training split.
+        Mirrors :class:`~scvi.dataloaders.SemiSupervisedDataLoader` behavior: when labels are
+        registered, each epoch sees the full split plus a resampled labeled subset. Ignored for
+        validation and test splits.
     """
 
     def __init__(
@@ -168,6 +178,7 @@ class GraphDataSplitter(DataSplitter):
         edge_obsm_keys: list[str] | None = None,
         load_sparse_neighbor_tensor: bool = True,
         load_neighbor_expression: bool = True,
+        n_samples_per_label: int | None = None,
         **kwargs,
     ):
         super().__init__(adata_manager, **kwargs)
@@ -177,13 +188,52 @@ class GraphDataSplitter(DataSplitter):
         )
         self.load_sparse_neighbor_tensor = load_sparse_neighbor_tensor
         self.load_neighbor_expression = load_neighbor_expression
+        self.n_samples_per_label = n_samples_per_label
+
+    def _labeled_indices_for_split(self, indices: np.ndarray) -> np.ndarray:
+        """Return resampled labeled indices for *indices* using n_samples_per_label."""
+        try:
+            labels_state_registry = self.adata_manager.get_state_registry(REGISTRY_KEYS.LABELS_KEY)
+        except KeyError:
+            return np.empty(0, dtype=indices.dtype)
+
+        labels = get_anndata_attribute(
+            self.adata_manager.adata,
+            self.adata_manager.data_registry.labels.attr_name,
+            labels_state_registry.original_key,
+            mod_key=getattr(self.adata_manager.data_registry.labels, "mod_key", None),
+        ).ravel()
+
+        unlabeled = getattr(labels_state_registry, "unlabeled_category", None)
+        labeled_locs = []
+        for label in np.unique(labels):
+            if label == unlabeled:
+                continue
+            mask = labels[indices] == label
+            labeled_locs.append(indices[mask])
+
+        if not labeled_locs:
+            return np.empty(0, dtype=indices.dtype)
+
+        sample_idx = []
+        for loc in labeled_locs:
+            if self.n_samples_per_label is None or len(loc) <= self.n_samples_per_label:
+                sample_idx.append(loc)
+            else:
+                sample_idx.append(np.random.choice(loc, self.n_samples_per_label, replace=False))
+        return np.concatenate(sample_idx)
 
     def _make_graph_dataloader(
         self,
         indices: np.ndarray,
         shuffle: bool,
         drop_last: bool,
+        resample_labels: bool = False,
     ) -> GraphDataLoader:
+        if resample_labels and self.n_samples_per_label is not None:
+            extra = self._labeled_indices_for_split(indices)
+            if len(extra):
+                indices = np.concatenate([indices, extra])
         return GraphDataLoader(
             self.adata_manager,
             full_adata_manager=self.adata_manager,
@@ -205,6 +255,7 @@ class GraphDataSplitter(DataSplitter):
             self.train_idx,
             shuffle=True,
             drop_last=self.drop_last,
+            resample_labels=True,
         )
 
     def val_dataloader(self) -> GraphDataLoader | None:

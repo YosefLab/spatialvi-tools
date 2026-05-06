@@ -38,6 +38,7 @@ from scvi.model.base._de_core import _de_core
 from scvi.utils import de_dsp, setup_anndata_dsp, unsupported_if_adata_minified
 
 from scviva._constants import SCVIVA_REGISTRY_KEYS
+from scviva.dataloaders import GraphDataSplitter
 from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
 from scviva.model.utils._scviva_de import _niche_de_core
 from scviva.module._nichevae import nicheVAE
@@ -137,6 +138,7 @@ class SCVIVA(
     """
 
     _module_cls = nicheVAE
+    _data_splitter_cls = GraphDataSplitter
 
     def __init__(
         self,
@@ -214,6 +216,55 @@ class SCVIVA(
             self.module.minified_data_type = self.minified_data_type
 
         self.init_params_ = self._get_init_params(locals())
+
+    def train(
+        self,
+        max_epochs: int | None = None,
+        accelerator: str = "auto",
+        devices: int | list[int] | str = "auto",
+        train_size: float | None = None,
+        validation_size: float | None = None,
+        shuffle_set_split: bool = True,
+        load_sparse_tensor: bool = False,
+        batch_size: int = 128,
+        early_stopping: bool = False,
+        datasplitter_kwargs: dict | None = None,
+        plan_config: dict | None = None,
+        plan_kwargs: dict | None = None,
+        datamodule=None,
+        trainer_config: dict | None = None,
+        **trainer_kwargs,
+    ):
+        """Train SCVIVA with graph-aware batches by default."""
+        if datamodule is None and issubclass(self._data_splitter_cls, GraphDataSplitter):
+            datasplitter_kwargs = dict(datasplitter_kwargs or {})
+            datasplitter_kwargs.setdefault(
+                "neighbor_indices_key",
+                SCVIVA_REGISTRY_KEYS.NICHE_INDEXES_KEY,
+            )
+            datasplitter_kwargs.setdefault(
+                "edge_obsm_keys",
+                [SCVIVA_REGISTRY_KEYS.NICHE_DISTANCES_KEY],
+            )
+            datasplitter_kwargs.setdefault("load_neighbor_expression", False)
+
+        return super().train(
+            max_epochs=max_epochs,
+            accelerator=accelerator,
+            devices=devices,
+            train_size=train_size,
+            validation_size=validation_size,
+            shuffle_set_split=shuffle_set_split,
+            load_sparse_tensor=load_sparse_tensor,
+            batch_size=batch_size,
+            early_stopping=early_stopping,
+            datasplitter_kwargs=datasplitter_kwargs,
+            plan_config=plan_config,
+            plan_kwargs=plan_kwargs,
+            datamodule=datamodule,
+            trainer_config=trainer_config,
+            **trainer_kwargs,
+        )
 
     def get_latent_representation(
         self,

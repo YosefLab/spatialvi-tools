@@ -82,3 +82,80 @@ def test_condscvi_not_re_exported():
 
     with pytest.raises(AttributeError):
         _ = scviva.CondSCVI
+
+
+@pytest.mark.parametrize("amor_scheme", ["both", "latent"])
+def test_destvi_amortization_schemes(destvi_data, amor_scheme):
+    """DestVI amortization modes 'both' and 'latent' must train and return valid outputs."""
+    sc_adata, st_adata = destvi_data
+    n_labels = 4
+    n_latent = 2
+
+    CondSCVI.setup_anndata(sc_adata, layer="counts", labels_key="labels")
+    sc_model = CondSCVI(sc_adata, weight_obs=False, n_latent=n_latent)
+    sc_model.train(max_epochs=1)
+
+    DestVI.setup_anndata(st_adata, layer="counts")
+    st_model = DestVI.from_rna_model(st_adata, sc_model, amortization=amor_scheme)
+    st_model.train(max_epochs=1)
+
+    assert st_model.is_trained
+    assert not np.isnan(st_model.history["elbo_train"].values[0][0])
+
+    proportions = st_model.get_proportions()
+    assert proportions.shape == (st_adata.n_obs, n_labels)
+
+    gamma = st_model.get_gamma(return_numpy=True)
+    assert gamma.shape == (st_adata.n_obs, n_latent, n_labels)
+
+
+def test_destvi_get_proportions_sum_to_one(destvi_data):
+    """get_proportions must return values summing to 1 per spot."""
+    sc_adata, st_adata = destvi_data
+
+    CondSCVI.setup_anndata(sc_adata, layer="counts", labels_key="labels")
+    sc_model = CondSCVI(sc_adata, weight_obs=False)
+    sc_model.train(max_epochs=1)
+
+    DestVI.setup_anndata(st_adata, layer="counts")
+    st_model = DestVI.from_rna_model(st_adata, sc_model)
+    st_model.train(max_epochs=1)
+
+    props = st_model.get_proportions()
+    np.testing.assert_allclose(props.values.sum(axis=1), 1.0, atol=1e-4)
+    assert props.shape[1] == 4  # n_labels
+
+
+def test_destvi_get_scale_for_ct(destvi_data):
+    """get_scale_for_ct must return expression matrix of shape (n_indices, n_vars)."""
+    sc_adata, st_adata = destvi_data
+    n_spots = 10
+
+    CondSCVI.setup_anndata(sc_adata, layer="counts", labels_key="labels")
+    sc_model = CondSCVI(sc_adata, weight_obs=False)
+    sc_model.train(max_epochs=1)
+
+    DestVI.setup_anndata(st_adata, layer="counts")
+    st_model = DestVI.from_rna_model(st_adata, sc_model)
+    st_model.train(max_epochs=1)
+
+    indices = np.arange(n_spots)
+    ct = st_model.cell_type_mapping[0]
+    scale = st_model.get_scale_for_ct(ct, indices)
+    assert scale.shape == (n_spots, st_adata.n_vars)
+
+
+def test_destvi_get_gamma_shape(destvi_data):
+    """get_gamma(return_numpy=True) returns (n_spots, n_latent, n_labels)."""
+    sc_adata, st_adata = destvi_data
+
+    CondSCVI.setup_anndata(sc_adata, layer="counts", labels_key="labels")
+    sc_model = CondSCVI(sc_adata, weight_obs=False, n_latent=3)
+    sc_model.train(max_epochs=1)
+
+    DestVI.setup_anndata(st_adata, layer="counts")
+    st_model = DestVI.from_rna_model(st_adata, sc_model)
+    st_model.train(max_epochs=1)
+
+    gamma = st_model.get_gamma(return_numpy=True)
+    assert gamma.shape == (st_adata.n_obs, 3, 4)

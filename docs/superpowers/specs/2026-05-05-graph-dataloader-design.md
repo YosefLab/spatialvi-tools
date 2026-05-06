@@ -8,10 +8,13 @@
 
 ## Problem
 
-ResolVI and related spatial models use a fixed neighbor graph stored in AnnData:
+ResolVI and related spatial models use fixed neighbor graphs stored in AnnData:
 
 - `adata.obsm["index_neighbor"]`: neighbor observation indices, shape `[N, K]`
 - `adata.obsm["distance_neighbor"]`: neighbor distances, shape `[N, K]`
+- `SCVIVA` uses model-specific registered equivalents:
+  - `adata.obsm["niche_indexes"]`
+  - `adata.obsm["niche_distances"]`
 
 The upstream scvi-tools ResolVI implementation fetched neighbor expression inside
 `RESOLVAEModel._get_fn_args_from_batch`:
@@ -32,11 +35,13 @@ Port the scvi-tools ResolVI graph dataloader work into `scviva-tools`:
 - Add `scviva.dataloaders.GraphDataLoader`.
 - Add `scviva.dataloaders.GraphDataSplitter`.
 - Make `scviva.model.ResolVI` default to `GraphDataSplitter`.
+- Make `scviva.model.SCVIVA` default to `GraphDataSplitter` where graph batches can carry
+  precomputed niche graph context without changing module semantics.
 - Keep legacy `AnnDataLoader` behavior working through a fallback path.
 - Support a guarded model-side dense expression cache so graph batches can omit `x_n`.
 
-The second development stage is to evaluate the same graph dataloader pattern for `SCVIVA`,
-`DestVI`, `Stereoscope`, and `GIMVI` where their data flow actually uses fixed spatial neighbors.
+The remaining development stage is to evaluate the same graph dataloader pattern for `DestVI`,
+`Stereoscope`, and `GIMVI` where their data flow actually uses fixed spatial neighbors.
 
 ## Decisions
 
@@ -52,6 +57,7 @@ The second development stage is to evaluate the same graph dataloader pattern fo
 | Cross-split neighbors | Allowed intentionally, matching existing ResolVI behavior |
 | `torch_geometric` | Soft dependency; import only during graph batch conversion |
 | Default ResolVI path | `ResolVI._data_splitter_cls = GraphDataSplitter` |
+| Default SCVIVA path | `SCVIVA._data_splitter_cls = GraphDataSplitter`; train maps `niche_indexes`/`niche_distances` |
 | Cache default | `ResolVI.train(cache_neighbor_expression="auto")` enables cache for graph splitters when size guard passes |
 
 ## File Changes
@@ -63,6 +69,7 @@ src/scviva/dataloaders/
 
 src/scviva/model/
   _resolvi.py                # default GraphDataSplitter and train cache wiring
+  _scviva.py                 # default GraphDataSplitter and niche graph splitter wiring
 
 src/scviva/module/
   _resolvae.py               # batch x_n support, legacy fallback, neighbor expression cache
@@ -72,6 +79,7 @@ tests/dataloaders/
 
 tests/model/
   test_resolvi_graph_dataloader.py  # ResolVI graph path integration and benchmark tests
+  test_scviva_graph_dataloader.py   # SCVIVA graph splitter integration tests
 ```
 
 The scvi-tools reference remains:
@@ -195,6 +203,27 @@ In `"auto"` mode:
 The cache is stored as a plain attribute on `RESOLVAEModel`, not as a registered buffer. It is not
 saved in checkpoints and can be dropped with `clear_neighbor_expression_cache()`.
 
+### SCVIVA Model
+
+`src/scviva/model/_scviva.py` imports `GraphDataSplitter` from `scviva.dataloaders` and sets:
+
+```python
+_data_splitter_cls = GraphDataSplitter
+```
+
+`SCVIVA.train()` maps graph splitter defaults to SCVIVA's registered niche graph fields:
+
+```python
+datasplitter_kwargs.setdefault("neighbor_indices_key", SCVIVA_REGISTRY_KEYS.NICHE_INDEXES_KEY)
+datasplitter_kwargs.setdefault("edge_obsm_keys", [SCVIVA_REGISTRY_KEYS.NICHE_DISTANCES_KEY])
+datasplitter_kwargs.setdefault("load_neighbor_expression", False)
+```
+
+SCVIVA does not need ResolVI-style module cache support. Its module consumes precomputed
+neighborhood composition and latent niche tensors registered during `preprocessing_anndata()` and
+`setup_anndata()`, so the graph dataloader is used to keep training batches graph-aware while
+avoiding unused raw neighbor expression prefetch.
+
 ## Cross-Split Neighbor Policy
 
 Cross-split neighbor expression is intentionally allowed.
@@ -257,10 +286,30 @@ These cover:
 - differential expression settings
 - benchmark-marked ELBO/speed checks
 
+SCVIVA integration tests:
+
+```text
+tests/model/test_scviva_graph_dataloader.py
+```
+
+These cover:
+
+- default `SCVIVA._data_splitter_cls`
+- train-time forwarding of `niche_indexes` as the graph neighbor index key
+- train-time forwarding of `niche_distances` as the graph edge attribute key
+- omission of unused raw neighbor expression prefetch
+- one-epoch graph training
+
 Routine command:
 
 ```bash
 pytest tests/dataloaders/test_graph_dataloader.py tests/model/test_resolvi_graph_dataloader.py -q
+```
+
+SCVIVA command:
+
+```bash
+env MPLCONFIGDIR=/tmp/matplotlib NUMBA_CACHE_DIR=/tmp/numba pytest tests/model/test_scviva_graph_dataloader.py tests/model/test_scviva.py tests/regression/test_scviva_upstream.py -q
 ```
 
 Benchmark subset:
@@ -287,7 +336,7 @@ It remains optional because non-graph and non-spatial workflows should not requi
 
 ## Out Of Scope
 
-- Applying graph dataloading to `SCVIVA`, `DestVI`, `Stereoscope`, and `GIMVI`.
+- Applying graph dataloading to `DestVI`, `Stereoscope`, and `GIMVI`.
 - PyG `NeighborLoader`/`NodeLoader` sampling.
 - Multi-hop graph sampling.
 - GPU-resident sparse graph storage.

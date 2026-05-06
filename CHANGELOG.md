@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `scviva-tools` (e.g. `pip install "scviva-tools[spatial]"`)
 - `ResolVI` now defaults to `GraphDataSplitter`; graph training can use a guarded
   model-side neighbor expression cache and omit per-batch `x_n` transfers when enabled
+- `SCVIVA` now defaults to `GraphDataSplitter` for training, using registered
+  `niche_indexes`/`niche_distances` graph fields while omitting raw neighbor expression prefetch
 - Updated graph dataloader design, implementation plan, and AI handoff docs from
   upstream `scvi-tools` paths to this `scviva-tools` project layout
 
@@ -32,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `backend="cpu"` inference path
 - Added graph dataloader unit tests and ResolVI graph integration tests under
   `tests/dataloaders/` and `tests/model/`
+- Added SCVIVA graph dataloader integration tests covering the default splitter and niche graph
+  field forwarding
 
 ## [0.1.3] - 2026-04-13
 
