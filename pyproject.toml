@@ -161,6 +161,7 @@ testpaths = [ "tests" ]
 xfail_strict = true
 addopts = "-v --tb=short"
 markers = [
+  "benchmark: mark benchmark tests for graph-dataloader speed and ELBO comparisons",
   "cuda: mark tests that require CUDA GPU",
   "optional: mark optional tests (usually slower or requiring external resources)",
 ]

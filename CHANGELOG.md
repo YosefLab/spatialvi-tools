@@ -7,12 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `scviva.dataloaders.GraphDataLoader` and `GraphDataSplitter` for graph-aware
+  spatial mini-batches backed by scvi-tools `AnnDataLoader`/`DataSplitter`
+
 ### Changed
 
 - **Package renamed** from `spatialvi-tools` to `scviva-tools` on PyPI; the importable
   module name (`import spatialvi`) is unchanged
 - All documentation, GitHub workflow references, and install-hint strings updated to
   `scviva-tools` (e.g. `pip install "scviva-tools[spatial]"`)
+- `ResolVI` now defaults to `GraphDataSplitter`; graph training can use a guarded
+  model-side neighbor expression cache and omit per-batch `x_n` transfers when enabled
+- Updated graph dataloader design, implementation plan, and AI handoff docs from
+  upstream `scvi-tools` paths to this `scviva-tools` project layout
 
 ### Tests
 
@@ -21,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed spurious `accelerator="cpu"` from every test that does not explicitly verify
   CPU inference; kept only in `test_*_get_latent_*_cpu` tests that exercise the
   `backend="cpu"` inference path
+- Added graph dataloader unit tests and ResolVI graph integration tests under
+  `tests/dataloaders/` and `tests/model/`
 
 ## [0.1.3] - 2026-04-13
 
