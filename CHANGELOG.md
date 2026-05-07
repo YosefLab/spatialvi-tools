@@ -25,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated graph dataloader design, implementation plan, and AI handoff docs from
   upstream `scvi-tools` paths to this `scviva-tools` project layout
 
+### Fixed
+
+- `GraphDataSplitter` no longer leaks semisupervised kwargs (e.g. `n_samples_per_label`)
+  into `AnnDataLoader`, preventing `TypeError` in semisupervised ResolVI workflows;
+  label-resampling is now applied at index level before constructing `GraphDataLoader`
+
 ### Tests
 
 - All `model.train()` calls across the test suite reduced from `max_epochs=2` to
@@ -36,6 +42,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/dataloaders/` and `tests/model/`
 - Added SCVIVA graph dataloader integration tests covering the default splitter and niche graph
   field forwarding
+- Expanded SCVIVA tests to cover save/load round-trip, downstream APIs
+  (`get_elbo`, `get_composition_error`, `get_niche_error`, `predict_neighborhood`,
+  `predict_niche_activation`), differential expression with `DifferentialExpressionResults`
+  and GPC result, scArches query workflows (fewer-features and same-features), and all
+  dispersion modes (`gene`, `gene-batch`, `gene-label`, `gene-cell`)
+- Expanded SCVIVA graph dataloader tests to cover graph train + downstream APIs, save/load,
+  differential expression, scArches query, and four `@pytest.mark.benchmark` tests
+  (speed comparison, ELBO comparison, ELBO decrease, latent shape)
+- Added AnnDataLoader-path legacy class `SCVIVALegacy` for SCVIVA benchmark comparisons,
+  mirroring the `ResolVILegacy` pattern in `test_resolvi_graph_dataloader.py`
+- Expanded DestVI tests to cover `both`/`latent` amortization modes, `get_proportions`
+  row-sum correctness, `get_gamma` shape, and `get_scale_for_ct` shape
+- Expanded GIMVI tests to cover save/load with prefix, `model_library_size=[True, True]`,
+  reinit-and-retrain, `get_imputed_values(normalized=False)`, and load-with-wrong-genes error
+- Added `tests/regression/test_graph_vs_ann_spatial_quality.py` with five
+  `@pytest.mark.benchmark` tests documenting practical GraphDataLoader advantages:
+  - **Edge features**: every `GraphDataLoader` batch is a PyG `Data` object with `edge_index`
+    and `edge_attr` (distance weights), enabling future GNN message-passing layers;
+    `AnnDataLoader` produces flat dicts with no graph structure
+  - **Biological conservation parity**: NMI, ARI, and silhouette (via `scib-metrics`) are
+    equal within tolerance across both paths on spatially structured synthetic data, confirming
+    graph dataloading does not degrade latent quality
+  - **Spatial neighborhood preservation (NNP)**: fraction of spatial k-NN that survive in latent
+    space is comparable across paths, establishing the honest baseline
+  - **Graph connectivity**: scib-metrics `graph_connectivity` by domain confirms both paths
+    meet the minimum connectivity floor required for downstream clustering/trajectory
+  - **Cache correctness**: `cache_neighbor_expression=True` populates a finite device-resident
+    tensor of shape `(n_obs, n_genes)`, eliminating per-batch AnnTorchDataset random-access reads
 
 ## [0.1.3] - 2026-04-13
 

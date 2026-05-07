@@ -97,7 +97,8 @@ def test_scviva_save_load(scviva_adata, tmp_path):
     assert np.allclose(pred_alpha.sum(), scviva_adata.n_obs, atol=1e-4)
 
     pred_eta = model2.predict_niche_activation()
-    assert pred_eta.shape == (scviva_adata.n_obs, model2.n_labels, model2.module.n_latent)
+    n_latent_intrinsic = scviva_adata.obsm["X_scVI"].shape[1]
+    assert pred_eta.shape == (scviva_adata.n_obs, model2.n_labels, n_latent_intrinsic)
 
 
 @pytest.mark.optional
