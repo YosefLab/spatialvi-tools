@@ -68,13 +68,16 @@ optional-dependencies.test = [
 ]
 optional-dependencies.tpu = [ "torch-xla[tpu]" ]
 optional-dependencies.tutorials = [
+  "adjustText",
   "cell2location",
+  "decoupler",
   "igraph",
   "jupyter",
   "leidenalg",
   "matplotlib",
   "plotnine",
   "scrublet",
+  "scib-rapids",
   "scviva-tools[spatial]",
   "seaborn",
   "umap-learn>=0.5",
