@@ -175,12 +175,6 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
             self.register_buffer("mean_vprior", mean_vprior)
             self.register_buffer("var_vprior", var_vprior)
             self.register_buffer("mp_vprior", mp_vprior)
-            cats = Categorical(probs=self.mp_vprior)
-            normal_dists = Independent(
-                Normal(self.mean_vprior, torch.sqrt(self.var_vprior) + 1e-4),
-                reinterpreted_batch_ndims=1,
-            )
-            self.qz_prior = MixtureSameFamily(cats, normal_dists)
         else:
             self.mean_vprior = None
             self.var_vprior = None
@@ -262,7 +256,13 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
         px_r = torch.exp(self.px_r)
         if self.augmentation and self.training:
             with torch.no_grad():
-                prior_sampled = self.qz_prior.sample([n_samples, m]).reshape(
+                _cats = Categorical(probs=self.mp_vprior)
+                _normal = Independent(
+                    Normal(self.mean_vprior, torch.sqrt(self.var_vprior) + 1e-4),
+                    reinterpreted_batch_ndims=1,
+                )
+                _qz_prior = MixtureSameFamily(_cats, _normal)
+                prior_sampled = _qz_prior.sample([n_samples, m]).reshape(
                     n_samples, -1, self.n_latent
                 )
                 enum_label = (

@@ -28,6 +28,7 @@ classifiers = [
 dependencies = [
   "anndata>=0.11",
   "lightning>=2",
+  "numba",
   "numpy>=2",
   "pandas>=2",
   "pyro-ppl>=1.8",
@@ -36,6 +37,7 @@ dependencies = [
   "scikit-learn>=1.4",
   "scipy>=1.12",
   "scvi-tools>=1.4",
+  "sparse",
   "torch>=2",
   "tqdm>=4.60",
 ]
