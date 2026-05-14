@@ -11,6 +11,7 @@ import pytest
 import scvi as scvi_pkg
 import torch
 from scvi.data import synthetic_iid
+from scvi.dataloaders import DataSplitter
 from scvi.external.scviva import SCVIVA as ScviSCVIVA
 
 from scviva.model import SCVIVA as SpatialSCVIVA
@@ -38,12 +39,23 @@ MODEL_KWARGS = {
     "linear_classifier": True,
 }
 
+SPATIAL_LEGACY_MODEL_KWARGS = {
+    **MODEL_KWARGS,
+    "use_graph_encoder": False,
+}
+
 TRAIN_KWARGS = {
     "max_epochs": N_EPOCHS,
     "train_size": 1.0,
     "validation_size": 0.0,
     "early_stopping": False,
 }
+
+
+class SpatialSCVIVALegacy(SpatialSCVIVA):
+    """SCVIVA with the upstream AnnDataLoader path for exact parity checks."""
+
+    _data_splitter_cls = DataSplitter
 
 
 @pytest.fixture(scope="module")
@@ -81,9 +93,9 @@ def _train_scviva(adata, seed=SEED):
     scvi_pkg.settings.seed = seed
     torch.manual_seed(seed)
     np.random.seed(seed)
-    SpatialSCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
-    SpatialSCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **SETUP_KWARGS)
-    model = SpatialSCVIVA(adata, **MODEL_KWARGS)
+    SpatialSCVIVALegacy.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
+    SpatialSCVIVALegacy.setup_anndata(adata, layer="counts", batch_key="batch", **SETUP_KWARGS)
+    model = SpatialSCVIVALegacy(adata, **SPATIAL_LEGACY_MODEL_KWARGS)
     model.train(**TRAIN_KWARGS)
     return model
 
@@ -158,7 +170,7 @@ def test_scviva_save_load_matches(adata, tmp_path):
 
     save_path = str(tmp_path / "scviva_model")
     spatial_model.save(save_path, save_anndata=True, overwrite=True)
-    loaded = SpatialSCVIVA.load(save_path)
+    loaded = SpatialSCVIVALegacy.load(save_path)
     latent_after = loaded.get_latent_representation()
 
     np.testing.assert_array_equal(
@@ -194,9 +206,13 @@ def test_scviva_dispersion_matches(adata, dispersion):
 
     torch.manual_seed(SEED)
     np.random.seed(SEED)
-    SpatialSCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
-    SpatialSCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **SETUP_KWARGS)
-    spatial_model = SpatialSCVIVA(adata, dispersion=dispersion)
+    SpatialSCVIVALegacy.preprocessing_anndata(adata, k_nn=K_NN, **SETUP_KWARGS)
+    SpatialSCVIVALegacy.setup_anndata(adata, layer="counts", batch_key="batch", **SETUP_KWARGS)
+    spatial_model = SpatialSCVIVALegacy(
+        adata,
+        dispersion=dispersion,
+        use_graph_encoder=False,
+    )
     spatial_model.train(max_epochs=1)
 
     lat_scvi = scvi_model.get_latent_representation()

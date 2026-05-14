@@ -246,7 +246,14 @@ class SCVIVA(
                 "edge_obsm_keys",
                 [SCVIVA_REGISTRY_KEYS.NICHE_DISTANCES_KEY],
             )
-            datasplitter_kwargs.setdefault("load_neighbor_expression", False)
+            use_graph_enc = getattr(getattr(self, "module", None), "use_graph_encoder", True)
+            datasplitter_kwargs.setdefault("load_neighbor_expression", use_graph_enc)
+            datasplitter_kwargs.setdefault("load_neighbor_labels", use_graph_enc)
+            if use_graph_enc:
+                datasplitter_kwargs.setdefault(
+                    "neighbor_obsm_keys",
+                    {"z1_n": SCVIVA_REGISTRY_KEYS.Z1_MEAN_KEY},
+                )
 
         return super().train(
             max_epochs=max_epochs,

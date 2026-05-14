@@ -34,16 +34,32 @@ class _GraphBatchConverter:
         edge_obsm_keys: list[str],
         load_sparse_neighbor_tensor: bool,
         load_neighbor_expression: bool,
+        load_neighbor_labels: bool = False,
+        neighbor_obsm_keys: dict[str, str] | None = None,
     ):
         self.neighbor_indices_key = neighbor_indices_key
         self.edge_obsm_keys = edge_obsm_keys
         self.load_neighbor_expression = load_neighbor_expression
+        self.load_neighbor_labels = load_neighbor_labels
+        self.neighbor_obsm_keys = dict(neighbor_obsm_keys or {})
         if load_neighbor_expression:
             self._full_dataset = AnnTorchDataset(
                 full_adata_manager,
                 getitem_tensors=[REGISTRY_KEYS.X_KEY],
                 load_sparse_tensor=load_sparse_neighbor_tensor,
             )
+        if self.neighbor_obsm_keys:
+            self._neighbor_obsm_dataset = AnnTorchDataset(
+                full_adata_manager,
+                getitem_tensors=list(self.neighbor_obsm_keys.values()),
+                load_sparse_tensor=False,
+            )
+        if load_neighbor_labels:
+            labels_state = full_adata_manager.get_state_registry(REGISTRY_KEYS.LABELS_KEY)
+            attr_key = labels_state.original_key
+            attr_name = full_adata_manager.data_registry[REGISTRY_KEYS.LABELS_KEY].attr_name
+            obs_col = getattr(full_adata_manager.adata, attr_name)[attr_key]
+            self._neighbor_labels = torch.from_numpy(obs_col.cat.codes.values.copy()).long()
 
     def __call__(self, batch: dict[str, np.ndarray | torch.Tensor]):
         try:
@@ -79,11 +95,18 @@ class _GraphBatchConverter:
                 "distances_n": batch.get("distance_neighbor"),
             }
         )
-        if self.load_neighbor_expression:
+        if self.load_neighbor_expression or self.load_neighbor_labels or self.neighbor_obsm_keys:
             flat_neighbors = ind_neighbors.cpu().numpy().ravel()
+        if self.load_neighbor_expression:
             data_kwargs["x_n"] = _as_torch_tensor(
                 self._full_dataset[flat_neighbors][REGISTRY_KEYS.X_KEY]
             )
+        if self.load_neighbor_labels:
+            data_kwargs["y_n"] = self._neighbor_labels[torch.from_numpy(flat_neighbors)]
+        if self.neighbor_obsm_keys:
+            neighbor_obsm = self._neighbor_obsm_dataset[flat_neighbors]
+            for output_key, registry_key in self.neighbor_obsm_keys.items():
+                data_kwargs[output_key] = _as_torch_tensor(neighbor_obsm[registry_key])
         return Data(**data_kwargs)
 
 
@@ -114,6 +137,10 @@ class GraphDataLoader(AnnDataLoader):
     load_neighbor_expression
         If ``False``, omits ``x_n`` and leaves neighbor expression gathering to the model. This is
         useful when a model keeps a device-resident expression cache.
+    load_neighbor_labels
+        If ``True``, adds ``y_n`` with labels for the flattened neighbor slots.
+    neighbor_obsm_keys
+        Mapping from output tensor name to registered obsm key for neighbor-slot lookup.
     **kwargs
         Forwarded to :class:`~scvi.dataloaders.AnnDataLoader`.
     """
@@ -127,6 +154,8 @@ class GraphDataLoader(AnnDataLoader):
         edge_obsm_keys: list[str] | None = None,
         load_sparse_neighbor_tensor: bool = True,
         load_neighbor_expression: bool = True,
+        load_neighbor_labels: bool = False,
+        neighbor_obsm_keys: dict[str, str] | None = None,
         **kwargs,
     ):
         if "collate_fn" in kwargs:
@@ -141,12 +170,16 @@ class GraphDataLoader(AnnDataLoader):
         )
         self.load_sparse_neighbor_tensor = load_sparse_neighbor_tensor
         self.load_neighbor_expression = load_neighbor_expression
+        self.load_neighbor_labels = load_neighbor_labels
+        self.neighbor_obsm_keys = dict(neighbor_obsm_keys or {})
         self._graph_batch_converter = _GraphBatchConverter(
             full_adata_manager,
             neighbor_indices_key=self.neighbor_indices_key,
             edge_obsm_keys=self.edge_obsm_keys,
             load_sparse_neighbor_tensor=load_sparse_neighbor_tensor,
             load_neighbor_expression=load_neighbor_expression,
+            load_neighbor_labels=load_neighbor_labels,
+            neighbor_obsm_keys=self.neighbor_obsm_keys,
         )
         self.collate_fn = self._graph_batch_converter
 
@@ -164,6 +197,10 @@ class GraphDataSplitter(DataSplitter):
         Forwarded to :class:`GraphDataLoader`.
     load_neighbor_expression
         Forwarded to :class:`GraphDataLoader`.
+    load_neighbor_labels
+        Forwarded to :class:`GraphDataLoader`.
+    neighbor_obsm_keys
+        Forwarded to :class:`GraphDataLoader`.
     n_samples_per_label
         Number of subsampled labeled observations per class appended to each training split.
         Mirrors :class:`~scvi.dataloaders.SemiSupervisedDataLoader` behavior: when labels are
@@ -178,6 +215,8 @@ class GraphDataSplitter(DataSplitter):
         edge_obsm_keys: list[str] | None = None,
         load_sparse_neighbor_tensor: bool = True,
         load_neighbor_expression: bool = True,
+        load_neighbor_labels: bool = False,
+        neighbor_obsm_keys: dict[str, str] | None = None,
         n_samples_per_label: int | None = None,
         **kwargs,
     ):
@@ -188,6 +227,8 @@ class GraphDataSplitter(DataSplitter):
         )
         self.load_sparse_neighbor_tensor = load_sparse_neighbor_tensor
         self.load_neighbor_expression = load_neighbor_expression
+        self.load_neighbor_labels = load_neighbor_labels
+        self.neighbor_obsm_keys = dict(neighbor_obsm_keys or {})
         self.n_samples_per_label = n_samples_per_label
 
     def _labeled_indices_for_split(self, indices: np.ndarray) -> np.ndarray:
@@ -246,6 +287,8 @@ class GraphDataSplitter(DataSplitter):
             edge_obsm_keys=self.edge_obsm_keys,
             load_sparse_neighbor_tensor=self.load_sparse_neighbor_tensor,
             load_neighbor_expression=self.load_neighbor_expression,
+            load_neighbor_labels=self.load_neighbor_labels,
+            neighbor_obsm_keys=self.neighbor_obsm_keys,
             **self.data_loader_kwargs,
         )
 
