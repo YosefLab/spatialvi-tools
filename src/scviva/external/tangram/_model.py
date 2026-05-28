@@ -110,7 +110,11 @@ class Tangram(SpatialBaseModel):
         -------
         Mapping matrix of shape (n_obs_sc, n_obs_sp)
         """
-        return torch.softmax(self.module.mapper_unconstrained, dim=1).detach().cpu().numpy()
+        mapper = torch.softmax(self.module.mapper_unconstrained, dim=1)
+        if self.module.constrained:
+            filter = torch.sigmoid(self.module.filter_unconstrained)
+            mapper = mapper * filter
+        return mapper.detach().cpu().numpy()
 
     @devices_dsp.dedent
     def train(
@@ -245,10 +249,8 @@ class Tangram(SpatialBaseModel):
         sc_state = adata_manager.get_state_registry(TANGRAM_REGISTRY_KEYS.SC_KEY)
         sp_state = adata_manager.get_state_registry(TANGRAM_REGISTRY_KEYS.SP_KEY)
         # Need to access the underlying AnnData field to get these attributes
-        if not (
-            pd.Index(sc_state[fields.LayerField.COLUMN_NAMES_KEY]).equals(
-                sp_state[fields.LayerField.COLUMN_NAMES_KEY]
-            ),
+        if not pd.Index(sc_state[fields.LayerField.COLUMN_NAMES_KEY]).equals(
+            pd.Index(sp_state[fields.LayerField.COLUMN_NAMES_KEY])
         ):
             raise ValueError(
                 "The column names of the spatial and single-cell layers must be the same."

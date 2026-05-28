@@ -10,10 +10,17 @@ modalities = {"density_prior_key": "sp", "sc_layer": "sc", "sp_layer": "sp"}
 
 
 def _get_mdata(sparse_format: str | None = None):
-    dataset1 = synthetic_iid(batch_size=100, sparse_format=sparse_format)
-    dataset2 = dataset1[-25:].copy()
-    dataset1 = dataset1[:-25].copy()
-    mdata = mudata.MuData({"sc": dataset1, "sp": dataset2})
+    # Create full datasets
+    dataset_full = synthetic_iid(batch_size=100, sparse_format=sparse_format)
+    ad_sc = dataset_full[:-25].copy()
+    ad_sp = dataset_full[-25:].copy()
+
+    # Select marker genes (subset common to both)
+    markers = ad_sc.var_names[:30]
+
+    # Create MuData with marker-filtered modalities
+    mdata = mudata.MuData({"sc": ad_sc[:, markers].copy(), "sp": ad_sp[:, markers].copy()})
+
     ad_sp = mdata.mod["sp"]
     rna_count_per_spot = np.asarray(ad_sp.X.sum(axis=1)).squeeze()
     ad_sp.obs["rna_count_based_density"] = rna_count_per_spot / np.sum(rna_count_per_spot)

@@ -32,6 +32,7 @@ import scviva
 
    external.RNAStereoscope
    external.SpatialStereoscope
+   external.Tangram
 ```
 
 ## Settings
