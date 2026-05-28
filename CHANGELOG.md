@@ -7,12 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Tangram** model for mapping single-cell RNA-seq data to spatial transcriptomics
+  (`scviva.external.Tangram`). Torch reimplementation of the Tangram algorithm
+  supporting both "cells" and "constrained" modes for cell-to-spot mapping
+
 ### Changed
 
 - **Package renamed** from `spatialvi-tools` to `scviva-tools` on PyPI; the importable
   module name (`import spatialvi`) is unchanged
 - All documentation, GitHub workflow references, and install-hint strings updated to
   `scviva-tools` (e.g. `pip install "scviva-tools[spatial]"`)
+
+### Fixed
+
+- **Tangram**: Fixed tuple bug in `setup_mudata` that prevented var_names validation
+  from raising when sc and spatial modalities have mismatched genes
+- **Tangram**: Fixed `get_mapper_matrix` to correctly apply the learned filter when
+  `constrained=True`, ensuring downstream projection methods respect the target_count
+  constraint
 
 ### Tests
 
@@ -21,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed spurious `accelerator="cpu"` from every test that does not explicitly verify
   CPU inference; kept only in `test_*_get_latent_*_cpu` tests that exercise the
   `backend="cpu"` inference path
+
+### Notes
+
+- Tangram regression tests against scvi-tools upstream are not included because the
+  upstream implementation uses JAX/Flax while scviva-tools uses PyTorch, making
+  direct comparison tests impractical
 
 ## [0.1.3] - 2026-04-13
 
