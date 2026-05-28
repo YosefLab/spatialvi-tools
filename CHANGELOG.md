@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `scviva.dataloaders.GraphDataLoader` and `GraphDataSplitter` for graph-aware
   spatial mini-batches backed by scvi-tools `AnnDataLoader`/`DataSplitter`
+- **Tangram** model for mapping single-cell RNA-seq data to spatial transcriptomics
+  (`scviva.external.Tangram`). Torch reimplementation of the Tangram algorithm
+  supporting both "cells" and "constrained" modes for cell-to-spot mapping
 
 ### Changed
 
@@ -30,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GraphDataSplitter` no longer leaks semisupervised kwargs (e.g. `n_samples_per_label`)
   into `AnnDataLoader`, preventing `TypeError` in semisupervised ResolVI workflows;
   label-resampling is now applied at index level before constructing `GraphDataLoader`
+
+### Fixed
+
+- **Tangram**: Fixed tuple bug in `setup_mudata` that prevented var_names validation
+  from raising when sc and spatial modalities have mismatched genes
+- **Tangram**: Fixed `get_mapper_matrix` to correctly apply the learned filter when
+  `constrained=True`, ensuring downstream projection methods respect the target_count
+  constraint
 
 ### Tests
 
@@ -70,6 +81,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     meet the minimum connectivity floor required for downstream clustering/trajectory
   - **Cache correctness**: `cache_neighbor_expression=True` populates a finite device-resident
     tensor of shape `(n_obs, n_genes)`, eliminating per-batch AnnTorchDataset random-access reads
+
+### Notes
+
+- Tangram regression tests against scvi-tools upstream are not included because the
+  upstream implementation uses JAX/Flax while scviva-tools uses PyTorch, making
+  direct comparison tests impractical
 
 ## [0.1.3] - 2026-04-13
 
