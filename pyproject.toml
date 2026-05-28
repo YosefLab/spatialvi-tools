@@ -28,6 +28,7 @@ classifiers = [
 dependencies = [
   "anndata>=0.11",
   "lightning>=2",
+  "numba",
   "numpy>=2",
   "pandas>=2",
   "pyro-ppl>=1.8",
@@ -36,6 +37,7 @@ dependencies = [
   "scikit-learn>=1.4",
   "scipy>=1.12",
   "scvi-tools>=1.4",
+  "sparse",
   "torch>=2",
   "tqdm>=4.60",
 ]
@@ -68,13 +70,16 @@ optional-dependencies.test = [
 ]
 optional-dependencies.tpu = [ "torch-xla[tpu]" ]
 optional-dependencies.tutorials = [
+  "adjustText",
   "cell2location",
+  "decoupler",
   "igraph",
   "jupyter",
   "leidenalg",
   "matplotlib",
   "plotnine",
   "scrublet",
+  "scib-rapids",
   "scviva-tools[spatial]",
   "seaborn",
   "umap-learn>=0.5",
@@ -161,6 +166,7 @@ testpaths = [ "tests" ]
 xfail_strict = true
 addopts = "-v --tb=short"
 markers = [
+  "benchmark: mark benchmark tests for graph-dataloader speed and ELBO comparisons",
   "cuda: mark tests that require CUDA GPU",
   "optional: mark optional tests (usually slower or requiring external resources)",
 ]

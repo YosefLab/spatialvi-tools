@@ -27,6 +27,24 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+_SPARSE_LAYOUTS = {
+    layout
+    for layout in (
+        getattr(torch, "sparse_csr", None),
+        getattr(torch, "sparse_csc", None),
+        getattr(torch, "sparse_bsr", None),
+        getattr(torch, "sparse_bsc", None),
+    )
+    if layout is not None
+}
+
+
+def _to_dense_if_sparse(tensor: torch.Tensor) -> torch.Tensor:
+    if tensor.is_sparse or tensor.layout in _SPARSE_LAYOUTS:
+        return tensor.to_dense()
+    return tensor
+
+
 class nicheVAE(VAE):
     """Variational auto-encoder with niche decoders :cite:p:`Levy25`.
 
@@ -202,6 +220,8 @@ class nicheVAE(VAE):
         semisupervised: bool = True,
         linear_classifier: bool = True,
         ##############################
+        use_graph_encoder: bool = True,
+        ##############################
         inpute_covariates_niche_decoder: bool = True,
         encode_covariates: bool = False,
         deeply_inject_covariates: bool = True,
@@ -253,6 +273,7 @@ class nicheVAE(VAE):
         self.niche_likelihood = niche_likelihood
         self.prior_mixture = prior_mixture
         self.semisupervised = semisupervised
+        self.use_graph_encoder = use_graph_encoder
 
         self.batch_representation = batch_representation
         if self.batch_representation == "embedding":
@@ -359,6 +380,143 @@ class nicheVAE(VAE):
         else:
             self.classifier = None
 
+        if use_graph_encoder:
+            # Attention gate: score each neighbor given the center cell's latent
+            self.spatial_attn = torch.nn.Linear(2 * n_latent, 1)
+
+    def _get_inference_input(self, tensors, **kwargs):
+        inputs = super()._get_inference_input(tensors, **kwargs)
+        inputs["x_n"] = tensors.get("x_n", None)
+        inputs["y_n"] = tensors.get("y_n", None)
+        from scviva._constants import SCVIVA_REGISTRY_KEYS
+        inputs["ind_neighbors"] = tensors.get(SCVIVA_REGISTRY_KEYS.NICHE_INDEXES_KEY, None)
+        inputs["z1_n"] = tensors.get("z1_n", None)
+        inputs["edge_index"] = tensors.get("edge_index", None)
+        inputs["edge_attr"] = tensors.get("edge_attr", None)
+        return inputs
+
+    def inference(
+        self,
+        x,
+        batch_index,
+        cont_covs=None,
+        cat_covs=None,
+        n_samples=1,
+        x_n=None,
+        y_n=None,
+        ind_neighbors=None,
+        z1_n=None,
+        edge_index=None,
+        edge_attr=None,
+        **kwargs,
+    ):
+        outputs = super().inference(
+            x, batch_index, cont_covs=cont_covs, cat_covs=cat_covs, n_samples=n_samples
+        )
+        outputs["z_spatial"] = None
+        outputs["dynamic_eta"] = None
+
+        if (
+            x_n is not None
+            and ind_neighbors is not None
+            and getattr(self, "use_graph_encoder", False)
+        ):
+            n_obs = x.shape[0]
+            K = ind_neighbors.shape[1]
+
+            x_n = _to_dense_if_sparse(x_n)
+
+            x_n_ = torch.log1p(x_n) if self.log_variational else x_n  # [n_obs*K, n_genes]
+            batch_n = batch_index.repeat_interleave(K)
+            qz_n, _ = self.z_encoder(x_n_, batch_n)
+            z_n_flat = qz_n.loc  # [n_obs*K, n_latent]
+
+            n_edges = n_obs * K
+            if edge_index is None:
+                center_idx = torch.arange(
+                    n_obs, device=x_n.device, dtype=torch.long
+                ).repeat_interleave(K)
+                neighbor_slot = torch.arange(n_edges, device=x_n.device, dtype=torch.long)
+            else:
+                edge_index = edge_index.to(x_n.device).long()
+                center_idx = edge_index[0]
+                neighbor_slot = edge_index[1]
+                if center_idx.max() >= n_obs or neighbor_slot.max() >= n_edges:
+                    raise ValueError(
+                        "SCVIVA graph encoder expects edge_index[0] to index batch cells "
+                        "and edge_index[1] to index flattened neighbor slots."
+                    )
+
+            # Mechanism 2: attention-weighted message passing from neighbor slots to cells.
+            z = outputs["qz"].loc  # [n_obs, n_latent]
+            z_edges = z[center_idx]  # [n_edges, n_latent]
+            z_n_edges = z_n_flat[neighbor_slot]  # [n_edges, n_latent]
+            attn_scores = self.spatial_attn(
+                torch.cat([z_edges, z_n_edges], dim=-1)
+            ).squeeze(-1)  # [n_edges]
+            if edge_attr is not None:
+                edge_attr = edge_attr.to(attn_scores.device)
+                edge_distance = edge_attr if edge_attr.ndim == 1 else edge_attr[:, 0]
+                attn_scores = attn_scores - torch.log1p(edge_distance.clamp_min(0))
+
+            max_scores = torch.full(
+                (n_obs,),
+                torch.finfo(attn_scores.dtype).min,
+                dtype=attn_scores.dtype,
+                device=attn_scores.device,
+            )
+            max_scores.scatter_reduce_(
+                0, center_idx, attn_scores, reduce="amax", include_self=True
+            )
+            exp_scores = torch.exp(attn_scores - max_scores[center_idx])
+            denom = torch.zeros(
+                n_obs, dtype=attn_scores.dtype, device=attn_scores.device
+            )
+            denom.scatter_add_(0, center_idx, exp_scores)
+            attn_w = exp_scores / denom[center_idx].clamp_min(
+                torch.finfo(attn_scores.dtype).tiny
+            )
+
+            z_spatial = torch.zeros(
+                n_obs, self.n_latent, dtype=z_n_edges.dtype, device=z_n_edges.device
+            )
+            z_spatial.scatter_add_(
+                0,
+                center_idx.unsqueeze(1).expand(-1, self.n_latent),
+                z_n_edges * attn_w.unsqueeze(1),
+            )
+            outputs["z_spatial"] = z_spatial
+
+            # Mechanism 1: dynamic eta in the registered niche-embedding space.
+            if y_n is not None and z1_n is not None:
+                z1_n = _to_dense_if_sparse(z1_n)
+                z1_n = z1_n.to(x_n.device)
+                y_n_edges = y_n.to(x_n.device).long()[neighbor_slot]
+                y_n_edges = y_n_edges.clamp(min=0, max=self.n_labels - 1)
+                flat_idx = y_n_edges + center_idx * self.n_labels
+
+                eta_dim = z1_n.shape[-1]
+                z1_edges = z1_n[neighbor_slot]
+                z_ct = torch.zeros(n_obs * self.n_labels, eta_dim, device=x_n.device)
+                z_ct.scatter_add_(0, flat_idx.unsqueeze(1).expand(-1, eta_dim), z1_edges)
+
+                counts = torch.zeros(n_obs * self.n_labels, 1, device=x_n.device)
+                counts.scatter_add_(
+                    0,
+                    flat_idx.unsqueeze(1),
+                    torch.ones(z1_edges.shape[0], 1, device=x_n.device),
+                )
+                outputs["dynamic_eta"] = (z_ct / counts.clamp(min=1.0)).view(
+                    n_obs, self.n_labels, eta_dim
+                )
+
+        return outputs
+
+    def _get_generative_input(self, tensors, inference_outputs):
+        inputs = super()._get_generative_input(tensors, inference_outputs)
+        inputs["z_spatial"] = inference_outputs.get("z_spatial", None)
+        return inputs
+
     @auto_move_data
     def generative(
         self,
@@ -370,6 +528,7 @@ class nicheVAE(VAE):
         size_factor: torch.Tensor | None = None,
         y: torch.Tensor | None = None,
         transform_batch: torch.Tensor | None = None,
+        z_spatial: torch.Tensor | None = None,
     ) -> dict[str, Distribution | None]:
         """Run the generative process."""
         from scvi.distributions import (
@@ -481,12 +640,23 @@ class nicheVAE(VAE):
         else:
             pz = Normal(torch.zeros_like(z), torch.ones_like(z))
 
+        # Niche decoders get spatial context from live neighbor latents when available
+        if z_spatial is not None:
+            if decoder_input.dim() != z_spatial.dim():
+                z_spatial = z_spatial.unsqueeze(0).expand(*decoder_input.shape[:-1], -1)
+            niche_decoder_input = decoder_input.clone()
+            niche_decoder_input[..., : self.n_latent] = (
+                niche_decoder_input[..., : self.n_latent] + z_spatial
+            )
+        else:
+            niche_decoder_input = decoder_input
+
         niche_composition = self.composition_decoder(
-            decoder_input, batch_index, *categorical_input
+            niche_decoder_input, batch_index, *categorical_input
         )  # DirichletDecoder, niche_composition is a distribution
 
         niche_mean, niche_variance = self.niche_decoder(
-            decoder_input, batch_index, *categorical_input
+            niche_decoder_input, batch_index, *categorical_input
         )
 
         if self.niche_likelihood == "poisson":
@@ -562,9 +732,13 @@ class nicheVAE(VAE):
         niche_weights = tensors[SCVIVA_REGISTRY_KEYS.NICHE_COMPOSITION_KEY]
         niche_weights = (niche_weights > 0).float()
 
-        z1_mean_niche = tensors[
-            SCVIVA_REGISTRY_KEYS.Z1_MEAN_CT_KEY
-        ]  # batch times cell_types times n_latent
+        # Use live neighbor-derived eta when graph encoder is active; else precomputed obsm
+        dynamic_eta = inference_outputs.get("dynamic_eta", None)
+        z1_mean_niche = (
+            dynamic_eta
+            if dynamic_eta is not None
+            else tensors[SCVIVA_REGISTRY_KEYS.Z1_MEAN_CT_KEY]
+        )
 
         reconst_loss_niche = (
             -generative_outputs[SCVIVA_MODULE_KEYS.P_NICHE_EXPRESSION]

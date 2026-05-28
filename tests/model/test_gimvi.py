@@ -134,3 +134,93 @@ def test_gimvi_lazy_import():
     import scviva
 
     assert hasattr(scviva, "GIMVI") or "GIMVI" in scviva.__all__
+
+
+def test_gimvi_save_load(gimvi_data, tmp_path):
+    """Save/load round-trip preserves latent representation."""
+    adata_seq, adata_spatial = gimvi_data
+    model = _setup_and_build(adata_seq, adata_spatial)
+    model.train(max_epochs=1)
+
+    z1 = model.get_latent_representation([adata_seq])
+    save_path = str(tmp_path / "gimvi_save")
+    model.save(save_path, overwrite=True, save_anndata=True, prefix="GIMVI_")
+
+    model2 = GIMVI.load(save_path, prefix="GIMVI_")
+    z2 = model2.get_latent_representation([adata_seq])
+    np.testing.assert_array_almost_equal(z1, z2, decimal=3)
+    assert model2.is_trained is True
+
+    # Load providing explicit adatas
+    model3 = GIMVI.load(
+        save_path,
+        adata_seq=adata_seq,
+        adata_spatial=adata_spatial,
+        prefix="GIMVI_",
+    )
+    z3 = model3.get_latent_representation([adata_seq])
+    np.testing.assert_array_almost_equal(z1, z3, decimal=3)
+
+
+def test_gimvi_model_library_size(gimvi_data):
+    """model_library_size=[True, True] adds library_log_means for both modalities."""
+    adata_seq, adata_spatial = gimvi_data
+    GIMVI.setup_anndata(adata_seq, layer="counts", batch_key="batch")
+    GIMVI.setup_anndata(adata_spatial, layer="counts")
+    model = GIMVI(
+        adata_seq,
+        adata_spatial,
+        model_library_size=[True, True],
+        n_latent=10,
+    )
+    assert hasattr(model.module, "library_log_means_0")
+    assert hasattr(model.module, "library_log_means_1")
+    model.train(max_epochs=1)
+    latents = model.get_latent_representation()
+    assert len(latents) == 2
+    model.get_imputed_values()
+
+
+def test_gimvi_reinit(gimvi_data):
+    """GIMVI can be re-initialized and retrained without error."""
+    adata_seq, adata_spatial = gimvi_data
+    model = _setup_and_build(adata_seq, adata_spatial)
+    model.train(max_epochs=1)
+    # Reinitialize and retrain — should not raise
+    model = _setup_and_build(adata_seq, adata_spatial)
+    model.train(max_epochs=1)
+    assert model.is_trained
+
+
+def test_gimvi_get_imputed_values_unnormalized(gimvi_data):
+    """get_imputed_values(normalized=False) returns raw rates without error."""
+    adata_seq, adata_spatial = gimvi_data
+    model = _setup_and_build(adata_seq, adata_spatial)
+    model.train(max_epochs=1)
+
+    imputed = model.get_imputed_values(normalized=False)
+    assert isinstance(imputed, list)
+    assert len(imputed) == 2
+    assert imputed[0].shape[0] == adata_seq.n_obs
+    assert imputed[1].shape[0] == adata_spatial.n_obs
+    # Unnormalized values should be non-negative
+    assert (imputed[0] >= 0).all()
+    assert (imputed[1] >= 0).all()
+
+
+def test_gimvi_load_wrong_genes_raises(gimvi_data, tmp_path):
+    """GIMVI.load with mismatched var_names must raise ValueError."""
+    adata_seq, adata_spatial = gimvi_data
+    model = _setup_and_build(adata_seq, adata_spatial)
+    model.train(max_epochs=1)
+    save_path = str(tmp_path / "gimvi_bad_load")
+    model.save(save_path, overwrite=True, save_anndata=True)
+
+    tmp_seq = synthetic_iid(n_genes=200, sparse_format=None)
+    tmp_spatial = synthetic_iid(n_genes=200, sparse_format=None)
+    with pytest.raises(ValueError):
+        GIMVI.load(
+            save_path,
+            adata_seq=tmp_seq,
+            adata_spatial=tmp_spatial,
+        )
