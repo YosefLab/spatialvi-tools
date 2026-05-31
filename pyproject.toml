@@ -59,7 +59,7 @@ optional-dependencies.file_sharing = [ "fcswrite", "gdown", "pooch", "readfcs" ]
 optional-dependencies.hub = [ "boto3", "dvc[s3]", "huggingface-hub" ]
 optional-dependencies.imaging = [
   "huggingface-hub>=0.20",
-  "Pillow>=10",
+  "pillow>=10",
   "tifffile>=2023",
 ]
 optional-dependencies.metal = [ "mlx-metal", "torchaudio", "torchvision" ]
