@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pytest
 import torch
 
@@ -82,3 +83,37 @@ def test_setup_anndata_no_channel_names(sparl_imaging_adata):
     sparl_imaging_adata.uns.pop("sparl_channels", None)
     SPARL.setup_anndata(sparl_imaging_adata, img_path_col="img_path")
     assert "sparl_channels" not in sparl_imaging_adata.uns
+
+
+def test_sparl_get_latent_representation_shape(sparl_imaging_adata, sparl_checkpoint):
+    SPARL.setup_anndata(
+        sparl_imaging_adata,
+        img_path_col="img_path",
+        channel_names=[0, 1, 2],
+        spatial_key="spatial",
+    )
+    model = SPARL.from_pretrained(sparl_checkpoint)
+    result = model.get_latent_representation(sparl_imaging_adata)
+    assert result.shape == (len(sparl_imaging_adata), 32)
+
+
+def test_sparl_get_latent_representation_writes_obsm(sparl_imaging_adata, sparl_checkpoint):
+    SPARL.setup_anndata(sparl_imaging_adata, img_path_col="img_path", channel_names=[0, 1, 2])
+    model = SPARL.from_pretrained(sparl_checkpoint)
+    model.get_latent_representation(sparl_imaging_adata)
+    assert "X_sparl" in sparl_imaging_adata.obsm
+    assert sparl_imaging_adata.obsm["X_sparl"].shape == (len(sparl_imaging_adata), 32)
+
+
+def test_sparl_get_latent_representation_no_nan(sparl_imaging_adata, sparl_checkpoint):
+    SPARL.setup_anndata(sparl_imaging_adata, img_path_col="img_path", channel_names=[0, 1, 2])
+    model = SPARL.from_pretrained(sparl_checkpoint)
+    result = model.get_latent_representation(sparl_imaging_adata)
+    assert not np.any(np.isnan(result))
+
+
+def test_sparl_obsm_key_override(sparl_imaging_adata, sparl_checkpoint):
+    SPARL.setup_anndata(sparl_imaging_adata, img_path_col="img_path", channel_names=[0, 1, 2])
+    model = SPARL.from_pretrained(sparl_checkpoint)
+    model.get_latent_representation(sparl_imaging_adata, obsm_key="X_custom_sparl")
+    assert "X_custom_sparl" in sparl_imaging_adata.obsm
