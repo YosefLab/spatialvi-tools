@@ -48,6 +48,8 @@ class ImagingBaseModel(SpatialBaseModel):
         self.run_name_ = f"run_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
         self.run_id_ = ""
         self.module: nn.Module | None = None
+        self.registry_ = {}
+        self.summary_stats = {}
 
     def train(self, *args, **kwargs):
         raise NotImplementedError(
@@ -65,7 +67,7 @@ class ImagingBaseModel(SpatialBaseModel):
         if os.path.exists(model_name_or_path):
             return model_name_or_path
         # Heuristic: HF repo IDs look like "user/model-name" with "/" but no os.sep
-        if "/" in model_name_or_path and os.sep not in model_name_or_path:
+        if not os.path.isabs(model_name_or_path) and "/" in model_name_or_path:
             try:
                 from huggingface_hub import hf_hub_download
             except ImportError as e:
@@ -97,6 +99,12 @@ class ImagingBaseModel(SpatialBaseModel):
         path = cls._resolve_path(model_name_or_path)
         checkpoint_data = torch.load(path, map_location="cpu", weights_only=False)
         obj = cls()
-        obj.module = cls._build_module(checkpoint_data)
+        try:
+            obj.module = cls._build_module(checkpoint_data)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to build module from checkpoint at {path!r}. "
+                "Check that the checkpoint format matches the model class."
+            ) from exc
         obj.module.eval()
         return obj
