@@ -5,12 +5,16 @@ from __future__ import annotations
 import logging
 import os
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import torch
 import torch.nn as nn
 
 from scviva.model.base._spatial_base import SpatialBaseModel
+
+if TYPE_CHECKING:
+    from anndata import AnnData
 
 logger = logging.getLogger(__name__)
 
@@ -108,3 +112,39 @@ class ImagingBaseModel(SpatialBaseModel):
             ) from exc
         obj.module.eval()
         return obj
+
+    @classmethod
+    def from_spatialdata(
+        cls,
+        sdata,
+        table_key: str = "table",
+        region: str | None = None,
+        **kwargs,
+    ) -> AnnData:
+        """Register SpatialData fields and return the extracted AnnData.
+
+        Unlike other scviva models, imaging models are loaded via
+        :meth:`from_pretrained`. This method only registers data fields
+        and returns the AnnData for passing to :meth:`get_latent_representation`.
+
+        Parameters
+        ----------
+        sdata
+            A :class:`spatialdata.SpatialData` object.
+        table_key
+            Key in ``sdata`` pointing to the AnnData table.
+        region
+            Region name to subset.
+        **kwargs
+            Passed to :meth:`setup_anndata`.
+
+        Returns
+        -------
+        The extracted and registered AnnData object.
+        """
+        cls.setup_spatialdata(sdata, table_key=table_key, region=region, **kwargs)
+        adata = sdata[table_key]
+        if region is not None:
+            region_key = adata.uns.get("spatialdata_attrs", {}).get("region_key", "region")
+            adata = adata[adata.obs[region_key] == region].copy()
+        return adata
