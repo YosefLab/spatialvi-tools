@@ -7,13 +7,26 @@ from scviva._settings import settings
 __version__ = "0.1.0"
 
 _MODEL_NAMES = {"SCVIVA", "DestVI", "ResolVI", "GIMVI"}
+_IMAGING_NAMES = {"SPARL", "ImagingBaseModel"}
 
 
 def __getattr__(name: str):
     if name in _MODEL_NAMES:
         mod = import_module("scviva.model")
         return getattr(mod, name)
+    if name in _IMAGING_NAMES:
+        mod = import_module("scviva.imaging")
+        return getattr(mod, name)
     raise AttributeError(f"module 'scviva' has no attribute {name!r}")
 
 
-__all__ = ["SCVIVA", "DestVI", "ResolVI", "GIMVI", "__version__", "settings"]
+__all__ = [
+    "SCVIVA",
+    "DestVI",
+    "ResolVI",
+    "GIMVI",
+    "SPARL",
+    "ImagingBaseModel",
+    "__version__",
+    "settings",
+]

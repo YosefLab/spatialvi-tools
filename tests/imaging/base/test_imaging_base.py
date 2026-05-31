@@ -110,3 +110,24 @@ def test_get_latent_representation_obsm_key_override(imaging_adata, minimal_chec
     model = _MinimalImagingModel.from_pretrained(minimal_checkpoint)
     model.get_latent_representation(imaging_adata, obsm_key="X_custom")
     assert "X_custom" in imaging_adata.obsm
+
+
+def test_imaging_base_importable_from_imaging():
+    from scviva.imaging import ImagingBaseModel
+
+    assert ImagingBaseModel is not None
+
+
+def test_sparl_importable_from_imaging():
+    pytest.importorskip("sparl")
+    from scviva.imaging import SPARL
+
+    assert SPARL is not None
+
+
+def test_sparl_importable_from_scviva_top_level():
+    pytest.importorskip("sparl")
+    import scviva
+
+    SPARLClass = scviva.SPARL
+    assert SPARLClass is not None
