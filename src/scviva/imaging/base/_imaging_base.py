@@ -8,8 +8,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+import numpy as np
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
 
 from scviva.model.base._spatial_base import SpatialBaseModel
 
@@ -17,6 +19,48 @@ if TYPE_CHECKING:
     from anndata import AnnData
 
 logger = logging.getLogger(__name__)
+
+
+def _load_image_as_tensor(path: str) -> torch.Tensor:
+    """Load an image file to a float32 tensor of shape (C, H, W) in [0, 1]."""
+    suffix = path.lower().rsplit(".", 1)[-1]
+    if suffix in ("tif", "tiff"):
+        try:
+            import tifffile
+        except ImportError as e:
+            raise ImportError(
+                "tifffile is required for TIFF images. "
+                "Install with: pip install 'scviva-tools[imaging]'"
+            ) from e
+        arr = tifffile.imread(path).astype(np.float32)
+    else:
+        from PIL import Image as PILImage
+
+        arr = np.array(PILImage.open(path), dtype=np.float32)
+
+    if arr.ndim == 2:
+        arr = arr[np.newaxis]
+    elif arr.ndim == 3:
+        arr = arr.transpose(2, 0, 1)
+
+    max_val = arr.max()
+    if max_val > 1.0:
+        arr = arr / (255.0 if max_val <= 255.0 else max_val)
+
+    return torch.from_numpy(arr)
+
+
+class _ImagePathDataset(Dataset):
+    """Minimal dataset loading per-cell image crops from disk paths."""
+
+    def __init__(self, paths: list[str]) -> None:
+        self.paths = paths
+
+    def __len__(self) -> int:
+        return len(self.paths)
+
+    def __getitem__(self, idx: int) -> torch.Tensor:
+        return _load_image_as_tensor(self.paths[idx])
 
 
 class ImagingBaseModel(SpatialBaseModel):
@@ -148,3 +192,71 @@ class ImagingBaseModel(SpatialBaseModel):
             region_key = adata.uns.get("spatialdata_attrs", {}).get("region_key", "region")
             adata = adata[adata.obs[region_key] == region].copy()
         return adata
+
+    def _build_inference_dataloader(self, adata: AnnData, batch_size: int) -> DataLoader:
+        img_path_col = adata.uns["scviva_imaging"]["img_path_col"]
+        paths = adata.obs[img_path_col].tolist()
+        dataset = _ImagePathDataset(paths)
+        return DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+
+    def get_latent_representation(
+        self,
+        adata: AnnData,
+        batch_size: int = 256,
+        obsm_key: str | None = None,
+        device: str = "cpu",
+        backend: str = "cpu",
+    ) -> np.ndarray:
+        """Run inference and write CLS-token embeddings to ``adata.obsm[obsm_key]``.
+
+        Parameters
+        ----------
+        adata
+            AnnData registered via :meth:`setup_anndata` or :meth:`from_spatialdata`.
+        batch_size
+            Number of cells per forward pass.
+        obsm_key
+            Key to write embeddings into. Defaults to ``cls._default_obsm_key``.
+        device
+            Torch device string (``"cpu"``, ``"cuda"``, ``"mps"``).
+        backend
+            ``"cpu"`` returns numpy array. ``"rapids"`` returns cupy array.
+
+        Returns
+        -------
+        Embedding array of shape ``(n_cells, embed_dim)``.
+        """
+        if self.module is None:
+            raise RuntimeError(
+                "No backbone loaded. Call from_pretrained() before get_latent_representation()."
+            )
+        if obsm_key is None:
+            obsm_key = self._default_obsm_key
+
+        self.module.eval()
+        self.module.to(device)
+
+        loader = self._build_inference_dataloader(adata, batch_size)
+        all_embeddings: list[np.ndarray] = []
+
+        with torch.no_grad():
+            for batch in loader:
+                batch = batch.to(device)
+                emb = self.module(batch)
+                all_embeddings.append(emb.cpu().numpy())
+
+        result = np.concatenate(all_embeddings, axis=0)
+        adata.obsm[obsm_key] = result
+
+        if backend == "rapids":
+            try:
+                import cupy as cp
+
+                return cp.asarray(result)
+            except ImportError as e:
+                raise ImportError(
+                    "backend='rapids' requires cupy. "
+                    "Install with: pip install 'scviva-tools[rapids]'"
+                ) from e
+
+        return result

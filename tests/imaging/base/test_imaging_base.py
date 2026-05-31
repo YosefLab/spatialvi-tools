@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 from tests.imaging.conftest import _MinimalImagingModel
@@ -72,3 +73,40 @@ def test_from_spatialdata_returns_adata(tmp_path):
     )
     assert isinstance(result, AnnData)
     assert "scviva_imaging" in result.uns
+
+
+def test_get_latent_representation_shape(imaging_adata, minimal_checkpoint):
+    _MinimalImagingModel.setup_anndata(
+        imaging_adata, img_path_col="img_path", spatial_key="spatial"
+    )
+    model = _MinimalImagingModel.from_pretrained(minimal_checkpoint)
+    result = model.get_latent_representation(imaging_adata)
+    assert result.shape == (len(imaging_adata), 8)
+
+
+def test_get_latent_representation_writes_obsm(imaging_adata, minimal_checkpoint):
+    _MinimalImagingModel.setup_anndata(
+        imaging_adata, img_path_col="img_path", spatial_key="spatial"
+    )
+    model = _MinimalImagingModel.from_pretrained(minimal_checkpoint)
+    model.get_latent_representation(imaging_adata)
+    assert "X_test_imaging" in imaging_adata.obsm
+    assert imaging_adata.obsm["X_test_imaging"].shape == (len(imaging_adata), 8)
+
+
+def test_get_latent_representation_no_nan(imaging_adata, minimal_checkpoint):
+    _MinimalImagingModel.setup_anndata(
+        imaging_adata, img_path_col="img_path", spatial_key="spatial"
+    )
+    model = _MinimalImagingModel.from_pretrained(minimal_checkpoint)
+    result = model.get_latent_representation(imaging_adata)
+    assert not np.any(np.isnan(result))
+
+
+def test_get_latent_representation_obsm_key_override(imaging_adata, minimal_checkpoint):
+    _MinimalImagingModel.setup_anndata(
+        imaging_adata, img_path_col="img_path", spatial_key="spatial"
+    )
+    model = _MinimalImagingModel.from_pretrained(minimal_checkpoint)
+    model.get_latent_representation(imaging_adata, obsm_key="X_custom")
+    assert "X_custom" in imaging_adata.obsm
