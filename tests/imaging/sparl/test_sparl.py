@@ -56,3 +56,29 @@ def test_sparl_from_pretrained_hf(sparl_checkpoint, monkeypatch):
     model = SPARL.from_pretrained("YosefLab/sparl-imc-vitb16")
     assert isinstance(model.module, SPARLModule)
     # TODO: add real hub test once YosefLab/sparl-* is published on HuggingFace
+
+
+def test_setup_anndata_registers_img_path_col(sparl_imaging_adata):
+    SPARL.setup_anndata(
+        sparl_imaging_adata,
+        img_path_col="img_path",
+        channel_names=["ch0", "ch1", "ch2"],
+        spatial_key="spatial",
+    )
+    assert sparl_imaging_adata.uns["scviva_imaging"]["img_path_col"] == "img_path"
+
+
+def test_setup_anndata_stores_channel_names(sparl_imaging_adata):
+    SPARL.setup_anndata(
+        sparl_imaging_adata,
+        img_path_col="img_path",
+        channel_names=["CD3", "CD8", "DAPI"],
+        spatial_key="spatial",
+    )
+    assert sparl_imaging_adata.uns["sparl_channels"] == ["CD3", "CD8", "DAPI"]
+
+
+def test_setup_anndata_no_channel_names(sparl_imaging_adata):
+    sparl_imaging_adata.uns.pop("sparl_channels", None)
+    SPARL.setup_anndata(sparl_imaging_adata, img_path_col="img_path")
+    assert "sparl_channels" not in sparl_imaging_adata.uns
