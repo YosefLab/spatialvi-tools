@@ -40,7 +40,7 @@ dependencies = [
   "tqdm>=4.60",
 ]
 
-optional-dependencies.all = [ "scviva-tools[dev,doc,rapids,spatial,test,tutorials]" ]
+optional-dependencies.all = [ "scviva-tools[dev,doc,imaging,rapids,spatial,test,tutorials]" ]
 optional-dependencies.cuda = [ "mlx[cuda]", "torchaudio", "torchvision" ]
 optional-dependencies.dev = [ "pre-commit", "twine>=4.0.2" ]
 optional-dependencies.doc = [
@@ -57,6 +57,11 @@ optional-dependencies.doc = [
 ]
 optional-dependencies.file_sharing = [ "fcswrite", "gdown", "pooch", "readfcs" ]
 optional-dependencies.hub = [ "boto3", "dvc[s3]", "huggingface-hub" ]
+optional-dependencies.imaging = [
+  "huggingface-hub>=0.20",
+  "pillow>=10",
+  "tifffile>=2023",
+]
 optional-dependencies.metal = [ "mlx-metal", "torchaudio", "torchvision" ]
 optional-dependencies.rapids = [ "cugraph>=24", "cuml>=24", "cupy-cuda12x", "rapids-singlecell[rapids]" ]
 optional-dependencies.spatial = [ "geomloss", "pynndescent", "spatialdata>=0.2", "squidpy>=1.4", "torch-geometric" ]
