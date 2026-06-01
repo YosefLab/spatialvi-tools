@@ -146,8 +146,54 @@
     }
 
     .row.groups {
-      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.9fr);
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(200px, 0.55fr);
       align-items: start;
+    }
+
+    .imaging-base-note {
+      padding: 10px 12px;
+      border: 1px solid rgba(143, 211, 199, 0.4);
+      border-left: 4px solid var(--foundation);
+      border-radius: 6px;
+      background: rgba(143, 211, 199, 0.10);
+      margin-bottom: 10px;
+    }
+
+    .imaging-base-note .base-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #2a6b62;
+      margin-bottom: 3px;
+    }
+
+    .imaging-base-note .base-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .imaging-base-note .base-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .imaging-base-note .base-chips .chip {
+      font-size: 11px;
+      min-height: 21px;
+      padding: 2px 6px;
+    }
+
+    .inherit-mini {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      padding: 3px 0;
+      letter-spacing: 0.04em;
     }
 
     .card,
@@ -631,6 +677,12 @@
       border-left-color: #9b7b12;
     }
 
+    @media (max-width: 1280px) {
+      .row.groups {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+      }
+    }
+
     @media (max-width: 1080px) {
       header,
       .row.groups,
@@ -975,67 +1027,53 @@
             </article>
           </div>
         </section>
+
+        <!-- ── Imaging group (3rd column) ────────────────────────────── -->
+        <section class="group imaging-group" aria-label="Imaging models">
+          <div class="group-header">
+            <h2 style="font-size: 17px;">Imaging model group</h2>
+            <p style="font-size: 12px;"><code>scviva.imaging</code> · pre-trained</p>
+          </div>
+
+          <!-- ImagingBaseModel as base-class node, not a model -->
+          <div class="imaging-base-note">
+            <span class="base-label">Base class · inherits SpatialBaseModel</span>
+            <span class="base-name">ImagingBaseModel</span>
+            <div class="base-chips">
+              <span class="chip entry-chip">from_pretrained()</span>
+              <span class="chip entry-chip">get_latent_representation()</span>
+              <span class="chip">_ImagePathDataset</span>
+              <span class="chip">HF Hub | local .pt</span>
+            </div>
+          </div>
+          <p class="inherit-mini">↓ inherits</p>
+
+          <div class="cards">
+            <article class="model-card imaging-model">
+              <div>
+                <span class="kicker" style="font-size:10px;">Imaging class · v1</span>
+                <h3 style="font-size:15px;">SPARL</h3>
+                <p style="font-size:12px;">
+                  DINO/iBOT ViT backbone on multi-channel microscopy
+                  (IMC, JUMP-CP). Produces per-cell CLS-token embeddings.
+                  Inference-only.
+                </p>
+              </div>
+              <div class="module-label imaging-module" style="font-size:12px;">
+                <span>nn.Module</span>
+                <strong style="font-size:12px;">SPARLModule</strong>
+                <span style="font-size:10px;">wraps DinoVisionTransformer</span>
+                <span style="font-size:10px; color:#6a4a8a; font-style:italic;">vendored in scviva.imaging.sparl._module</span>
+              </div>
+              <div class="chips">
+                <span class="chip imaging-chip" style="font-size:11px;">channel_names</span>
+                <span class="chip" style="font-size:11px;">obsm["X_sparl"]</span>
+              </div>
+            </article>
+          </div>
+        </section>
       </div>
 
-      <!-- ── ImagingBaseModel + Imaging models ─────────────────────────── -->
-      <div class="connector imaging-inherit" aria-hidden="true"><span>also&nbsp;inherits</span></div>
-
-      <section class="group imaging-group" aria-label="Imaging model group">
-        <div class="group-header">
-          <h2>Imaging model group</h2>
-          <p>Pre-trained inference · <code>scviva.imaging</code></p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: minmax(300px, 0.55fr) minmax(0, 1fr); gap: 14px; align-items: start;">
-
-          <!-- ImagingBaseModel foundation card -->
-          <article class="model-card imaging-base">
-            <div>
-              <span class="kicker">Imaging foundation</span>
-              <h3>ImagingBaseModel</h3>
-              <p>
-                Extends <code>SpatialBaseModel</code> for pre-trained image backbones.
-                Owns model loading, image data setup, and inference.
-                Training is explicitly disabled — models are always loaded via
-                <code>from_pretrained()</code>.
-              </p>
-            </div>
-            <div class="chips">
-              <span class="chip entry-chip">from_pretrained(hub_id | local_path)</span>
-              <span class="chip entry-chip">setup_anndata(img_path_col)</span>
-              <span class="chip entry-chip">from_spatialdata() → AnnData</span>
-              <span class="chip">get_latent_representation()</span>
-              <span class="chip">_ImagePathDataset</span>
-              <span class="chip">HuggingFace Hub | local .pt</span>
-            </div>
-          </article>
-
-          <!-- SPARL model card -->
-          <article class="model-card imaging-model">
-            <div>
-              <span class="kicker">Imaging class · v1</span>
-              <h3>SPARL</h3>
-              <p>
-                Spatial Proteomics Analysis with Representation Learning.
-                Loads a DINO/iBOT-pretrained Vision Transformer backbone trained on
-                multi-channel microscopy images (IMC, JUMP-CP) and produces per-cell
-                CLS-token embeddings. Inference-only in this release.
-              </p>
-            </div>
-            <div class="module-label imaging-module">
-              <span>nn.Module wrapper</span>
-              <strong>SPARLModule → DinoVisionTransformer</strong>
-            </div>
-            <div class="chips">
-              <span class="chip imaging-chip">inherits ImagingBaseModel</span>
-              <span class="chip">channel_names in uns</span>
-              <span class="chip">obsm["X_sparl"]</span>
-              <span class="chip">sparl pkg · optional dep</span>
-            </div>
-          </article>
-
-        </div>
-      </section>
 
       <!-- ── Transcriptomics data flow ─────────────────────────────────── -->
       <p class="rail-label" style="position: relative; z-index: 1; padding-left: 4px;">
@@ -1099,7 +1137,7 @@
         <article class="flow-node imaging-node">
           <span class="kicker">Inference</span>
           <h3>SPARLModule forward</h3>
-          <p>Broadcasts <code>channel_names</code> to batch, calls <code>DinoVisionTransformer</code>, extracts <code>x_norm_clstoken</code>.</p>
+          <p>Broadcasts <code>channel_names</code> to batch, calls <code>DinoVisionTransformer</code> (vendored in <code>scviva.imaging.sparl._module</code>), extracts <code>x_norm_clstoken</code>.</p>
         </article>
 
         <article class="flow-node imaging-node">
