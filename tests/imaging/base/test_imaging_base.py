@@ -75,6 +75,29 @@ def test_from_spatialdata_returns_adata(tmp_path):
     assert "scviva_imaging" in result.uns
 
 
+def test_from_spatialdata_with_region_preserves_registration(tmp_path):
+    from unittest.mock import MagicMock
+
+    import numpy as np
+    from anndata import AnnData
+
+    adata = AnnData(X=np.zeros((5, 1)))
+    adata.obsm["spatial"] = np.random.rand(5, 2).astype(np.float32)
+    adata.obs["img_path"] = [str(tmp_path / f"c{i}.png") for i in range(5)]
+    adata.obs["region"] = "r1"
+    adata.uns["spatialdata_attrs"] = {"region_key": "region"}
+
+    sdata = MagicMock()
+    sdata.__getitem__ = MagicMock(return_value=adata)
+
+    result = _MinimalImagingModel.from_spatialdata(
+        sdata, table_key="table", region="r1", img_path_col="img_path"
+    )
+    assert isinstance(result, AnnData)
+    assert "scviva_imaging" in result.uns
+    assert result.uns["scviva_imaging"]["img_path_col"] == "img_path"
+
+
 def test_get_latent_representation_shape(imaging_adata, minimal_checkpoint):
     _MinimalImagingModel.setup_anndata(
         imaging_adata, img_path_col="img_path", spatial_key="spatial"

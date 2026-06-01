@@ -145,6 +145,7 @@ class ImagingBaseModel(SpatialBaseModel):
         Loaded model instance with ``self.module`` set.
         """
         path = cls._resolve_path(model_name_or_path)
+        # weights_only=False required: checkpoints contain non-tensor objects (config dicts)
         checkpoint_data = torch.load(path, map_location="cpu", weights_only=False)
         obj = cls()
         try:
@@ -186,14 +187,19 @@ class ImagingBaseModel(SpatialBaseModel):
         -------
         The extracted and registered AnnData object.
         """
-        cls.setup_spatialdata(sdata, table_key=table_key, region=region, **kwargs)
         adata = sdata[table_key]
         if region is not None:
             region_key = adata.uns.get("spatialdata_attrs", {}).get("region_key", "region")
             adata = adata[adata.obs[region_key] == region].copy()
+        cls.setup_anndata(adata, **kwargs)
         return adata
 
     def _build_inference_dataloader(self, adata: AnnData, batch_size: int) -> DataLoader:
+        if "scviva_imaging" not in adata.uns:
+            raise RuntimeError(
+                "AnnData is not registered. "
+                "Call setup_anndata() or from_spatialdata() before get_latent_representation()."
+            )
         img_path_col = adata.uns["scviva_imaging"]["img_path_col"]
         paths = adata.obs[img_path_col].tolist()
         dataset = _ImagePathDataset(paths)

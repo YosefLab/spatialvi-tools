@@ -53,7 +53,7 @@ def make_imaging_adata(
         for i in range(n):
             arr = np.random.randint(0, 255, (img_size, img_size), dtype=np.uint8)
             p = tmp_path / f"cell_{i}.png"
-            Image.fromarray(arr, mode="L").save(p)
+            Image.fromarray(arr).save(p)
             paths.append(str(p))
         adata.obs["img_path"] = paths
     return adata
@@ -142,7 +142,7 @@ def sparl_checkpoint(tmp_path_factory, sparl_tiny_vit):
     return str(path)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def sparl_imaging_adata(tmp_path_factory):
     """AnnData for SPARL: 10 cells, 3-channel 16x16 PNGs."""
     tmp = tmp_path_factory.mktemp("sparl_imgs")
@@ -153,7 +153,7 @@ def sparl_imaging_adata(tmp_path_factory):
     for i in range(n):
         arr = np.random.randint(0, 255, (img_size, img_size, n_channels), dtype=np.uint8)
         p = tmp / f"cell_{i}.png"
-        Image.fromarray(arr, mode="RGB").save(p)
+        Image.fromarray(arr).save(p)
         paths.append(str(p))
     adata.obs["img_path"] = paths
     return adata

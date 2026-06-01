@@ -6,8 +6,6 @@ import numpy as np
 import pytest
 import torch
 
-from tests.imaging.conftest import _MinimalImagingModel  # noqa: F401
-
 sparl = pytest.importorskip("sparl")
 
 from scviva.imaging.sparl._model import SPARL  # noqa: E402

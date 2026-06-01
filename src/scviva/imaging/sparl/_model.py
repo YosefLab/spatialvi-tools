@@ -9,7 +9,6 @@ from scviva.imaging.base._imaging_base import ImagingBaseModel
 from scviva.imaging.sparl._module import SPARLModule
 
 if TYPE_CHECKING:
-    import numpy as np
     from anndata import AnnData
 
 logger = logging.getLogger(__name__)
@@ -89,20 +88,3 @@ class SPARL(ImagingBaseModel):
         adata.uns["scviva_imaging"] = {"img_path_col": img_path_col}
         if channel_names is not None:
             adata.uns["sparl_channels"] = list(channel_names)
-
-    def get_latent_representation(
-        self,
-        adata: AnnData,
-        batch_size: int = 256,
-        obsm_key: str = "X_sparl",
-        device: str = "cpu",
-        backend: str = "cpu",
-    ) -> np.ndarray:
-        """Run SPARL inference and write embeddings to ``adata.obsm["X_sparl"]``."""
-        return super().get_latent_representation(
-            adata,
-            batch_size=batch_size,
-            obsm_key=obsm_key,
-            device=device,
-            backend=backend,
-        )
