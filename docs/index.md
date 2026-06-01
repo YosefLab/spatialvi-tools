@@ -8,6 +8,7 @@
 
 installation
 user_guide/index
+architecture/index
 api/index
 developer/index
 tutorials/index
@@ -39,6 +40,20 @@ Cell-type deconvolution of spatial transcriptomics spots with sub-cell-type reso
 :link-type: doc
 
 Niche-aware variational inference for cellular microenvironment modeling.
+:::
+
+::::
+
+## Architecture
+
+::::{grid} 1
+:gutter: 2
+
+:::{grid-item-card} scviva-tools block diagram
+:link: architecture/index
+:link-type: doc
+
+Visual map of the package layers, inheritance, mixins, model groups, and data-flow rail.
 :::
 
 ::::
