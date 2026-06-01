@@ -736,7 +736,7 @@
 
       <!-- ── SPARLModule ── -->
       <div class="class-card">
-        <div class="class-header module">
+        <div class="class-header ext-package">
           <span class="class-tag module">nn.Module wrapper</span>
           <div class="class-name">SPARLModule</div>
           <div class="class-location">scviva/imaging/sparl/_module.py</div>
@@ -864,21 +864,19 @@
 
     </div>
 
-    <!-- ── 4. DinoVisionTransformer (vendored in-repo) ──────────────── -->
-    <p class="section-label">Vendored backbone — owned by scviva.imaging.sparl</p>
+    <!-- ── 4. DinoVisionTransformer (external) ──────────────────────── -->
+    <p class="section-label">External package — sparl (optional dependency)</p>
     <div class="class-card">
       <div class="class-header module">
-        <span class="class-tag module">vendored backbone · in-repo</span>
+        <span class="class-tag ext">sparl pkg · external</span>
         <div class="class-name">DinoVisionTransformer</div>
-        <div class="class-location">scviva/imaging/sparl/_module.py · same file as SPARLModule</div>
+        <div class="class-location">sparl.models.backbones.vision_transformer · installed separately</div>
         <p class="class-desc">
-          DINO/iBOT Vision Transformer for multi-channel microscopy images — vendored directly
-          into <code>scviva.imaging.sparl._module</code> (no external <code>sparl</code> package
-          install required for users). Accepts <code>(B, C, H, W)</code> images alongside a
+          DINO/iBOT Vision Transformer trained on multi-channel microscopy images.
+          Accepts <code>(B, C, H, W)</code> images alongside a
           <code>(B, C)</code> channel-ID tensor, applies patch embedding and self-attention blocks,
           and returns a dict of output tokens. Only <code>x_norm_clstoken</code> is used by
-          scviva-tools. Still depends on <code>sparl.models.layers</code> and
-          <code>sparl.logging</code> as internal building-block imports.
+          scviva-tools. Only the <code>x_norm_clstoken</code> key is used by scviva-tools.
         </p>
       </div>
 
@@ -915,12 +913,8 @@
             <li class="attr"><span class="sigil">arch</span><span class="sig">alt_vit (channel+pos attn)</span></li>
           </ul>
           <div style="margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.6;">
-            <strong style="color: var(--ink);">Vendored</strong> — class lives in
-            <code>scviva.imaging.sparl._module</code> alongside <code>SPARLModule</code>.<br><br>
-            <strong style="color: var(--ink);">Still uses sparl pkg building blocks:</strong><br>
-            <code>sparl.models.layers</code>: MLP, SwiGLUFFN, LayerScale, PatchEmbed,
-            RMSNorm, RopePositionEmbedding, SelfAttentionBlock<br>
-            <code>sparl.logging</code>: get_logger
+            Imported only inside <code>SPARL._build_module()</code> — not a hard scviva-tools dep.
+            Guards: <code>pytest.importorskip("sparl")</code> in all SPARL tests.
           </div>
         </div>
 
@@ -1119,9 +1113,6 @@
     <div class="scope-note">
       <strong>v1 scope (inference-only):</strong>
       Load pre-trained ViT → register image data → forward pass → embeddings in AnnData.
-      <code>DinoVisionTransformer</code> is vendored into <code>scviva.imaging.sparl._module</code>
-      — no external <code>sparl</code> package install needed by end users (only
-      <code>sparl.models.layers</code> + <code>sparl.logging</code> are still imported from sparl).
       The <code>ImagingBaseModel</code> base class is designed for additional imaging models
       (only <code>_build_module</code> + <code>setup_anndata</code> need to be implemented).
       <strong>Planned extensions:</strong>
@@ -1138,7 +1129,7 @@
       <span class="legend-item"><span class="legend-dot" style="background:var(--model);"></span>SPARL (imaging model)</span>
       <span class="legend-item"><span class="legend-dot" style="background:var(--module);"></span>SPARLModule (nn.Module)</span>
       <span class="legend-item"><span class="legend-dot" style="background:var(--data);"></span>Data pipeline</span>
-      <span class="legend-item"><span class="legend-dot" style="background:var(--module);"></span>DinoVisionTransformer (vendored in scviva.imaging.sparl._module)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--sparl-ext);"></span>sparl package (external)</span>
     </div>
 
   </div>
