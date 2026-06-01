@@ -890,6 +890,40 @@
                 <span class="chip">mapper matrix</span>
               </div>
             </article>
+
+            <article class="model-card external-model">
+              <div>
+                <span class="kicker">External class · Phase 1</span>
+                <h3>AMICI</h3>
+                <p>Predicts cell expression from cell-type means and spatial-neighbor attention.</p>
+              </div>
+              <div class="module-label">
+                <span>PyTorch module</span>
+                <strong>AMICIModule</strong>
+              </div>
+              <div class="chips">
+                <span class="chip">inherits SpatialBaseModel</span>
+                <span class="chip mixin-chip">neighbor-aware</span>
+                <span class="chip">predictions</span>
+              </div>
+            </article>
+
+            <article class="model-card external-model">
+              <div>
+                <span class="kicker">External class · Phase 1</span>
+                <h3>Starfysh</h3>
+                <p>Expression-only spatial deconvolution with Starfysh AVAE-style proportions.</p>
+              </div>
+              <div class="module-label">
+                <span>PyTorch module</span>
+                <strong>StarfyshModule</strong>
+              </div>
+              <div class="chips">
+                <span class="chip">inherits SpatialBaseModel</span>
+                <span class="chip mixin-chip">SpatialDeconvolutionMixin</span>
+                <span class="chip">expression AVAE</span>
+              </div>
+            </article>
           </div>
         </section>
       </div>
@@ -922,7 +956,7 @@
         <article class="flow-node">
           <span class="kicker">Outputs</span>
           <h3>Embeddings and predictions</h3>
-          <p><code>obsm["X_scVIVA"]</code>, <code>obsm["X_resolvi"]</code>, proportions, mapper matrices, and imputed expression.</p>
+          <p><code>obsm["X_scVIVA"]</code>, <code>obsm["X_resolvi"]</code>, AMICI predictions, Starfysh proportions, mapper matrices, and imputed expression.</p>
         </article>
       </section>
 

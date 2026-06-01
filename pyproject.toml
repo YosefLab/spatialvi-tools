@@ -158,6 +158,7 @@ lint.pydocstyle.convention = "numpy"
 
 [tool.pytest.ini_options]
 testpaths = [ "tests" ]
+pythonpath = [ "src" ]
 xfail_strict = true
 addopts = "-v --tb=short"
 markers = [
