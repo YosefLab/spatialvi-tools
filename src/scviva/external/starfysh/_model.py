@@ -127,7 +127,15 @@ class Starfysh(SpatialDeconvolutionMixin, SpatialBaseModel):
         self.module.to(self._device)
         self.module.train()
         optimizer = torch.optim.Adam(self.module.parameters(), lr=lr)
-        loader = DataLoader(self._tensor_dataset(), batch_size=batch_size, shuffle=True)
+        dataset = self._tensor_dataset()
+        if len(dataset) < 2:
+            raise ValueError("Starfysh training requires at least two observations.")
+        if batch_size < 1:
+            raise ValueError("batch_size must be positive.")
+        train_batch_size = min(max(batch_size, 2), len(dataset))
+        if len(dataset) % train_batch_size == 1:
+            train_batch_size = min(train_batch_size + 1, len(dataset))
+        loader = DataLoader(dataset, batch_size=train_batch_size, shuffle=True)
 
         history = []
         for _ in tqdm(range(max_epochs), disable=not prog_bar):

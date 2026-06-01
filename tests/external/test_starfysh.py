@@ -54,6 +54,19 @@ def test_starfysh_train_and_get_proportions():
     assert not np.any(np.isnan(proportions.values))
 
 
+def test_starfysh_train_avoids_singleton_batches():
+    from scviva.external.starfysh import Starfysh
+
+    adata = _make_starfysh_adata(n_obs=9)
+    signatures = _make_signature_scores(adata.n_obs)
+    Starfysh.setup_anndata(adata, layer="counts", spatial_key="spatial")
+    model = Starfysh(adata, signature_scores=signatures, n_latent=4, n_hidden=16)
+
+    model.train(max_epochs=1, batch_size=8, lr=1e-2)
+
+    assert model.is_trained
+
+
 def test_starfysh_get_proportions_df_via_mixin():
     from scviva.external.starfysh import Starfysh
 
