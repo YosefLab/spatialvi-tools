@@ -19,6 +19,7 @@
       --external: #efbd73;
       --module: #e89a9a;
       --data: #f0dd86;
+      --imaging: #c4aadd;
       --shadow: 0 16px 40px rgba(29, 38, 45, 0.12);
     }
 
@@ -184,6 +185,10 @@
       border-top-color: var(--module);
     }
 
+    .card.imaging {
+      border-top-color: var(--imaging);
+    }
+
     .card.wide {
       display: grid;
       grid-template-columns: minmax(180px, 0.32fr) minmax(300px, 1fr) auto;
@@ -275,6 +280,10 @@
       background: rgba(143, 211, 199, 0.3);
     }
 
+    .chip.imaging-chip {
+      background: rgba(196, 170, 221, 0.28);
+    }
+
     .connector {
       position: relative;
       width: min(420px, 75%);
@@ -327,11 +336,24 @@
       border-top-color: #5e7c2a;
     }
 
+    .connector.imaging-inherit::before {
+      border-left-color: #7a5ba8;
+    }
+
+    .connector.imaging-inherit::after {
+      border-top-color: #7a5ba8;
+    }
+
     .group {
       padding: 16px;
       border: 1px solid rgba(29, 38, 45, 0.12);
       border-radius: 8px;
       background: rgba(255, 255, 255, 0.62);
+    }
+
+    .group.imaging-group {
+      border-color: rgba(196, 170, 221, 0.4);
+      background: rgba(196, 170, 221, 0.06);
     }
 
     .group-header {
@@ -381,6 +403,16 @@
       border-left: 8px solid var(--external);
     }
 
+    .model-card.imaging-model {
+      border-left: 8px solid var(--imaging);
+      min-height: auto;
+    }
+
+    .model-card.imaging-base {
+      border-left: 8px solid var(--foundation);
+      min-height: auto;
+    }
+
     .model-card h3 {
       font-size: 18px;
       line-height: 1.18;
@@ -403,6 +435,16 @@
       font-size: 14px;
     }
 
+    .module-label.imaging-module {
+      border-color: rgba(122, 91, 168, 0.2);
+      background: rgba(196, 170, 221, 0.18);
+      color: #4a3369;
+    }
+
+    .module-label.imaging-module strong {
+      color: #2f2045;
+    }
+
     .note {
       padding: 12px 14px;
       border-radius: 8px;
@@ -423,11 +465,26 @@
       background: linear-gradient(90deg, rgba(240, 221, 134, 0.28), rgba(143, 211, 199, 0.18));
     }
 
+    .imaging-rail {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 10px;
+      align-items: stretch;
+      padding: 18px;
+      border: 1px solid rgba(196, 170, 221, 0.3);
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(196, 170, 221, 0.18), rgba(143, 183, 227, 0.12));
+    }
+
     .flow-node {
       position: relative;
       min-height: 128px;
       padding: 14px;
       border-top: 7px solid var(--data);
+    }
+
+    .flow-node.imaging-node {
+      border-top-color: var(--imaging);
     }
 
     .flow-node:not(:last-child)::after {
@@ -453,9 +510,26 @@
       border-bottom: 6px solid transparent;
     }
 
+    .imaging-rail .flow-node:not(:last-child)::after {
+      background: #7a5ba8;
+    }
+
+    .imaging-rail .flow-node:not(:last-child)::before {
+      border-left-color: #7a5ba8;
+    }
+
     .flow-node h3 {
       font-size: 15px;
       letter-spacing: 0;
+    }
+
+    .rail-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
     }
 
     .legend {
@@ -565,7 +639,8 @@
       }
 
       .row.mixins,
-      .rail {
+      .rail,
+      .imaging-rail {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -592,6 +667,7 @@
       .row.mixins,
       .cards.core-grid,
       .rail,
+      .imaging-rail,
       .swatches {
         grid-template-columns: 1fr;
       }
@@ -628,13 +704,15 @@
         <p>
           Main-branch architecture map for the scviva-tools package: upstream scvi-tools
           inheritance, owned spatial foundations, composed mixins, current model groups, and
-          the data flow from scverse inputs to model outputs.
+          the data flow from scverse inputs to model outputs. Includes the new
+          <code>scviva.imaging</code> submodule with <code>ImagingBaseModel</code> and SPARL.
         </p>
       </div>
       <aside class="stamp" aria-label="Diagram scope">
         <strong>Scope</strong><br>
-        Based on <code>YosefLab/scviva-tools</code> main at <code>7baef73</code>.<br>
-        Future extension nodes are intentionally excluded.
+        Based on <code>YosefLab/scviva-tools</code> branch <code>feat/sparl-imaging</code>
+        at <code>b059807</code>.<br>
+        Includes SPARL imaging integration (v1 inference-only).
       </aside>
     </header>
 
@@ -648,6 +726,7 @@
             <div class="swatch"><span class="color" style="background: var(--mixin);"></span>Composed mixins</div>
             <div class="swatch"><span class="color" style="background: var(--core);"></span>Core models</div>
             <div class="swatch"><span class="color" style="background: var(--external);"></span>External models</div>
+            <div class="swatch"><span class="color" style="background: var(--imaging);"></span>Imaging models</div>
             <div class="swatch"><span class="color" style="background: var(--module);"></span>PyTorch modules</div>
             <div class="swatch"><span class="color" style="background: var(--data);"></span>Data-flow rail</div>
           </div>
@@ -672,6 +751,7 @@
         </div>
       </section>
 
+      <!-- ── Upstream ─────────────────────────────────────────────────── -->
       <div class="row stack">
         <article class="card wide">
           <span class="kicker">Upstream dependency</span>
@@ -690,14 +770,15 @@
 
       <div class="connector" aria-hidden="true"><span>inherits</span></div>
 
+      <!-- ── SpatialBaseModel ──────────────────────────────────────────── -->
       <div class="row stack">
         <article class="card foundation wide">
           <span class="kicker">Owned foundation</span>
           <h2>SpatialBaseModel</h2>
           <p>
-            Shared base class for scviva spatial models. It adds SpatialData entry points,
-            RAPIDS-aware latent retrieval, and scanpy-based spatial plotting on top of
-            scvi-tools model behavior.
+            Shared base class for all scviva spatial models — transcriptomics
+            <em>and</em> imaging. Adds SpatialData entry points, RAPIDS-aware latent
+            retrieval, and scanpy-based spatial plotting on top of scvi-tools behavior.
           </p>
           <div class="chips">
             <span class="chip entry-chip">setup_spatialdata()</span>
@@ -710,6 +791,7 @@
 
       <div class="connector compose" aria-hidden="true"><span>composes</span></div>
 
+      <!-- ── Mixins ────────────────────────────────────────────────────── -->
       <div class="row mixins" aria-label="Composed capability mixins">
         <article class="card mixin">
           <span class="kicker">Mixin capability</span>
@@ -752,6 +834,7 @@
         </article>
       </div>
 
+      <!-- ── Core + External model groups ─────────────────────────────── -->
       <div class="row groups" aria-label="Model groups">
         <section class="group" aria-label="Core models">
           <div class="group-header">
@@ -894,7 +977,71 @@
         </section>
       </div>
 
-      <section class="rail" aria-label="Data flow">
+      <!-- ── ImagingBaseModel + Imaging models ─────────────────────────── -->
+      <div class="connector imaging-inherit" aria-hidden="true"><span>also&nbsp;inherits</span></div>
+
+      <section class="group imaging-group" aria-label="Imaging model group">
+        <div class="group-header">
+          <h2>Imaging model group</h2>
+          <p>Pre-trained inference · <code>scviva.imaging</code></p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: minmax(300px, 0.55fr) minmax(0, 1fr); gap: 14px; align-items: start;">
+
+          <!-- ImagingBaseModel foundation card -->
+          <article class="model-card imaging-base">
+            <div>
+              <span class="kicker">Imaging foundation</span>
+              <h3>ImagingBaseModel</h3>
+              <p>
+                Extends <code>SpatialBaseModel</code> for pre-trained image backbones.
+                Owns model loading, image data setup, and inference.
+                Training is explicitly disabled — models are always loaded via
+                <code>from_pretrained()</code>.
+              </p>
+            </div>
+            <div class="chips">
+              <span class="chip entry-chip">from_pretrained(hub_id | local_path)</span>
+              <span class="chip entry-chip">setup_anndata(img_path_col)</span>
+              <span class="chip entry-chip">from_spatialdata() → AnnData</span>
+              <span class="chip">get_latent_representation()</span>
+              <span class="chip">_ImagePathDataset</span>
+              <span class="chip">HuggingFace Hub | local .pt</span>
+            </div>
+          </article>
+
+          <!-- SPARL model card -->
+          <article class="model-card imaging-model">
+            <div>
+              <span class="kicker">Imaging class · v1</span>
+              <h3>SPARL</h3>
+              <p>
+                Spatial Proteomics Analysis with Representation Learning.
+                Loads a DINO/iBOT-pretrained Vision Transformer backbone trained on
+                multi-channel microscopy images (IMC, JUMP-CP) and produces per-cell
+                CLS-token embeddings. Inference-only in this release.
+              </p>
+            </div>
+            <div class="module-label imaging-module">
+              <span>nn.Module wrapper</span>
+              <strong>SPARLModule → DinoVisionTransformer</strong>
+            </div>
+            <div class="chips">
+              <span class="chip imaging-chip">inherits ImagingBaseModel</span>
+              <span class="chip">channel_names in uns</span>
+              <span class="chip">obsm["X_sparl"]</span>
+              <span class="chip">sparl pkg · optional dep</span>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ── Transcriptomics data flow ─────────────────────────────────── -->
+      <p class="rail-label" style="position: relative; z-index: 1; padding-left: 4px;">
+        Transcriptomics data flow
+      </p>
+      <section class="rail" aria-label="Transcriptomics data flow">
         <article class="flow-node">
           <span class="kicker">Inputs</span>
           <h3>AnnData / SpatialData / MuData</h3>
@@ -926,10 +1073,46 @@
         </article>
       </section>
 
+      <!-- ── Imaging data flow ──────────────────────────────────────────── -->
+      <p class="rail-label" style="position: relative; z-index: 1; padding-left: 4px;">
+        Imaging data flow (scviva.imaging)
+      </p>
+      <section class="imaging-rail" aria-label="Imaging data flow">
+        <article class="flow-node imaging-node">
+          <span class="kicker">Inputs</span>
+          <h3>Cell image crops</h3>
+          <p>Per-cell file paths in <code>adata.obs["img_path"]</code> (PNG/TIFF) or <code>SpatialData</code> image table.</p>
+        </article>
+
+        <article class="flow-node imaging-node">
+          <span class="kicker">Entry points</span>
+          <h3>Register image fields</h3>
+          <p><code>setup_anndata(img_path_col)</code> or <code>from_spatialdata(sdata)</code> → registers <code>uns["scviva_imaging"]</code>.</p>
+        </article>
+
+        <article class="flow-node imaging-node">
+          <span class="kicker">Data loading</span>
+          <h3>_ImagePathDataset</h3>
+          <p>Loads images from disk at inference time. No augmentation. Output: <code>(C, H, W)</code> float tensor in <code>[0, 1]</code>.</p>
+        </article>
+
+        <article class="flow-node imaging-node">
+          <span class="kicker">Inference</span>
+          <h3>SPARLModule forward</h3>
+          <p>Broadcasts <code>channel_names</code> to batch, calls <code>DinoVisionTransformer</code>, extracts <code>x_norm_clstoken</code>.</p>
+        </article>
+
+        <article class="flow-node imaging-node">
+          <span class="kicker">Outputs</span>
+          <h3>Per-cell embeddings</h3>
+          <p><code>obsm["X_sparl"]</code> shape <code>(n_cells, embed_dim)</code>. RAPIDS backend returns cupy array.</p>
+        </article>
+      </section>
+
       <aside class="note">
-        The diagram follows the current main branch package surface. Legacy <code>spatialvi</code>
-        paths and planned extension work are excluded so this view stays aligned with
-        <code>src/scviva</code>.
+        The diagram covers the <code>feat/sparl-imaging</code> branch surface.
+        The imaging submodule is inference-only (v1); fine-tuning and additional
+        imaging models are planned as future extensions.
       </aside>
     </section>
   </main>

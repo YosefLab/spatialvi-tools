@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SPARL · scviva-tools Imaging Integration</title>
+  <style>
+    :root {
+      --ink:       #1a2330;
+      --muted:     #5d6e7c;
+      --paper:     #f8f7f4;
+      --panel:     #ffffff;
+      --line:      #2c3e4a;
+
+      /* layer palette */
+      --upstream:  #b0c4d4;
+      --foundation:#6ec6b8;
+      --imaging:   #a98fd4;
+      --model:     #7eadda;
+      --module:    #d47ea8;
+      --data:      #d4b84a;
+      --sparl-ext: #e8a86c;
+
+      /* tinted fills */
+      --foundation-fill: rgba(110,198,184,0.10);
+      --imaging-fill:    rgba(169,143,212,0.10);
+      --model-fill:      rgba(126,173,218,0.10);
+      --module-fill:     rgba(212,126,168,0.10);
+      --data-fill:       rgba(212,184,74,0.10);
+      --sparl-fill:      rgba(232,168,108,0.08);
+
+      --shadow-sm:  0 4px 12px rgba(26,35,48,0.08);
+      --shadow-md:  0 8px 24px rgba(26,35,48,0.10);
+      --shadow-lg:  0 16px 40px rgba(26,35,48,0.12);
+
+      --radius:     10px;
+      --radius-sm:  6px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: linear-gradient(160deg, rgba(110,198,184,0.12) 0%, transparent 360px), var(--paper);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1560px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 36px 0 56px;
+    }
+
+    /* ── Typography ──────────────────────────────────────── */
+    h1, h2, h3, h4, p { margin: 0; }
+    h1 { font-size: 48px; line-height: 1.05; letter-spacing: -0.5px; }
+    h2 { font-size: 22px; letter-spacing: -0.2px; }
+    h3 { font-size: 16px; letter-spacing: -0.1px; }
+    h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+
+    code {
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(26,35,48,0.07);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.88em;
+      white-space: nowrap;
+    }
+
+    /* ── Page header ─────────────────────────────────────── */
+    .page-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: start;
+      margin-bottom: 32px;
+    }
+
+    .page-header p {
+      max-width: 720px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(26,35,48,0.15);
+    }
+
+    .badge.inference { background: rgba(169,143,212,0.2); color: #5a3d8a; }
+    .badge.vit       { background: rgba(126,173,218,0.2); color: #2c5f8a; }
+    .badge.v1        { background: rgba(110,198,184,0.2); color: #1d6b60; }
+    .badge.sparl     { background: rgba(232,168,108,0.2); color: #7a4010; }
+
+    .stamp {
+      padding: 14px 16px;
+      border: 1px solid rgba(26,35,48,0.12);
+      border-left: 6px solid var(--foundation);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.82);
+      color: var(--muted);
+      font-size: 12.5px;
+      box-shadow: var(--shadow-sm);
+      min-width: 220px;
+    }
+
+    /* ── Canvas ──────────────────────────────────────────── */
+    .canvas {
+      display: grid;
+      gap: 20px;
+    }
+
+    /* ── Section labels ──────────────────────────────────── */
+    .section-label {
+      position: relative;
+      z-index: 1;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      padding-left: 2px;
+    }
+
+    /* ── Panel (generic container card) ─────────────────── */
+    .panel {
+      border: 1px solid rgba(26,35,48,0.11);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.78);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid rgba(26,35,48,0.08);
+    }
+
+    .panel-header .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .panel-body {
+      padding: 16px 18px 18px;
+    }
+
+    /* ── Class card ──────────────────────────────────────── */
+    .class-card {
+      border: 1px solid rgba(26,35,48,0.12);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .class-card .class-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid rgba(26,35,48,0.08);
+    }
+
+    .class-card .class-header.imaging-base {
+      background: var(--imaging-fill);
+      border-bottom-color: rgba(169,143,212,0.18);
+      border-top: 5px solid var(--imaging);
+    }
+
+    .class-card .class-header.model {
+      background: var(--model-fill);
+      border-bottom-color: rgba(126,173,218,0.18);
+      border-top: 5px solid var(--model);
+    }
+
+    .class-card .class-header.module {
+      background: var(--module-fill);
+      border-bottom-color: rgba(212,126,168,0.18);
+      border-top: 5px solid var(--module);
+    }
+
+    .class-card .class-header.ext-package {
+      background: var(--sparl-fill);
+      border-bottom-color: rgba(232,168,108,0.22);
+      border-top: 5px solid var(--sparl-ext);
+    }
+
+    .class-card .class-header.data-layer {
+      background: var(--data-fill);
+      border-bottom-color: rgba(212,184,74,0.18);
+      border-top: 5px solid var(--data);
+    }
+
+    .class-tag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+
+    .class-tag.imaging { background: rgba(169,143,212,0.22); color: #5a3d8a; }
+    .class-tag.model   { background: rgba(126,173,218,0.22); color: #2c5f8a; }
+    .class-tag.module  { background: rgba(212,126,168,0.22); color: #7a2a55; }
+    .class-tag.ext     { background: rgba(232,168,108,0.22); color: #7a4010; }
+    .class-tag.data    { background: rgba(212,184,74,0.22);  color: #5a4800; }
+
+    .class-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .class-location {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .class-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    /* ── Method / field list ─────────────────────────────── */
+    .method-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .method-list li {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      align-items: baseline;
+      padding: 5px 8px;
+      border-radius: 5px;
+      font-size: 12.5px;
+    }
+
+    .method-list li:hover {
+      background: rgba(26,35,48,0.04);
+    }
+
+    .method-list li .sigil {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .method-list li .sig {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 12px;
+      color: var(--ink);
+    }
+
+    .method-list li .sig .ret {
+      color: var(--muted);
+    }
+
+    .method-list li.public  .sigil { color: #1d6b60; }
+    .method-list li.cls     .sigil { color: #2c5f8a; }
+    .method-list li.private .sigil { color: #8a5a2c; }
+    .method-list li.attr    .sigil { color: #6a3d8a; }
+    .method-list li.abstract .sigil { color: #8a2c5f; font-style: italic; }
+
+    .method-list li .note {
+      grid-column: 2;
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 1px;
+    }
+
+    .methods-section {
+      padding: 12px 16px 14px;
+    }
+
+    .methods-section + .methods-section {
+      border-top: 1px solid rgba(26,35,48,0.07);
+    }
+
+    .methods-section h4 {
+      margin-bottom: 8px;
+    }
+
+    /* ── Inheritance chain ───────────────────────────────── */
+    .inherit-chain {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0;
+      padding: 18px 24px;
+      border: 1px solid rgba(26,35,48,0.10);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.72);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chain-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 16px;
+      border: 1px solid rgba(26,35,48,0.13);
+      border-radius: var(--radius-sm);
+      background: var(--panel);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+      min-width: 130px;
+    }
+
+    .chain-node .node-pkg {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .chain-node .node-name {
+      font-size: 15px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .chain-node.n-upstream  { border-top: 4px solid var(--upstream); }
+    .chain-node.n-foundation{ border-top: 4px solid var(--foundation); }
+    .chain-node.n-imaging   { border-top: 4px solid var(--imaging); }
+    .chain-node.n-model     { border-top: 4px solid var(--model); }
+
+    .chain-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 300;
+    }
+
+    .chain-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    /* ── Data flow rail ──────────────────────────────────── */
+    .flow-rail {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      padding: 20px;
+      border: 1px solid rgba(212,184,74,0.30);
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, rgba(212,184,74,0.08), rgba(169,143,212,0.08));
+    }
+
+    .flow-step {
+      position: relative;
+      padding: 16px;
+      border: 1px solid rgba(26,35,48,0.11);
+      border-top: 6px solid var(--data);
+      border-radius: var(--radius-sm);
+      background: var(--panel);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .flow-step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      top: 50%;
+      right: -20px;
+      z-index: 2;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: #8a7020;
+      font-weight: 700;
+    }
+
+    .flow-step h4 { margin-bottom: 6px; }
+
+    .flow-step p {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+
+    .flow-step .shape {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 11px;
+      background: rgba(26,35,48,0.06);
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* ── Checkpoint format box ───────────────────────────── */
+    .ckpt-box {
+      padding: 16px 18px;
+      border: 1px solid rgba(232,168,108,0.35);
+      border-left: 5px solid var(--sparl-ext);
+      border-radius: var(--radius-sm);
+      background: rgba(232,168,108,0.07);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--ink);
+    }
+
+    .ckpt-box .ckpt-key   { color: #7a4010; font-weight: 700; }
+    .ckpt-box .ckpt-type  { color: var(--muted); }
+    .ckpt-box .ckpt-note  { color: #2c5f8a; font-style: italic; }
+
+    /* ── Three-column class layout ───────────────────────── */
+    .class-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .class-grid.two-col {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .class-grid.four-col {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    /* ── Side-by-side panel (loading + checkpoint) ────────── */
+    .side-by-side {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* ── Scope note ──────────────────────────────────────── */
+    .scope-note {
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      background: rgba(169,143,212,0.12);
+      border: 1px solid rgba(169,143,212,0.28);
+      color: #4a306a;
+      font-size: 13px;
+    }
+
+    /* ── Legend ──────────────────────────────────────────── */
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      padding: 16px 18px;
+      border: 1px solid rgba(26,35,48,0.10);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.72);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .legend-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* ── Divider ─────────────────────────────────────────── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(26,35,48,0.12), transparent);
+    }
+
+    @media (max-width: 1100px) {
+      .class-grid, .class-grid.four-col { grid-template-columns: repeat(2, 1fr); }
+      .flow-rail { grid-template-columns: repeat(3, 1fr); }
+      .flow-step:not(:last-child)::after { display: none; }
+      .side-by-side { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      h1 { font-size: 32px; }
+      .page-header { grid-template-columns: 1fr; }
+      .class-grid, .class-grid.two-col, .class-grid.four-col { grid-template-columns: 1fr; }
+      .flow-rail { grid-template-columns: 1fr; }
+      .inherit-chain { flex-direction: column; align-items: flex-start; }
+      .chain-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+<main>
+
+  <!-- ── Page header ──────────────────────────────────────────────── -->
+  <header class="page-header">
+    <div>
+      <h1>SPARL imaging integration</h1>
+      <p>
+        High-resolution component diagram for the <code>scviva.imaging</code> submodule.
+        Covers all classes, methods, data shapes, checkpoint format, and the inference
+        pipeline from raw cell crops to per-cell embeddings in <code>adata.obsm</code>.
+      </p>
+      <div class="badge-row">
+        <span class="badge v1">v1 · inference-only</span>
+        <span class="badge vit">ViT / DINO / iBOT backbone</span>
+        <span class="badge inference">No training in scviva-tools</span>
+        <span class="badge sparl">sparl optional dep</span>
+      </div>
+    </div>
+    <aside class="stamp">
+      <strong>Scope</strong><br>
+      <code>feat/sparl-imaging</code> · <code>b059807</code><br>
+      scviva-tools · YosefLab<br><br>
+      Outer ecosystem: scviva-tools<br>
+      Detail scope: <code>scviva.imaging</code>
+    </aside>
+  </header>
+
+  <div class="canvas">
+
+    <!-- ── 1. Inheritance chain ────────────────────────────────────── -->
+    <p class="section-label">Class inheritance</p>
+    <div class="inherit-chain" aria-label="Inheritance chain from BaseModelClass to SPARL">
+      <div class="chain-node n-upstream">
+        <span class="node-pkg">scvi-tools</span>
+        <span class="node-name">BaseModelClass</span>
+      </div>
+      <div class="chain-arrow">→</div>
+      <div>
+        <div class="chain-label" style="text-align:center; margin-bottom:4px;">inherits</div>
+      </div>
+      <div class="chain-node n-foundation">
+        <span class="node-pkg">scviva.model.base</span>
+        <span class="node-name">SpatialBaseModel</span>
+      </div>
+      <div class="chain-arrow">→</div>
+      <div>
+        <div class="chain-label" style="text-align:center; margin-bottom:4px;">inherits</div>
+      </div>
+      <div class="chain-node n-imaging">
+        <span class="node-pkg">scviva.imaging.base</span>
+        <span class="node-name">ImagingBaseModel</span>
+      </div>
+      <div class="chain-arrow">→</div>
+      <div>
+        <div class="chain-label" style="text-align:center; margin-bottom:4px;">inherits</div>
+      </div>
+      <div class="chain-node n-model">
+        <span class="node-pkg">scviva.imaging.sparl</span>
+        <span class="node-name">SPARL</span>
+      </div>
+      <div style="margin-left: 32px; font-size: 13px; color: var(--muted); max-width: 280px; align-self: center;">
+        <strong style="color: var(--ink);">Composition:</strong>
+        <code>SPARL.module</code> is a <code>SPARLModule(nn.Module)</code> that wraps
+        <code>DinoVisionTransformer</code> from the external <code>sparl</code> package.
+      </div>
+    </div>
+
+    <!-- ── 2. Core class cards ─────────────────────────────────────── -->
+    <p class="section-label">Component classes</p>
+    <div class="class-grid">
+
+      <!-- ── ImagingBaseModel ── -->
+      <div class="class-card">
+        <div class="class-header imaging-base">
+          <span class="class-tag imaging">Imaging foundation</span>
+          <div class="class-name">ImagingBaseModel</div>
+          <div class="class-location">scviva/imaging/base/_imaging_base.py</div>
+          <p class="class-desc">
+            Abstract base for all image-based spatial models. Owns loading, data
+            registration, and inference. Training is disabled — always loaded via
+            <code>from_pretrained()</code>. Subclasses implement <code>_build_module()</code>
+            and <code>setup_anndata()</code>.
+          </p>
+        </div>
+
+        <div class="methods-section">
+          <h4>Class attributes</h4>
+          <ul class="method-list">
+            <li class="attr">
+              <span class="sigil">attr</span>
+              <span class="sig">_default_obsm_key <span class="ret">= "X_imaging"</span></span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="methods-section">
+          <h4>Class methods (entry points)</h4>
+          <ul class="method-list">
+            <li class="cls">
+              <span class="sigil">cls</span>
+              <span class="sig">from_pretrained(model_name_or_path: str) <span class="ret">→ Self</span></span>
+              <span class="note">Resolves HF repo ID or local path; loads checkpoint; calls _build_module(); sets .module.eval()</span>
+            </li>
+            <li class="cls">
+              <span class="sigil">cls</span>
+              <span class="sig">setup_anndata(adata, img_path_col, spatial_key) <span class="ret">→ None</span></span>
+              <span class="note">Abstract in base — subclasses register AnnDataManager fields + write uns["scviva_imaging"]</span>
+            </li>
+            <li class="cls">
+              <span class="sigil">cls</span>
+              <span class="sig">from_spatialdata(sdata, table_key, region, **kwargs) <span class="ret">→ AnnData</span></span>
+              <span class="note">Overrides SpatialBaseModel — subsets adata first, then calls setup_anndata. Returns AnnData (not model).</span>
+            </li>
+            <li class="cls">
+              <span class="sigil">cls</span>
+              <span class="sig">_resolve_path(model_name_or_path) <span class="ret">→ str</span></span>
+              <span class="note">os.path.exists → local; not isabs + "/" in name → hf_hub_download; else FileNotFoundError</span>
+            </li>
+            <li class="abstract">
+              <span class="sigil">abstract</span>
+              <span class="sig">_build_module(checkpoint_data: dict) <span class="ret">→ nn.Module</span></span>
+              <span class="note">Subclasses reconstruct backbone from checkpoint dict and return wrapped nn.Module</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="methods-section">
+          <h4>Instance methods</h4>
+          <ul class="method-list">
+            <li class="public">
+              <span class="sigil">method</span>
+              <span class="sig">get_latent_representation(adata, batch_size, obsm_key, device, backend) <span class="ret">→ ndarray</span></span>
+              <span class="note">Builds DataLoader → batched forward → writes obsm[obsm_key]; backend="rapids" returns cupy</span>
+            </li>
+            <li class="private">
+              <span class="sigil">private</span>
+              <span class="sig">_build_inference_dataloader(adata, batch_size) <span class="ret">→ DataLoader</span></span>
+              <span class="note">Reads img paths from adata.uns["scviva_imaging"]["img_path_col"]; wraps _ImagePathDataset</span>
+            </li>
+            <li class="public">
+              <span class="sigil">method</span>
+              <span class="sig">train(*args, **kwargs) <span class="ret">→ NotImplementedError</span></span>
+              <span class="note">Always raises — pre-trained models are not trained via scviva-tools interface</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ── SPARL ── -->
+      <div class="class-card">
+        <div class="class-header model">
+          <span class="class-tag model">Imaging model</span>
+          <div class="class-name">SPARL</div>
+          <div class="class-location">scviva/imaging/sparl/_model.py</div>
+          <p class="class-desc">
+            Spatial Proteomics Analysis with Representation Learning.
+            Wraps a DINO/iBOT-pretrained <code>DinoVisionTransformer</code> for
+            per-cell embedding extraction from multi-channel microscopy images
+            (IMC, JUMP-CP). v1 is inference-only.
+          </p>
+        </div>
+
+        <div class="methods-section">
+          <h4>Class attributes</h4>
+          <ul class="method-list">
+            <li class="attr">
+              <span class="sigil">attr</span>
+              <span class="sig">_default_obsm_key <span class="ret">= "X_sparl"</span></span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="methods-section">
+          <h4>Overrides</h4>
+          <ul class="method-list">
+            <li class="cls">
+              <span class="sigil">cls</span>
+              <span class="sig">_build_module(checkpoint_data) <span class="ret">→ SPARLModule</span></span>
+              <span class="note">Pops "arch" from config; instantiates DinoVisionTransformer(**config); loads teacher backbone; wraps in SPARLModule</span>
+            </li>
+            <li class="cls">
+              <span class="sigil">cls</span>
+              <span class="sig">setup_anndata(adata, img_path_col, channel_names, spatial_key) <span class="ret">→ None</span></span>
+              <span class="note">Registers SpatialCoordsField + writes uns["scviva_imaging"] and uns["sparl_channels"] (optional)</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="methods-section">
+          <h4>Typical usage</h4>
+          <div style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; line-height: 1.7; padding: 10px; background: rgba(26,35,48,0.04); border-radius: 6px; color: var(--ink);">
+            model = SPARL.from_pretrained(<br>
+            &nbsp;&nbsp;"YosefLab/sparl-imc-vitb16"<br>
+            )<br>
+            SPARL.setup_anndata(<br>
+            &nbsp;&nbsp;adata,<br>
+            &nbsp;&nbsp;img_path_col="crop_path",<br>
+            &nbsp;&nbsp;channel_names=["CD3","CD8","DAPI"]<br>
+            )<br>
+            emb = model.get_latent_representation(adata)<br>
+            <span style="color:var(--muted)"># adata.obsm["X_sparl"]: (n_cells, embed_dim)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SPARLModule ── -->
+      <div class="class-card">
+        <div class="class-header module">
+          <span class="class-tag module">nn.Module wrapper</span>
+          <div class="class-name">SPARLModule</div>
+          <div class="class-location">scviva/imaging/sparl/_module.py</div>
+          <p class="class-desc">
+            Thin <code>nn.Module</code> wrapping SPARL's <code>DinoVisionTransformer</code>.
+            Isolates the <code>sparl</code> package import to a single file. Handles the
+            <code>channels</code> tensor required by the backbone internally — callers
+            only pass image batches.
+          </p>
+        </div>
+
+        <div class="methods-section">
+          <h4>Constructor</h4>
+          <ul class="method-list">
+            <li class="public">
+              <span class="sigil">init</span>
+              <span class="sig">__init__(backbone: DinoVisionTransformer)</span>
+              <span class="note">Stores backbone as self.backbone (registered nn.Module sub-module)</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="methods-section">
+          <h4>Forward pass</h4>
+          <ul class="method-list">
+            <li class="public">
+              <span class="sigil">method</span>
+              <span class="sig">forward(x: Tensor) <span class="ret">→ Tensor</span></span>
+            </li>
+          </ul>
+          <div style="margin-top: 10px; padding: 10px 12px; background: rgba(212,126,168,0.08); border-radius: 6px; border: 1px solid rgba(212,126,168,0.2); font-size: 12.5px; line-height: 1.6;">
+            <strong>Input:</strong> <code>x: (B, C, H, W)</code> float32, values in [0, 1]<br>
+            <strong>Step 1:</strong> <code>channel_names.unsqueeze(0).expand(B, -1)</code> → channels <code>(B, C)</code><br>
+            <strong>Step 2:</strong> <code>backbone(x, channels)["x_norm_clstoken"]</code><br>
+            <strong>Output:</strong> CLS-token embeddings <code>(B, embed_dim)</code>
+          </div>
+        </div>
+
+        <div class="methods-section">
+          <h4>Key design choice</h4>
+          <p style="font-size: 12.5px; color: var(--muted); line-height: 1.5;">
+            <code>backbone.channel_names</code> is a stored tensor from training time.
+            <code>SPARLModule</code> broadcasts it to batch size automatically, so
+            <code>ImagingBaseModel</code>'s inference loop stays model-agnostic
+            (one <code>module(batch)</code> call regardless of backbone type).
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── 3. Data loading classes ─────────────────────────────────── -->
+    <p class="section-label">Data pipeline classes</p>
+    <div class="class-grid two-col">
+
+      <!-- _ImagePathDataset -->
+      <div class="class-card">
+        <div class="class-header data-layer">
+          <span class="class-tag data">Dataset</span>
+          <div class="class-name">_ImagePathDataset</div>
+          <div class="class-location">scviva/imaging/base/_imaging_base.py · module-level</div>
+          <p class="class-desc">
+            Minimal <code>torch.utils.data.Dataset</code> that resolves per-cell image paths
+            to normalized float tensors. No augmentation — pure inference loading.
+          </p>
+        </div>
+
+        <div class="methods-section">
+          <ul class="method-list">
+            <li class="attr">
+              <span class="sigil">attr</span>
+              <span class="sig">paths: list[str]</span>
+            </li>
+            <li class="public">
+              <span class="sigil">method</span>
+              <span class="sig">__len__() <span class="ret">→ int</span></span>
+            </li>
+            <li class="public">
+              <span class="sigil">method</span>
+              <span class="sig">__getitem__(idx) <span class="ret">→ Tensor(C, H, W)</span></span>
+              <span class="note">Calls _load_image_as_tensor(paths[idx])</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- _load_image_as_tensor -->
+      <div class="class-card">
+        <div class="class-header data-layer">
+          <span class="class-tag data">Helper function</span>
+          <div class="class-name">_load_image_as_tensor</div>
+          <div class="class-location">scviva/imaging/base/_imaging_base.py · module-level</div>
+          <p class="class-desc">
+            Loads any supported image format to a normalized float32 tensor.
+            Handles format detection, channel ordering, and value range normalization.
+          </p>
+        </div>
+
+        <div class="methods-section">
+          <h4>Signature</h4>
+          <ul class="method-list">
+            <li class="public">
+              <span class="sigil">fn</span>
+              <span class="sig">_load_image_as_tensor(path: str) <span class="ret">→ Tensor(C,H,W)</span></span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="methods-section">
+          <h4>Processing pipeline</h4>
+          <div style="font-size: 12.5px; line-height: 1.7; color: var(--muted);">
+            <strong style="color: var(--ink);">1. Format detection</strong> — suffix-based:<br>
+            &nbsp;&nbsp;• <code>.tif / .tiff</code> → <code>tifffile.imread()</code><br>
+            &nbsp;&nbsp;• other → <code>PIL.Image.open()</code><br><br>
+            <strong style="color: var(--ink);">2. Shape normalization</strong><br>
+            &nbsp;&nbsp;• <code>(H, W)</code> → <code>(1, H, W)</code><br>
+            &nbsp;&nbsp;• <code>(H, W, C)</code> → <code>(C, H, W)</code><br><br>
+            <strong style="color: var(--ink);">3. Value normalization</strong><br>
+            &nbsp;&nbsp;• max &gt; 1 and ≤ 255: divide by 255<br>
+            &nbsp;&nbsp;• max &gt; 255: divide by max<br>
+            &nbsp;&nbsp;• Output: float32 tensor ∈ [0, 1]
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── 4. DinoVisionTransformer (external) ──────────────────────── -->
+    <p class="section-label">External package — sparl (optional dependency)</p>
+    <div class="class-card">
+      <div class="class-header ext-package">
+        <span class="class-tag ext">sparl pkg · external</span>
+        <div class="class-name">DinoVisionTransformer</div>
+        <div class="class-location">sparl.models.backbones.vision_transformer · installed separately</div>
+        <p class="class-desc">
+          DINO/iBOT Vision Transformer trained on multi-channel microscopy images.
+          Accepts <code>(B, C, H, W)</code> images alongside a <code>(B, C)</code> channel-ID tensor,
+          applies patch embedding and self-attention blocks, and returns a dict of output tokens.
+          Only the <code>x_norm_clstoken</code> key is used by scviva-tools.
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 16px 18px 18px;">
+
+        <div>
+          <h4 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;">Key constructor params</h4>
+          <ul class="method-list">
+            <li class="attr"><span class="sigil">param</span><span class="sig">channel_names: list[int|str]</span></li>
+            <li class="attr"><span class="sigil">param</span><span class="sig">img_size: int</span></li>
+            <li class="attr"><span class="sigil">param</span><span class="sig">patch_size: int</span></li>
+            <li class="attr"><span class="sigil">param</span><span class="sig">embed_dim: int</span></li>
+            <li class="attr"><span class="sigil">param</span><span class="sig">depth: int</span></li>
+            <li class="attr"><span class="sigil">param</span><span class="sig">num_heads: int</span></li>
+            <li class="attr"><span class="sigil">param</span><span class="sig">pos_embed_type: "rope"|"learnable"</span></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;">forward() output dict</h4>
+          <ul class="method-list">
+            <li class="public"><span class="sigil">key</span><span class="sig">x_norm_clstoken <span class="ret">(B, D) ← used</span></span></li>
+            <li class="private"><span class="sigil">key</span><span class="sig">x_norm_postokens <span class="ret">(B, Ph, Pw, D)</span></span></li>
+            <li class="private"><span class="sigil">key</span><span class="sig">x_prenorm <span class="ret">(B, 1+N, D)</span></span></li>
+            <li class="private"><span class="sigil">key</span><span class="sig">masks, attentions</span></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;">Architecture variants</h4>
+          <ul class="method-list">
+            <li class="attr"><span class="sigil">arch</span><span class="sig">vit (standard)</span></li>
+            <li class="attr"><span class="sigil">arch</span><span class="sig">flat_vit (flattened)</span></li>
+            <li class="attr"><span class="sigil">arch</span><span class="sig">alt_vit (channel+pos attn)</span></li>
+          </ul>
+          <div style="margin-top: 10px; font-size: 12px; color: var(--muted);">
+            Imported only inside <code>SPARL._build_module()</code> — not a hard scviva-tools dep.
+            Guards: <code>pytest.importorskip("sparl")</code> in all SPARL tests.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── 5. Checkpoint format ────────────────────────────────────── -->
+    <p class="section-label">Model loading — checkpoint format &amp; resolution</p>
+    <div class="side-by-side">
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="dot" style="background: var(--sparl-ext);"></span>
+          <h3>Expected checkpoint structure (<code>.pt</code>)</h3>
+        </div>
+        <div class="panel-body">
+          <div class="ckpt-box">
+            {<br>
+            &nbsp;&nbsp;<span class="ckpt-key">"epoch"</span>: <span class="ckpt-type">int,</span><br>
+            &nbsp;&nbsp;<span class="ckpt-key">"step"</span>: <span class="ckpt-type">int,</span><br>
+            &nbsp;&nbsp;<span class="ckpt-key">"model"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"teacher"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"backbone"</span>: <span class="ckpt-type">state_dict,</span> <span class="ckpt-note">← loaded by _build_module</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+            &nbsp;&nbsp;},<br>
+            &nbsp;&nbsp;<span class="ckpt-key">"model_config"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"arch"</span>: <span class="ckpt-type">str,</span> <span class="ckpt-note">← popped, not passed to ViT</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"channel_names"</span>: <span class="ckpt-type">list,</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"img_size"</span>: <span class="ckpt-type">int,</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"patch_size"</span>: <span class="ckpt-type">int,</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"embed_dim"</span>: <span class="ckpt-type">int,</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"depth"</span>: <span class="ckpt-type">int,</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="ckpt-key">"pos_embed_type"</span>: <span class="ckpt-type">str,</span><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;... <span class="ckpt-note">(other ViT kwargs)</span><br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+          <p style="font-size: 12px; color: var(--muted); margin-top: 10px;">
+            Serialized with <code>torch.save(...)</code>. Loaded with
+            <code>weights_only=False</code> — required because checkpoint contains
+            non-tensor objects (config dicts).
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="dot" style="background: var(--imaging);"></span>
+          <h3><code>from_pretrained()</code> resolution logic</h3>
+        </div>
+        <div class="panel-body">
+          <div style="display: grid; gap: 12px;">
+
+            <div style="padding: 12px; border: 1px solid rgba(110,198,184,0.3); border-left: 4px solid var(--foundation); border-radius: 6px; background: rgba(110,198,184,0.07);">
+              <strong style="font-size: 13px;">Local path</strong>
+              <p style="font-size: 12.5px; color: var(--muted); margin-top: 4px;">
+                <code>os.path.exists(path)</code> → use as-is.<br>
+                Example: <code>"/checkpoints/sparl_imc.pt"</code>
+              </p>
+            </div>
+
+            <div style="padding: 12px; border: 1px solid rgba(169,143,212,0.3); border-left: 4px solid var(--imaging); border-radius: 6px; background: rgba(169,143,212,0.07);">
+              <strong style="font-size: 13px;">HuggingFace Hub</strong>
+              <p style="font-size: 12.5px; color: var(--muted); margin-top: 4px;">
+                <code>not isabs + "/" in name</code> → detected as HF repo ID.<br>
+                Calls <code>hf_hub_download(repo_id, filename="model.pt")</code>.<br>
+                Example: <code>"YosefLab/sparl-imc-vitb16"</code><br>
+                <em>Note: Hub model not yet published — TODO in test suite.</em>
+              </p>
+            </div>
+
+            <div style="padding: 12px; border: 1px solid rgba(212,184,74,0.3); border-left: 4px solid var(--data); border-radius: 6px; background: rgba(212,184,74,0.07);">
+              <strong style="font-size: 13px;">After path resolved</strong>
+              <p style="font-size: 12.5px; color: var(--muted); margin-top: 4px;">
+                <code>torch.load(path)</code> →
+                <code>cls._build_module(ckpt)</code> →
+                <code>obj.module.eval()</code> → return obj
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── 6. End-to-end inference data flow ──────────────────────── -->
+    <p class="section-label">End-to-end inference data flow</p>
+    <div class="flow-rail">
+
+      <div class="flow-step">
+        <h4>Cell image crops</h4>
+        <p>
+          Per-cell image files on disk or crops from a <code>SpatialData</code> image table.
+          Supported formats: PNG, JPEG, TIFF.
+        </p>
+        <span class="shape">adata.obs["img_path"]</span>
+        <span class="shape">SpatialData</span>
+      </div>
+
+      <div class="flow-step">
+        <h4>AnnData registration</h4>
+        <p>
+          <code>SPARL.setup_anndata()</code> or <code>SPARL.from_spatialdata()</code>
+          writes <code>uns["scviva_imaging"]</code> and registers
+          <code>SpatialCoordsField</code>.
+        </p>
+        <span class="shape">uns["scviva_imaging"]</span>
+      </div>
+
+      <div class="flow-step">
+        <h4>_ImagePathDataset</h4>
+        <p>
+          Reads paths from <code>obs[img_path_col]</code>.
+          <code>_load_image_as_tensor</code> converts to float32 in [0, 1].
+          Batched by <code>DataLoader</code> (no shuffle, no augmentation).
+        </p>
+        <span class="shape">(B, C, H, W) · [0,1]</span>
+      </div>
+
+      <div class="flow-step">
+        <h4>SPARLModule.forward()</h4>
+        <p>
+          Expands <code>backbone.channel_names → (B, C)</code>.
+          Calls <code>DinoVisionTransformer(x, channels)["x_norm_clstoken"]</code>.
+        </p>
+        <span class="shape">(B, embed_dim)</span>
+      </div>
+
+      <div class="flow-step">
+        <h4>Embeddings written</h4>
+        <p>
+          All batch results concatenated and assigned to
+          <code>adata.obsm["X_sparl"]</code>.
+          Optional <code>backend="rapids"</code> returns cupy array.
+        </p>
+        <span class="shape">obsm["X_sparl"]</span>
+        <span class="shape">(n_cells, embed_dim)</span>
+      </div>
+
+    </div>
+
+    <!-- ── 7. Data entry paths ─────────────────────────────────────── -->
+    <p class="section-label">Two data entry paths</p>
+    <div class="class-grid two-col">
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="dot" style="background: var(--data);"></span>
+          <h3>Path A — disk-based (AnnData)</h3>
+        </div>
+        <div class="panel-body">
+          <div style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; line-height: 1.8; color: var(--ink);">
+            <span style="color: var(--muted)"># 1. Load model</span><br>
+            model = SPARL.from_pretrained("YosefLab/sparl-imc-vitb16")<br><br>
+            <span style="color: var(--muted)"># 2. Register — img_path column holds per-cell file paths</span><br>
+            SPARL.setup_anndata(<br>
+            &nbsp;&nbsp;adata,<br>
+            &nbsp;&nbsp;img_path_col="crop_path",<br>
+            &nbsp;&nbsp;channel_names=["CD3", "CD8", "DAPI"],<br>
+            )<br><br>
+            <span style="color: var(--muted)"># 3. Infer</span><br>
+            model.get_latent_representation(adata)<br>
+            <span style="color: var(--muted)"># → adata.obsm["X_sparl"]</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="dot" style="background: var(--imaging);"></span>
+          <h3>Path B — SpatialData</h3>
+        </div>
+        <div class="panel-body">
+          <div style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px; line-height: 1.8; color: var(--ink);">
+            <span style="color: var(--muted)"># 1. Load model</span><br>
+            model = SPARL.from_pretrained("/local/sparl_imc.pt")<br><br>
+            <span style="color: var(--muted)"># 2. Register via SpatialData</span><br>
+            <span style="color: var(--muted)">#    from_spatialdata returns the AnnData</span><br>
+            adata = SPARL.from_spatialdata(<br>
+            &nbsp;&nbsp;sdata,<br>
+            &nbsp;&nbsp;table_key="cells",<br>
+            &nbsp;&nbsp;region="imc_image",<br>
+            &nbsp;&nbsp;img_path_col="crop_path",<br>
+            )<br><br>
+            <span style="color: var(--muted)"># 3. Infer</span><br>
+            model.get_latent_representation(adata)<br>
+            <span style="color: var(--muted)"># → adata.obsm["X_sparl"]</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── 8. Scope and future work ────────────────────────────────── -->
+    <div class="scope-note">
+      <strong>v1 scope (inference-only):</strong>
+      Load pre-trained ViT → register image data → forward pass → embeddings in AnnData.
+      The <code>ImagingBaseModel</code> base class is designed for additional imaging models
+      (only <code>_build_module</code> + <code>setup_anndata</code> need to be implemented).
+      <strong>Planned extensions:</strong>
+      fine-tuning via scvi-tools TrainingPlan · backbone exposure (<code>model.backbone</code>) ·
+      multi-GPU inference · HuggingFace Hub model publishing · second imaging model.
+    </div>
+
+    <!-- ── Legend ─────────────────────────────────────────────────── -->
+    <div class="legend-row">
+      <strong style="font-size: 13px;">Layer colors:</strong>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--upstream);"></span>Upstream scvi-tools</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--foundation);"></span>SpatialBaseModel (foundation)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--imaging);"></span>ImagingBaseModel (imaging foundation)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--model);"></span>SPARL (imaging model)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--module);"></span>SPARLModule (nn.Module)</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--data);"></span>Data pipeline</span>
+      <span class="legend-item"><span class="legend-dot" style="background:var(--sparl-ext);"></span>sparl package (external)</span>
+    </div>
+
+  </div>
+</main>
+</body>
+</html>
