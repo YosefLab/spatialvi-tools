@@ -22,7 +22,16 @@ logger = logging.getLogger(__name__)
 
 
 def _load_image_as_tensor(path: str) -> torch.Tensor:
-    """Load an image file to a float32 tensor of shape (C, H, W) in [0, 1]."""
+    """Load an image file to a float32 tensor of shape ``(C, H, W)`` in ``[0, 1]``.
+
+    **TIFF layout convention:** multi-channel microscopy stacks saved by tifffile
+    are expected in channel-first ``(C, H, W)`` order (the standard for IMC/CyCIF).
+    Single-plane TIFFs ``(H, W)`` are promoted to ``(1, H, W)``.
+    No axis transposition is applied to TIFF files.
+
+    **PIL layout convention:** PIL opens images as channel-last ``(H, W)`` for
+    grayscale or ``(H, W, C)`` for colour. These are transposed to ``(C, H, W)``.
+    """
     suffix = path.lower().rsplit(".", 1)[-1]
     if suffix in ("tif", "tiff"):
         try:
@@ -33,15 +42,19 @@ def _load_image_as_tensor(path: str) -> torch.Tensor:
                 "Install with: pip install 'scviva-tools[imaging]'"
             ) from e
         arr = tifffile.imread(path).astype(np.float32)
+        # TIFF stacks are channel-first (C, H, W) — only handle the 2-D case.
+        if arr.ndim == 2:
+            arr = arr[np.newaxis]  # (H, W) → (1, H, W)
+        # ndim == 3: already (C, H, W); ndim > 3: pass through, let caller fail clearly
     else:
         from PIL import Image as PILImage
 
         arr = np.array(PILImage.open(path), dtype=np.float32)
-
-    if arr.ndim == 2:
-        arr = arr[np.newaxis]
-    elif arr.ndim == 3:
-        arr = arr.transpose(2, 0, 1)
+        # PIL is channel-last: (H, W) or (H, W, C) → transpose to (C, H, W).
+        if arr.ndim == 2:
+            arr = arr[np.newaxis]  # (H, W) → (1, H, W)
+        elif arr.ndim == 3:
+            arr = arr.transpose(2, 0, 1)  # (H, W, C) → (C, H, W)
 
     max_val = arr.max()
     if max_val > 1.0:

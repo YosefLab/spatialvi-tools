@@ -30,7 +30,10 @@ def test_train_raises(minimal_checkpoint):
 
 
 def test_from_pretrained_hf_calls_hub_download(tmp_path, minimal_checkpoint, monkeypatch):
-    import huggingface_hub
+    huggingface_hub = pytest.importorskip(
+        "huggingface_hub",
+        reason="huggingface-hub not installed; install scviva-tools[imaging] or scviva-tools[hub]",
+    )
 
     call_log = {}
 

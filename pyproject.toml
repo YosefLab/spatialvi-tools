@@ -40,7 +40,7 @@ dependencies = [
   "tqdm>=4.60",
 ]
 
-optional-dependencies.all = [ "scviva-tools[dev,doc,imaging,rapids,spatial,test,tutorials]" ]
+optional-dependencies.all = [ "scviva-tools[dev,doc,hub,imaging,rapids,spatial,test,tutorials]" ]
 optional-dependencies.cuda = [ "mlx[cuda]", "torchaudio", "torchvision" ]
 optional-dependencies.dev = [ "pre-commit", "twine>=4.0.2" ]
 optional-dependencies.doc = [
