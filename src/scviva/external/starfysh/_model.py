@@ -114,6 +114,24 @@ class Starfysh(SpatialDeconvolutionMixin, SpatialBaseModel):
             "library": library,
         }
 
+    def _collect_outputs(
+        self,
+        keys: tuple[str, ...],
+        batch_size: int,
+        prog_bar: bool = False,
+    ) -> dict[str, np.ndarray]:
+        self._check_if_trained(warn=True)
+        self.module.eval()
+        loader = DataLoader(self._tensor_dataset(), batch_size=batch_size, shuffle=False)
+        outputs_by_key: dict[str, list[np.ndarray]] = {key: [] for key in keys}
+        with torch.no_grad():
+            for batch in tqdm(loader, disable=not prog_bar):
+                tensors = self._batch_to_tensors(batch)
+                outputs = self.module(tensors, compute_loss=False)
+                for key in keys:
+                    outputs_by_key[key].append(outputs[key].detach().cpu().numpy())
+        return {key: np.concatenate(values, axis=0) for key, values in outputs_by_key.items()}
+
     def train(
         self,
         max_epochs: int = 100,
@@ -155,22 +173,68 @@ class Starfysh(SpatialDeconvolutionMixin, SpatialBaseModel):
         self.module.eval()
         return None
 
-    def get_proportions(self, adata: AnnData | None = None) -> pd.DataFrame:
+    def get_proportions(
+        self,
+        adata: AnnData | None = None,
+        batch_size: int = 128,
+        store_key: str | None = None,
+        prog_bar: bool = False,
+    ) -> pd.DataFrame:
         """Return Starfysh cell-type proportions for the registered AnnData."""
-        self._check_if_trained(warn=True)
         if adata is not None and adata is not self.adata:
             raise ValueError("Phase 1 Starfysh only supports the registered AnnData.")
 
-        loader = DataLoader(self._tensor_dataset(), batch_size=128, shuffle=False)
-        proportions = []
-        self.module.eval()
-        with torch.no_grad():
-            for batch in loader:
-                tensors = self._batch_to_tensors(batch)
-                outputs = self.module(tensors, compute_loss=False)
-                proportions.append(outputs["qc_m"].detach().cpu().numpy())
+        proportions = self._collect_outputs(
+            ("qc_m",),
+            batch_size=batch_size,
+            prog_bar=prog_bar,
+        )["qc_m"]
+        if store_key is not None:
+            self.adata.obsm[store_key] = proportions
         return pd.DataFrame(
-            np.vstack(proportions),
+            proportions,
             index=self.adata.obs_names,
             columns=self.cell_type_mapping,
         )
+
+    def get_latent_representation(
+        self,
+        adata: AnnData | None = None,
+        indices: np.ndarray | list[int] | None = None,
+        give_mean: bool = True,
+        batch_size: int = 128,
+        store_key: str | None = None,
+        prog_bar: bool = False,
+        **kwargs,
+    ) -> np.ndarray:
+        """Return Starfysh latent expression representation for the registered AnnData."""
+        if kwargs:
+            raise TypeError(f"Unsupported keyword arguments: {sorted(kwargs)}")
+        if adata is not None and adata is not self.adata:
+            raise ValueError("Phase 2A Starfysh only supports the registered AnnData.")
+
+        key = "qz_m" if give_mean else "qz"
+        latent = self._collect_outputs((key,), batch_size=batch_size, prog_bar=prog_bar)[key]
+        if store_key is not None:
+            self.adata.obsm[store_key] = latent
+        if indices is not None:
+            latent = latent[np.asarray(indices)]
+        return latent
+
+    def get_model_outputs(
+        self,
+        batch_size: int = 128,
+        store: bool = False,
+        prog_bar: bool = False,
+    ) -> dict[str, np.ndarray]:
+        """Return Starfysh inference and generative outputs for the registered AnnData."""
+        outputs = self._collect_outputs(
+            ("qc_m", "qz_m", "qz_logv", "px_rate", "px_scale"),
+            batch_size=batch_size,
+            prog_bar=prog_bar,
+        )
+        if store:
+            self.adata.obsm["starfysh_proportions"] = outputs["qc_m"]
+            self.adata.obsm["X_starfysh"] = outputs["qz_m"]
+            self.adata.layers["starfysh_px_rate"] = outputs["px_rate"]
+        return outputs

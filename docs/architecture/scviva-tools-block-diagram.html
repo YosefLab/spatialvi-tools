@@ -893,7 +893,7 @@
 
             <article class="model-card external-model">
               <div>
-                <span class="kicker">External class · Phase 1</span>
+                <span class="kicker">External class</span>
                 <h3>AMICI</h3>
                 <p>Predicts cell expression from cell-type means and spatial-neighbor attention.</p>
               </div>
@@ -904,13 +904,14 @@
               <div class="chips">
                 <span class="chip">inherits SpatialBaseModel</span>
                 <span class="chip mixin-chip">neighbor-aware</span>
-                <span class="chip">predictions</span>
+                <span class="chip">predictions + residuals</span>
+                <span class="chip">attention + nn embeddings</span>
               </div>
             </article>
 
             <article class="model-card external-model">
               <div>
-                <span class="kicker">External class · Phase 1</span>
+                <span class="kicker">External class</span>
                 <h3>Starfysh</h3>
                 <p>Expression-only spatial deconvolution with Starfysh AVAE-style proportions.</p>
               </div>
@@ -922,6 +923,46 @@
                 <span class="chip">inherits SpatialBaseModel</span>
                 <span class="chip mixin-chip">SpatialDeconvolutionMixin</span>
                 <span class="chip">expression AVAE</span>
+                <span class="chip">latent + model outputs</span>
+              </div>
+            </article>
+
+            <article class="model-card external-model">
+              <div>
+                <span class="kicker">Upstream capability</span>
+                <h3>AMICI interpretation</h3>
+                <p>Interaction and attribution modules from upstream AMICI that are not yet ported.</p>
+              </div>
+              <div class="module-label">
+                <span>Not yet in scviva.external</span>
+                <strong>Ablation / counterfactual / explained variance</strong>
+              </div>
+              <div class="chips">
+                <span class="chip">interaction graphs</span>
+                <span class="chip">per-gene ablation</span>
+                <span class="chip">counterfactual attention</span>
+                <span class="chip">attention summaries</span>
+                <span class="chip">optional W&amp;B callbacks</span>
+              </div>
+            </article>
+
+            <article class="model-card external-model">
+              <div>
+                <span class="kicker">Upstream capability</span>
+                <h3>Starfysh extended workflow</h3>
+                <p>Histology-aware and preprocessing-heavy Starfysh components still pending digestion.</p>
+              </div>
+              <div class="module-label">
+                <span>Not yet in scviva.external</span>
+                <strong>PoE / archetypes / Visium helpers</strong>
+              </div>
+              <div class="chips">
+                <span class="chip">histology patches</span>
+                <span class="chip">PoE module</span>
+                <span class="chip">library smoothing + anchors</span>
+                <span class="chip">archetypal analysis</span>
+                <span class="chip">plot/post-analysis helpers</span>
+                <span class="chip">cell-type expression</span>
               </div>
             </article>
           </div>
@@ -932,7 +973,7 @@
         <article class="flow-node">
           <span class="kicker">Inputs</span>
           <h3>AnnData / SpatialData / MuData</h3>
-          <p>Counts, labels, spatial coordinates, paired spatial and single-cell tables.</p>
+          <p>Counts, labels, spatial coordinates, signatures, paired spatial and single-cell tables; histology patches remain planned for Starfysh.</p>
         </article>
 
         <article class="flow-node">
@@ -956,14 +997,14 @@
         <article class="flow-node">
           <span class="kicker">Outputs</span>
           <h3>Embeddings and predictions</h3>
-          <p><code>obsm["X_scVIVA"]</code>, <code>obsm["X_resolvi"]</code>, AMICI predictions, Starfysh proportions, mapper matrices, and imputed expression.</p>
+          <p><code>obsm["X_scVIVA"]</code>, <code>obsm["X_resolvi"]</code>, AMICI predictions/residuals/attention/neighbor embeddings, Starfysh proportions/latent/model outputs, mapper matrices, and imputed expression.</p>
         </article>
       </section>
 
       <aside class="note">
-        The diagram follows the current main branch package surface. Legacy <code>spatialvi</code>
-        paths and planned extension work are excluded so this view stays aligned with
-        <code>src/scviva</code>.
+        The diagram follows the current <code>src/scviva</code> package surface and calls out
+        AMICI/Starfysh upstream capabilities that are still not ported, so tutorials and
+        implementation phases remain aligned.
       </aside>
     </section>
   </main>

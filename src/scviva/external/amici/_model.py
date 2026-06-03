@@ -178,6 +178,24 @@ class AMICI(SpatialBaseModel):
             AMICI_REGISTRY_KEYS.NN_DIST_KEY: nn_dist,
         }
 
+    def _collect_outputs(
+        self,
+        keys: tuple[str, ...],
+        batch_size: int,
+        prog_bar: bool,
+    ) -> dict[str, np.ndarray]:
+        self._check_if_trained(warn=True)
+        self.module.eval()
+        loader = DataLoader(self._tensor_dataset(), batch_size=batch_size, shuffle=False)
+        outputs_by_key: dict[str, list[np.ndarray]] = {key: [] for key in keys}
+        with torch.no_grad():
+            for batch in tqdm(loader, disable=not prog_bar):
+                tensors = self._batch_to_tensors(batch)
+                outputs = self.module(tensors, compute_loss=False)
+                for key in keys:
+                    outputs_by_key[key].append(outputs[key].detach().cpu().numpy())
+        return {key: np.concatenate(values, axis=0) for key, values in outputs_by_key.items()}
+
     def train(
         self,
         max_epochs: int = 20,
@@ -216,17 +234,42 @@ class AMICI(SpatialBaseModel):
         self,
         batch_size: int = 128,
         get_residuals: bool = False,
+        store_key: str | None = None,
         prog_bar: bool = False,
     ) -> np.ndarray:
         """Return AMICI predictions or residuals for the registered AnnData."""
-        self._check_if_trained(warn=True)
-        self.module.eval()
-        loader = DataLoader(self._tensor_dataset(), batch_size=batch_size, shuffle=False)
-        out = []
-        with torch.no_grad():
-            for batch in tqdm(loader, disable=not prog_bar):
-                tensors = self._batch_to_tensors(batch)
-                outputs = self.module(tensors, compute_loss=False)
-                key = "residual" if get_residuals else "prediction"
-                out.append(outputs[key].detach().cpu().numpy())
-        return np.vstack(out)
+        key = "residual" if get_residuals else "prediction"
+        output = self._collect_outputs((key,), batch_size=batch_size, prog_bar=prog_bar)[key]
+        if store_key is not None:
+            self.adata.obsm[store_key] = output
+        return output
+
+    def get_attention_patterns(
+        self,
+        batch_size: int = 128,
+        store_key: str | None = None,
+        prog_bar: bool = False,
+    ) -> np.ndarray:
+        """Return AMICI neighbor attention patterns for the registered AnnData."""
+        output = self._collect_outputs(
+            ("attention_patterns",),
+            batch_size=batch_size,
+            prog_bar=prog_bar,
+        )["attention_patterns"]
+        if store_key is not None:
+            self.adata.obsm[store_key] = output
+        return output
+
+    def get_nn_embed(
+        self,
+        batch_size: int = 128,
+        store_key: str | None = None,
+        prog_bar: bool = False,
+    ) -> np.ndarray:
+        """Return AMICI embedded neighbor expression for the registered AnnData."""
+        output = self._collect_outputs(("nn_embed",), batch_size=batch_size, prog_bar=prog_bar)[
+            "nn_embed"
+        ]
+        if store_key is not None:
+            self.adata.obsm[store_key] = output
+        return output

@@ -1,3 +1,180 @@
+# spatialvi-tools: Planning Decisions & Alternatives
+
+**Date:** 2026-03-24
+**Authors:** Ori Kronfeld + Claude
+**Purpose:** Record of all design questions raised during planning, alternatives considered,
+and the rationale for each final decision. Intended for team review and future reference.
+
+---
+
+## Q1: Dependency strategy — how tightly coupled to scvi-tools?
+
+### Alternatives considered
+
+| Option | Description | Pro | Con |
+|--------|-------------|-----|-----|
+| **A (chosen)** | Thin wrapper — import base classes from scvi | No reinvention; free upstream updates; ecosystem alignment | Tied to scvi internal API (e.g., `_de_core`, `AnnDataManager`) |
+| B | Partially independent — copy and own only the needed base code | Fewer moving-target dependencies | Maintenance burden; diverges from scvi conventions |
+| C | Fully independent — build the whole stack from primitives (torch, lightning, pyro) | Maximum control | Enormous scope; loses all scvi infrastructure |
+
+### Decision: A
+scvi-tools is a first-class scverse citizen. Wrapping it means we inherit AnnData conventions,
+the training loop, data registry, minification, hub integration, and all future improvements
+for free. The cost (coupling to scvi internals) is accepted.
+
+---
+
+## Q2: Where do the 3 models live in the package?
+
+### Alternatives considered
+
+| Option | Description |
+|--------|-------------|
+| A | Flat model layout — all 3 in `spatialvi.model`, mirroring scvi's core model namespace |
+| B | Sub-package per model — `model/scviva/`, `model/destvi/`, `model/resolvi/` |
+| C | Domain-grouped — `model/deconvolution/`, `model/denoising/`, `model/niche/` |
+
+### Initial preference: A (flat)
+The team initially agreed on flat layout with a shared `model/base/`.
+
+### Refinement during planning
+The user clarified: the structure should mirror scvi-tools exactly, with a `model/` folder for
+core models and an `external/` folder reserved for future models. However, **all 3 current
+models (scVIVA, ResolVI, DestVI) are core models**, not external — even though scVIVA and
+ResolVI are in `scvi.external`. In spatialvi-tools, these are first-class citizens equivalent
+to SCVI/TOTALVI in scvi-tools.
+
+### Decision: Flat core models + empty external/
+- `spatialvi.model.SCVIVA`, `spatialvi.model.DestVI`, `spatialvi.model.ResolVI`
+- `spatialvi.external` exists but is empty in v1
+- Future candidates for external: amici, harreman, sparl, starfysh, vivs, nolan, ppi
+
+---
+
+## Q3: How to structure shared code?
+
+### Alternatives considered
+
+| Option | Description |
+|--------|-------------|
+| A | Single shared mixin layer — all shared logic as composable mixins |
+| B | `SpatialBaseModel` intermediate class — one base class all 3 inherit from |
+| C | Protocol + composition — Python Protocols, no inheritance |
+
+### Decision: Hybrid A+B
+- **`SpatialBaseModel`** (approach B) for logic every spatial model needs:
+  setup_spatialdata, spatial coord registration, latent representation with RAPIDS,
+  spatial plotting.
+- **Optional mixins** (approach A) for capabilities that only some models have:
+  `SpatialNeighborhoodMixin` (scVIVA + ResolVI), `SpatialDeconvolutionMixin` (DestVI only).
+- Approach C was rejected as un-idiomatic for scvi-style codebases.
+
+---
+
+## Q4: How to handle RAPIDS acceleration?
+
+### Alternatives considered
+
+| Option | Description |
+|--------|-------------|
+| A | `RAPIDSAccelerationMixin` — separate mixin any model can inherit |
+| **B (chosen)** | `backend` parameter on relevant functions |
+| C | Separate `rapids`-namespaced functions (e.g., `model.rapids.get_latent_representation()`) |
+
+### Decision: B
+RAPIDS as a `backend="rapids"` parameter on `compute_neighbors()` and
+`get_latent_representation()`. Cleaner API, consistent with scikit-learn conventions, no
+inheritance complexity. The function handles dispatch internally.
+
+---
+
+## Q5: Python version support?
+
+### Alternatives considered
+- 3.10+ (broadest compatibility)
+- 3.11+ (previous spatialvi-tools2 attempt)
+- 3.12–3.14 (modern Python)
+
+### Decision: 3.12–3.14, default 3.13
+- Minimum 3.12 (drops 3.11 — no loss for a new package)
+- 3.13 is the primary/default version for CI and docs
+- 3.14 is aspirational — CI job uses `continue-on-error: true` because PyTorch and
+  scvi-tools wheel availability for 3.14 is not guaranteed at v1 release time
+
+---
+
+## Q6: CI strategy?
+
+### Alternatives considered
+
+| Option | Description |
+|--------|-------------|
+| A | Lean — Linux CPU + pre-commit only |
+| B | Full scvi-style — Linux/macOS/Windows, GPU, multiple Pythons |
+| **C+GPU (chosen)** | Linux CPU (multi-Python) + macOS CPU + GPU + pre-commit + ReadTheDocs |
+
+### Decision: C + GPU
+Spatial transcriptomics workflows are GPU-intensive by nature. GPU CI was added to the
+"middle ground" option C. Windows runners were dropped (not in scvi-tools external CI either).
+
+---
+
+## Q7: What spatial ecosystem integrations are in scope for v1?
+
+All four integration areas were confirmed as v1 scope:
+
+| Integration | Entry point | Notes |
+|-------------|-------------|-------|
+| SpatialData | `setup_spatialdata()` + `from_spatialdata()` | Alternative constructor pattern |
+| squidpy | `compute_neighbors(backend="squidpy")` | Default neighbor backend |
+| RAPIDS | `backend="rapids"` parameter | On `compute_neighbors` and `get_latent_representation` |
+| Spatial visualization | `plot_spatial_embedding()`, `plot_spatial_predictions()`, `plot_cell_type_map()` | In SpatialBaseModel + SpatialDeconvolutionMixin |
+
+---
+
+## Issues Raised by Spec Review & Resolutions
+
+These issues were caught during the automated spec review and resolved before implementation:
+
+| ID | Issue | Resolution |
+|----|-------|------------|
+| C1 | ResolVI's upstream `_prepare_data` computes neighbors — would conflict with `SpatialNeighborhoodMixin` | `spatialvi.ResolVI.setup_anndata` calls `super().setup_anndata(prepare_data=False)`; `SpatialNeighborhoodMixin` takes full ownership |
+| C2 | `get_latent_representation` override mechanism was unspecified | Explicitly defined in `SpatialBaseModel`; model classes do NOT define their own version |
+| I1 | `PyroSviTrainMixin`/`PyroSampleMixin` import path missing | Documented: both live in `scvi.model.base`, not `scvi.train` |
+| I2 | `ResolVIPredictiveMixin` was silently dropped from ResolVI MRO | Retained; provides `get_neighbor_abundance`, `get_normalized_expression_importance` |
+| I3 | `setup_spatialdata` vs `from_spatialdata` roles ambiguous | `setup_spatialdata` = field registration classmethod; `from_spatialdata` = convenience constructor classmethod |
+| I4 | `NeighborhoodGraphField` sparse handling unverified | Stores dense numpy arrays (matches upstream); squidpy CSR output is converted via `.toarray()` on registration |
+| I5 | Python 3.14 presented as guaranteed | Marked aspirational; CI job uses `continue-on-error: true` |
+| S1 | Inheritance diagram misrepresented mixin direction | Fixed: diagram now shows composition, not inheritance from SpatialBaseModel |
+| S2 | `train/_config.py` purpose underspecified | v1 re-exports scvi; placeholder for future spatial training configs |
+| S3 | `CondSCVI` / `from_rna_model` workflow missing | Documented: `CondSCVI` imported directly from `scvi.model`; `from_rna_model` inherited unchanged |
+| S4 | No lazy import strategy | Documented: `__getattr__`-based lazy loading in `__init__.py` |
+| S5 | No test fixture for `SpatialBaseModel` in isolation | `conftest.py` defines `_MinimalSpatialModel` fixture |
+
+---
+
+## Open Questions (for team discussion)
+
+1. **Naming**: Should the package be `spatialvi-tools` (PyPI) + `spatialvi` (import name)?
+   Or `spatialvi` for both? Confirm before first PyPI release.
+
+2. **CondSCVI**: Should `spatialvi` eventually wrap or re-export `CondSCVI` for a one-stop
+   DestVI workflow? Or keep the cross-package dependency explicit?
+
+3. **scVIVA niche differential expression**: The upstream scVIVA has a full
+   `differential_expression/` sub-package (`_niche_de_core.py`, `_marker_classifier.py`,
+   `_results_dataclass.py`). Is niche DE in scope for v1 or v2?
+
+4. **SpatialData write-back**: After inference, should models write predictions back into the
+   `SpatialData` object (e.g., `sdata["table"].obsm["scviva_latent"]`)? Useful for scverse
+   pipelines but requires keeping a reference to `sdata`.
+
+5. **RAPIDS version pinning**: RAPIDS has strict CUDA version requirements. Should `rapids`
+   be a separate optional extra with a warning on install, or left to the user to manage?
+
+
+---
+
 # spatialvi-tools: Package Design Specification
 
 **Date:** 2026-03-24
@@ -664,3 +841,462 @@ passes it through without wrapping. `plot_cell_type_map()` works out of the box 
 |------|--------------|
 | 2026-03-25 (v1) | 50/50 |
 | 2026-04-12 (GIMVI + Stereoscope) | 76/76 |
+
+
+---
+
+# External AMICI and Starfysh Integration Design
+
+**Date:** 2026-06-01
+**Status:** Draft for review
+**Scope:** Design only. No implementation and no commits in this step.
+**Sources:**
+- AMICI upstream: `/Users/orikr/PycharmProjects/amici/src/amici`
+- Starfysh upstream: `/Users/orikr/PycharmProjects/starfysh/starfysh`
+- SPARL digestion reference: `/Users/orikr/PycharmProjects/spatialvi-tools2/src/scviva/imaging/sparl`
+- Architecture reference: `/Users/orikr/PycharmProjects/spatialvi-tools/docs/architecture/scviva-tools-block-diagram_inc_sparl_harreman.html`
+
+---
+
+## Goal
+
+Integrate AMICI and Starfysh into `scviva-tools` as external spatial transcriptomics models using the same "digest into scviva building blocks" pattern used for SPARL, Tangram, and Stereoscope.
+
+The integration should start from the simplest useful core modeling surface and move gradually toward harder upstream capabilities. The target design accounts for the full upstream capability surface, but implementation should not assume every capability must land immediately.
+
+---
+
+## Placement Decision
+
+AMICI and Starfysh belong in `scviva.external`, not `scviva.model`, because they are imported methods with their own upstream identity and APIs.
+
+Both belong to the spatial transcriptomics track:
+
+- `AMICI` is a neighborhood-aware spatial transcriptomics model.
+- `Starfysh` is a spatial deconvolution model. Its PoE path uses histology, but the model remains a spatial transcriptomics/deconvolution method, not an imaging backbone like SPARL.
+
+SPARL remains the reference for integration style, not for model category. SPARL was digested into a scviva wrapper plus a small module adapter instead of exposing raw upstream internals directly. AMICI and Starfysh should follow the same package discipline.
+
+---
+
+## High-Level Architecture
+
+```text
+scviva.external
+├── amici
+│   ├── AMICI                  # scviva wrapper, inherits SpatialBaseModel
+│   ├── AMICIModule            # PyTorch/scvi module
+│   ├── spatial dataloader     # neighbor-aware AnnData loading
+│   ├── interpretation         # attention, counterfactual, explained variance, ablation
+│   └── callbacks              # optional training/logging callbacks
+└── starfysh
+    ├── Starfysh               # scviva wrapper, inherits SpatialBaseModel + deconv mixin
+    ├── StarfyshModule         # expression AVAE core
+    ├── StarfyshPoEModule      # optional histology PoE core
+    ├── preprocessing          # Visium args, signatures, anchors, library smoothing
+    ├── archetypes             # archetypal analysis and anchor refinement
+    └── plotting/postanalysis  # optional plots and result helpers
+```
+
+The wrapper classes own the scviva-facing API. The modules preserve the upstream math. Helper packages are added only when they support a tested public method.
+
+---
+
+## Shared Building Blocks
+
+### Existing scviva foundations
+
+Both integrations should reuse existing scviva foundations where possible:
+
+- `SpatialBaseModel` for spatial model identity, SpatialData entry points, and spatial plotting.
+- `SpatialDeconvolutionMixin` for Starfysh proportion formatting and cell-type maps.
+- `SpatialNeighborhoodMixin` concepts for AMICI neighbor registration, while preserving AMICI's label-aware neighbor exclusion behavior.
+- `AnnDataManager` field registration and scvi data-loader conventions.
+- Existing `tests/external` style from Tangram and Stereoscope.
+
+### New shared pieces to consider
+
+AMICI has a stronger neighbor-data-loader abstraction than the current mixin alone. If useful after the first slice, extract a reusable neighbor dataset/dataloader into `scviva.dataloaders` or `scviva.data` rather than keeping it private to AMICI forever.
+
+Starfysh has preprocessing, signature handling, anchor detection, and image-patch extraction. These should start private to `scviva.external.starfysh` and become shared utilities only if a second model needs them.
+
+---
+
+## Capability Inventory
+
+### AMICI upstream capabilities
+
+Core:
+
+- `AMICI` scvi-style model class.
+- `AMICIModule` with attention over spatial neighbors.
+- `SpatialAnnDataLoader` and `SpatialAnnTorchDataset` for neighborhood-aware loading.
+- Nearest-neighbor computation with label exclusion and optional cell radius adjustment.
+- `get_predictions`, `get_nn_embed`, and gene residual contribution utilities.
+
+Interpretation:
+
+- Attention pattern extraction with vanilla, value-weighted, info-weighted, and gene-weighted flavors.
+- Communication hub analysis.
+- Counterfactual attention patterns.
+- Counterfactual length-scale summaries.
+- Explained variance scores and plots.
+- Neighbor/cell-type/head ablation scores.
+
+Training/logging:
+
+- W&B training runner and training mixin.
+- Attention penalty callback.
+- Model interpretation logging callback.
+
+### Starfysh upstream capabilities
+
+Core:
+
+- `AVAE` expression-only deconvolution model.
+- `AVAE_PoE` expression plus histology product-of-experts model.
+- Negative binomial likelihood helper.
+- Multi-restart training wrapper.
+- Evaluation helpers that write inference/generative outputs to AnnData.
+- Cell-type-specific inferred expression.
+- PoE image reconstruction utilities.
+
+Preprocessing and data:
+
+- Visium preprocessing.
+- Signature loading and filtering.
+- `VisiumArguments` and integrated-data argument variants.
+- Windowed library-size smoothing.
+- Signature gene score calculation.
+- Anchor spot detection and refinement.
+- Histology image preprocessing and patch extraction.
+
+Analysis and plotting:
+
+- Archetypal analysis.
+- Marker finding and archetype assignment.
+- Anchor refinement from archetypes.
+- Spatial feature plots, cell-type fraction plots, UMAP plots.
+- Reconstruction plots, density plots, correlation maps, Moran/LISA/SCI helpers.
+
+---
+
+## Phased Integration
+
+### Phase 1: Smallest core surface
+
+Goal: make both models importable and testable under `scviva.external` without committing to every upstream helper.
+
+AMICI:
+
+- Create `scviva.external.amici`.
+- Add `AMICIModule`, minimal components, constants, and a wrapper `AMICI`.
+- Make `AMICI` inherit `SpatialBaseModel` plus the needed scvi training mixins.
+- Implement `setup_anndata` with labels, expression layer, spatial coordinates, and AMICI neighbor arrays.
+- Add a tiny synthetic-data test for setup, construction, one forward pass or one short train, and prediction shape.
+
+Starfysh:
+
+- Create `scviva.external.starfysh`.
+- Add expression-only `StarfyshModule` based on upstream `AVAE`.
+- Add wrapper `Starfysh` inheriting `SpatialDeconvolutionMixin` and `SpatialBaseModel`.
+- Implement a small `setup_anndata` contract for raw counts, spatial coordinates, signature matrix, library-size input, and cell-type names.
+- Add a tiny synthetic-data test for setup, construction, one train step or one epoch, proportions shape, and no NaNs.
+
+Phase 1 explicitly excludes Starfysh PoE, Starfysh full Visium preprocessing, AMICI interpretation modules, and plotting.
+
+### Phase 2: Output contract and basic user methods
+
+Goal: make both models useful in the scviva pipeline.
+
+AMICI:
+
+- Add `get_predictions`.
+- Add residual retrieval.
+- Add `get_nn_embed` if the data-loader contract is stable.
+- Store outputs under predictable keys in `adata.obsm` when requested.
+
+Starfysh:
+
+- Add deconvolution/proportion retrieval through the `SpatialDeconvolutionMixin` contract.
+- Add `get_latent_representation` or a Starfysh-specific latent getter that writes `qz_m`-like outputs to `adata.obsm`.
+- Add `model_eval`-equivalent behavior as a method that returns structured outputs and optionally writes to AnnData.
+- Add cell-type-specific inferred expression.
+
+### Phase 3: Reusable neighbor and deconvolution infrastructure
+
+Goal: reduce duplication only after core behavior is proven.
+
+AMICI:
+
+- Decide whether AMICI's `SpatialAnnDataLoader` should become shared `scviva.dataloaders`.
+- Align neighbor keys with scviva conventions while preserving AMICI-specific keys needed by the module.
+- Add tests for sparse, dense, and DataFrame-backed neighbor loading if feasible.
+
+Starfysh:
+
+- Tighten `SpatialDeconvolutionMixin` compatibility.
+- Move repeated proportion formatting or result writing into focused helper functions if shared with Stereoscope or DestVI.
+
+### Phase 4: Starfysh PoE and histology
+
+Goal: add Starfysh's histology-aware mode without confusing it with the SPARL imaging track.
+
+- Add `StarfyshPoEModule` based on upstream `AVAE_PoE`.
+- Add image-patch extraction and registration under `scviva.external.starfysh`, not `scviva.imaging`.
+- Reuse image loading ideas from `ImagingBaseModel` only where the data shape and semantics match.
+- Add tests with tiny in-memory or temporary image patches.
+- Add image reconstruction utilities after PoE inference is stable.
+
+### Phase 5: AMICI interpretation modules
+
+Goal: expose AMICI's analysis value once core training and predictions are reliable.
+
+- Add attention pattern module.
+- Add counterfactual attention module.
+- Add explained variance module.
+- Add ablation module.
+- Add save methods and DataFrame shape tests.
+- Add plotting tests only for smoke-level figure creation, not visual correctness.
+
+### Phase 6: Starfysh preprocessing, archetypes, and plotting
+
+Goal: port richer workflow helpers selectively.
+
+- Add `VisiumArguments`-like preprocessing only if it fits scviva style.
+- Add signature loading/filtering helpers.
+- Add anchor spot detection and refinement.
+- Add archetypal analysis.
+- Add plotting and post-analysis helpers.
+
+This phase should be selective. File-system-heavy Visium loaders, broad plotting utilities, and simulation-specific helpers can remain deferred if they do not serve the scviva pipeline.
+
+### Phase 7: Optional logging and external workflow features
+
+Goal: add convenience features only after the scientific API is stable.
+
+- Add AMICI W&B callbacks as optional extras.
+- Keep W&B imports lazy or optional.
+- Add Starfysh file-loading convenience wrappers only if examples require them.
+
+---
+
+## Public API Shape
+
+Initial API should be conservative:
+
+```python
+from scviva.external import AMICI, Starfysh
+from scviva.external.amici import AMICIModule
+from scviva.external.starfysh import StarfyshModule
+```
+
+Later API can expand:
+
+```python
+from scviva.external.starfysh import StarfyshPoEModule, ArchetypalAnalysis
+from scviva.external.amici import (
+    AMICIAttentionModule,
+    AMICICounterfactualAttentionModule,
+    AMICIExplainedVarianceModule,
+    AMICIAblationModule,
+)
+```
+
+Avoid top-level `scviva.AMICI` and `scviva.Starfysh` until the APIs are stable. Existing external models are already accessed through `scviva.external`, so this is consistent.
+
+---
+
+## Testing Strategy
+
+Tests should land with each phase.
+
+Phase 1 tests:
+
+- Import from `scviva.external`.
+- `setup_anndata` registers required fields.
+- Model construction succeeds on synthetic AnnData.
+- One forward pass or one short training run completes on CPU.
+- Output shapes are stable.
+- Outputs have no NaNs.
+
+Phase 2 tests:
+
+- Public getters return arrays/DataFrames with expected shapes.
+- Optional AnnData writes use documented keys.
+- Starfysh proportions sum to valid ranges where mathematically expected.
+- AMICI predictions and residuals align with `adata.n_obs` and `adata.n_vars`.
+
+Later tests:
+
+- AMICI interpretation modules return DataFrames with required columns.
+- Starfysh PoE accepts tiny image patches and returns expression plus image outputs.
+- Plotting tests use non-interactive Matplotlib backend and assert figure creation only.
+- Optional dependency tests skip cleanly when packages are missing.
+
+Regression tests against upstream should be added only after the wrapper behavior is stable. The first priority is scviva contract correctness, not full bitwise equivalence.
+
+---
+
+## Dependency Strategy
+
+Core dependencies should not expand until needed.
+
+Likely optional extras:
+
+- `amici` extra for `einops`, `transformer-lens`, `networkx`, `statsmodels`, `openchord`, `wandb`.
+- `starfysh` extra for Starfysh-specific preprocessing and plotting dependencies such as `histomicstk`, `skimage`, `py_pcha`, `skdim`, and `umap-learn`.
+
+Avoid importing optional packages at module import time. Use lazy imports inside methods or skip tests with clear messages.
+
+---
+
+## Risks and Mitigations
+
+AMICI neighbor loading differs from current scviva neighbor mixins.
+
+Mitigation: keep AMICI's loader local during Phase 1, then extract shared infrastructure only after tests show the contract is stable.
+
+Starfysh mixes model code, preprocessing, plotting, and file-system workflows.
+
+Mitigation: start with model and output contracts. Port preprocessing and plotting later only where they serve scviva workflows.
+
+Starfysh PoE uses histology but is not an imaging model.
+
+Mitigation: keep PoE under `scviva.external.starfysh`, document it as optional histology evidence for deconvolution, and do not route it through `scviva.imaging`.
+
+Optional dependencies may make imports fragile.
+
+Mitigation: keep optional imports lazy and tests skippable.
+
+The full upstream capability surface is large.
+
+Mitigation: use the phase ladder as a decision gate. Each phase can stop after useful behavior lands.
+
+---
+
+## Non-Goals for the First Implementation Slice
+
+The first implementation slice will not include:
+
+- Starfysh PoE/histology.
+- Starfysh file loading from Visium folders.
+- Starfysh archetypal analysis.
+- Starfysh plotting/post-analysis helpers.
+- AMICI attention/counterfactual/explained-variance/ablation modules.
+- AMICI W&B logging and training callbacks.
+- Documentation tutorials.
+- Full upstream regression equivalence.
+
+These are intentionally later phases.
+
+---
+
+## Approval Gate
+
+After this design is reviewed, the next step is an implementation plan for Phase 1 only:
+
+- `scviva.external.amici` minimal model/module/setup/test surface.
+- `scviva.external.starfysh` expression-only model/module/setup/test surface.
+- No commits unless explicitly requested.
+
+
+---
+
+# Tutorial Integration Design: AMICI and Starfysh
+
+**Date:** 2026-06-01
+**Status:** Updated after Phase 2A tutorial-output APIs
+**Scope:** Add AMICI and Starfysh tutorial notebooks to `docs/tutorials/` without executing them and without committing.
+
+**Sources:**
+- AMICI source notebook: `/Users/orikr/PycharmProjects/amici/examples/basic_usage.ipynb`
+- Starfysh Slide-seq source notebook: `/Users/orikr/PycharmProjects/starfysh/notebooks/slideseq_starfysh_tutorial_on_later.ipynb`
+- Starfysh integration source notebook: `/Users/orikr/PycharmProjects/starfysh/notebooks/Starfysh_tutorial_integration.ipynb`
+- Starfysh simulation source notebook: `/Users/orikr/PycharmProjects/starfysh/notebooks/Starfysh_tutorial_simulation.ipynb`
+
+---
+
+## Goal
+
+Port the upstream AMICI and Starfysh tutorials into the scviva documentation tree while keeping active code limited to APIs that exist in `scviva.external`.
+
+The notebooks should show users how to call the scviva wrappers, not the raw upstream packages. Upstream sections whose implementation has not landed in scviva remain visible as disabled reference notes so the tutorial narrative still shows the intended roadmap.
+
+---
+
+## Output Files
+
+| File | Source | Active scviva scope |
+| --- | --- | --- |
+| `docs/tutorials/amici_tutorial.ipynb` | `basic_usage.ipynb` | AMICI setup, training, predictions, residuals, attention patterns, neighbor embeddings |
+| `docs/tutorials/starfysh_slideseq_tutorial.ipynb` | `slideseq_starfysh_tutorial_on_later.ipynb` | Expression-only Starfysh deconvolution on Slide-seq-like counts and coordinates |
+| `docs/tutorials/starfysh_tutorial_simulation.ipynb` | `Starfysh_tutorial_simulation.ipynb` | Expression-only Starfysh deconvolution on simulated spatial transcriptomics |
+| `docs/tutorials/starfysh_tutorial_integration.ipynb` | `Starfysh_tutorial_integration.ipynb` | Current per-sample Starfysh workflow and concatenated downstream comparison |
+| `docs/tutorials/index.md` | local docs | Sphinx toctree entries for all four notebooks |
+
+---
+
+## Active API Mapping
+
+### AMICI
+
+Use:
+
+```python
+from scviva.external import AMICI
+
+AMICI.setup_anndata(
+    adata_train,
+    labels_key="subclass",
+    spatial_key="spatial",
+    n_neighbors=30,
+)
+model = AMICI(adata_train, n_label_embed=16, n_nn_embed=64, n_hidden=128)
+model.train(max_epochs=50, batch_size=512, lr=1e-3)
+
+predictions = model.get_predictions(store_key="amici_prediction")
+residuals = model.get_predictions(get_residuals=True, store_key="amici_residual")
+attention = model.get_attention_patterns(store_key="amici_attention")
+nn_embed = model.get_nn_embed(store_key="X_amici_nn")
+```
+
+Do not use upstream-only imports such as `from amici import AMICI`, `AttentionPenaltyMonitor`, `AMICIAblationModule`, or `AMICICounterfactualAttentionModule`.
+
+### Starfysh
+
+Use:
+
+```python
+from scviva.external import Starfysh
+
+Starfysh.setup_anndata(adata, layer="counts", spatial_key="spatial")
+model = Starfysh(adata, signature_scores=signature_scores, n_latent=10, n_hidden=128)
+model.train(max_epochs=100, batch_size=128, lr=1e-3)
+
+proportions = model.get_proportions(store_key="starfysh_proportions")
+latent = model.get_latent_representation(store_key="X_starfysh")
+outputs = model.get_model_outputs(store=True)
+```
+
+When the upstream notebook starts from marker-gene signatures instead of spot-level priors, the adapted notebook includes a small local helper, `compute_signature_scores`, to compute normalized per-spot priors from marker genes present in `adata.var_names`.
+
+---
+
+## Deferred Reference Sections
+
+The notebooks keep disabled reference cells for features that are still planned but not implemented in scviva:
+
+- AMICI ablation, counterfactual attention, explained variance, and interpretation plotting.
+- Starfysh PoE and histology patch integration.
+- Starfysh `VisiumArguments`, integrated arguments, library smoothing, anchor detection, and archetypal analysis.
+- Starfysh upstream plotting and post-analysis helper modules.
+- Starfysh cell-type-specific expression reconstruction.
+
+All deferred cells use a `TODO: Phase N` comment and contain only non-executing reference code.
+
+---
+
+## Verification
+
+Notebook execution is intentionally not part of this task. Verification should parse the notebook JSON, check that the notebooks are included in the toctree, run the AMICI/Starfysh external tests, and run lint on the changed Python sources and tests.
