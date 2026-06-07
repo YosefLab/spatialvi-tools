@@ -66,12 +66,18 @@ def test_resolvi_compute_neighbors(resolvi_adata):
 
 
 @pytest.mark.optional
-def test_resolvi_neighbor_abundance(resolvi_adata):
-    """get_neighbor_abundance returns shape (n_obs, n_cell_types) with no NaNs."""
-    ResolVI.setup_anndata(resolvi_adata, labels_key="labels")
-    model = ResolVI(resolvi_adata, semisupervised=True)  # probs_prediction requires semisupervised
+def test_resolvi_neighbor_abundance():
+    """get_neighbor_abundance returns shape (n_obs, n_cell_types) with no NaNs.
+
+    Uses a fresh adata (not the shared fixture) to avoid mutation from
+    test_resolvi_compute_neighbors, which replaces index_neighbor with n_neighs=5.
+    compute_dataset_dependent_priors requires n_neighbors >= 6.
+    """
+    adata = _prepare_adata_with_neighbors(n_neighs=10)
+    ResolVI.setup_anndata(adata, labels_key="labels")
+    model = ResolVI(adata, semisupervised=True)  # probs_prediction requires semisupervised
     model.train(max_epochs=1, accelerator="cpu")
     result = model.get_neighbor_abundance(return_numpy=True)
     assert result.ndim == 2
-    assert result.shape[0] == resolvi_adata.n_obs
+    assert result.shape[0] == adata.n_obs
     assert not np.isnan(result).any()
