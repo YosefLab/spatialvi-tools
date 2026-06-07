@@ -85,6 +85,7 @@ class SpatialPredictiveMixin:
             batch_size=batch_size,
             return_mean=return_mean,
             return_numpy=return_numpy,
+            **kwargs,
         )
 
     @torch.inference_mode()
