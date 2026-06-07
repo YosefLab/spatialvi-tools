@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import pyro
+import torch
 from pyro.infer import Trace_ELBO
-from scvi import REGISTRY_KEYS
+from scvi import REGISTRY_KEYS, settings
 from scvi.data import AnnDataManager
 from scvi.data._utils import get_anndata_attribute
 from scvi.data.fields import (
@@ -26,10 +27,9 @@ from scvi.model._utils import (
 from scvi.model.base import ArchesMixin, BaseModelClass, PyroSampleMixin, PyroSviTrainMixin
 from scvi.model.base._de_core import _de_core
 from scvi.train._config import merge_kwargs
-from scvi.utils import de_dsp, setup_anndata_dsp
+from scvi.utils import de_dsp, setup_anndata_dsp, track
 
-from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
-from scviva.model.base._resolvi_predictive import ResolVIPredictiveMixin
+from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin, SpatialPredictiveMixin
 from scviva.module._resolvae import RESOLVAE
 
 if TYPE_CHECKING:
@@ -43,10 +43,10 @@ logger = logging.getLogger(__name__)
 
 class ResolVI(
     SpatialNeighborhoodMixin,
+    SpatialPredictiveMixin,
     SpatialBaseModel,
     PyroSviTrainMixin,
     PyroSampleMixin,
-    ResolVIPredictiveMixin,
     ArchesMixin,
     BaseModelClass,
 ):
@@ -169,6 +169,400 @@ class ResolVI(
             f"n_neighbors: {self.summary_stats.n_distance_neighbor}"
         )
         self.init_params_ = self._get_init_params(locals())
+
+    # ------------------------------------------------------------------ #
+    # Pyro-specific overrides of SpatialPredictiveMixin defaults
+    # ------------------------------------------------------------------ #
+
+    @torch.inference_mode()
+    def get_latent_representation(
+        self,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
+        give_mean: bool = True,
+        mc_samples: int = 1,
+        batch_size: int | None = None,
+        return_dist: bool = False,
+        backend: str = "cpu",
+    ) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
+        """Return the latent representation for each cell (Pyro path).
+
+        Parameters
+        ----------
+        adata
+            AnnData object. If ``None``, defaults to the model's registered adata.
+        indices
+            Indices of cells in adata to use. If ``None``, all cells are used.
+        give_mean
+            Give mean of distribution or sample from it.
+        mc_samples
+            Ignored (kept for API consistency with scVI).
+        batch_size
+            Minibatch size. Defaults to ``scvi.settings.batch_size``.
+        return_dist
+            Return distribution parameters instead of sampled values.
+
+        Returns
+        -------
+        Latent representation or ``(mean, variance)`` tuple if ``return_dist=True``.
+        """
+        import torch as _torch
+        from scvi.model._utils import parse_device_args as _parse_device_args
+
+        adata = self._validate_anndata(adata)
+        scdl = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+        latent = []
+        latent_qzm = []
+        latent_qzv = []
+
+        _, _, device = _parse_device_args(
+            accelerator="auto",
+            devices="auto",
+            return_device="torch",
+            validate_single_device=True,
+        )
+
+        for tensors in scdl:
+            _, kwargs = self.module._get_fn_args_from_batch(tensors)
+            kwargs = {k: v.to(device) if v is not None else v for k, v in kwargs.items()}
+
+            if kwargs["cat_covs"] is not None and self.module.encode_covariates:
+                categorical_input = list(_torch.split(kwargs["cat_covs"], 1, dim=1))
+            else:
+                categorical_input = ()
+
+            qz_m, qz_v, z = self.module.z_encoder(
+                _torch.log1p(kwargs["x"] / _torch.mean(kwargs["x"], dim=1, keepdim=True)),
+                kwargs["batch_index"],
+                *categorical_input,
+            )
+            qz = _torch.distributions.Normal(qz_m, qz_v.sqrt())
+            if give_mean:
+                z = qz.loc
+
+            latent += [z.cpu()]
+            latent_qzm += [qz.loc.cpu()]
+            latent_qzv += [qz.scale.square().cpu()]
+        result = (
+            (_torch.cat(latent_qzm).numpy(), _torch.cat(latent_qzv).numpy())
+            if return_dist
+            else _torch.cat(latent).numpy()
+        )
+        if backend == "rapids":
+            try:
+                import cupy as cp
+
+                if isinstance(result, tuple):
+                    return tuple(cp.asarray(r) for r in result)
+                return cp.asarray(result)
+            except ImportError as e:
+                raise ImportError(
+                    "backend='rapids' requires cupy. "
+                    "Install with: pip install 'scviva-tools[rapids]'"
+                ) from e
+        return result
+
+    @torch.inference_mode()
+    def get_normalized_expression_importance(
+        self,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
+        transform_batch: Sequence[int | str] | None = None,
+        gene_list: Sequence[str] | None = None,
+        library_size: float | None = 1,
+        n_samples: int = 30,
+        n_samples_overall: int = None,
+        batch_size: int | None = None,
+        weights: str | np.ndarray | None = None,
+        return_mean: bool = True,
+        return_numpy: bool | None = None,
+        library_scaling: bool = False,
+        size_scaling: bool = False,
+    ) -> np.ndarray | pd.DataFrame:
+        r"""Returns importance-sampled normalized gene expression (Pyro path).
+
+        Parameters
+        ----------
+        adata
+            AnnData object. If ``None``, defaults to the model's registered adata.
+        indices
+            Indices of cells to use.
+        transform_batch
+            Not supported. Kept for API consistency.
+        gene_list
+            Subset of genes to return.
+        library_size
+            Scale expression to this common library size.
+        n_samples
+            Number of posterior samples.
+        n_samples_overall
+            Overrides ``n_samples``; returns a flat sample array.
+        batch_size
+            Minibatch size.
+        weights
+            Precomputed importance weights. ``"uniform"`` disables importance sampling.
+        return_mean
+            Return the mean over samples.
+        return_numpy
+            Return :class:`~numpy.ndarray` instead of :class:`~pandas.DataFrame`.
+        library_scaling
+            Multiply decoded expression by library size.
+        size_scaling
+            Divide by size factor (requires ``size_factor_key`` in ``setup_anndata``).
+
+        Returns
+        -------
+        Normalized expression array or DataFrame of shape ``(n_cells, n_genes)``.
+        """
+        import warnings as _warnings
+
+        from pyro import infer as _infer
+        from scvi.model._utils import _get_batch_code_from_category, parse_device_args
+
+        adata = self._validate_anndata(adata)
+
+        if indices is None:
+            indices = np.arange(adata.n_obs)
+        scdl = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+
+        transform_batch = _get_batch_code_from_category(
+            self.get_anndata_manager(adata, required=True), transform_batch
+        )
+
+        gene_mask = slice(None) if gene_list is None else adata.var_names.isin(gene_list)
+
+        if n_samples > 1 and return_mean is False:
+            if return_numpy is False:
+                _warnings.warn(
+                    "`return_numpy` must be `True` if `n_samples > 1` and `return_mean` "
+                    "is `False`, returning an `np.ndarray`.",
+                    UserWarning,
+                    stacklevel=settings.warnings_stacklevel,
+                )
+            return_numpy = True
+
+        exprs = []
+        weighting = []
+
+        _, _, device = parse_device_args(
+            accelerator="auto",
+            devices="auto",
+            return_device="torch",
+            validate_single_device=True,
+        )
+
+        for tensors in scdl:
+            args, kwargs = self.module._get_fn_args_from_batch(tensors)
+            kwargs = {k: v.to(device) if v is not None else v for k, v in kwargs.items()}
+            model_now = partial(self.module.model_simplified, corrected_rate=True)
+            importance_dist = _infer.Importance(
+                model_now, guide=self.module.guide.guide_simplified, num_samples=10 * n_samples
+            )
+            posterior = importance_dist.run(*args, **kwargs)
+            marginal = _infer.EmpiricalMarginal(posterior, sites=["mean_poisson", "px_scale"])
+            samples = torch.cat([marginal().unsqueeze(1) for i in range(n_samples)], 1)
+            log_weights = (
+                torch.distributions.Poisson(samples[0, ...] + 1e-3)
+                .log_prob(kwargs["x"].to(samples.device))
+                .sum(-1)
+            )
+            log_weights = log_weights / kwargs["x"].to(samples.device).sum(-1)
+            weighting.append(log_weights.reshape(-1).cpu())
+            if library_scaling or size_scaling:
+                if size_scaling:
+                    if "size_factor" in self.adata_manager.data_registry:
+                        size_factor = kwargs["size_factor"]
+                        samples[0, ...] = samples[0, ...] / size_factor.unsqueeze(0).repeat(
+                            n_samples, 1, 1
+                        )
+                    else:
+                        raise ValueError(
+                            "size_scaling is True but no size_factor_key was provided "
+                            "in setup_anndata."
+                        )
+                exprs.append(samples[0, ...].cpu())
+            else:
+                exprs.append(samples[1, ...].cpu())
+        exprs = torch.cat(exprs, axis=1).numpy()
+        if return_mean:
+            exprs = exprs.mean(0)
+        weighting = torch.cat(weighting, axis=0).numpy()
+        if library_size is not None:
+            exprs = library_size * exprs
+
+        if n_samples_overall is not None:
+            exprs = exprs.reshape(-1, exprs.shape[-1])
+            n_samples_ = exprs.shape[0]
+            if weights == "uniform":
+                p = None
+            else:
+                weighting -= weighting.max()
+                weighting = np.exp(weighting)
+                p = weighting / weighting.sum(axis=0, keepdims=True)
+
+            ind_ = np.random.choice(n_samples_, n_samples_overall, p=p, replace=True)
+            exprs = exprs[ind_]
+
+        if return_numpy is None or return_numpy is False:
+            return pd.DataFrame(
+                exprs,
+                columns=adata.var_names[gene_mask],
+                index=adata.obs_names[indices],
+            )
+        else:
+            return exprs
+
+    @torch.inference_mode()
+    def get_normalized_expression(
+        self,
+        adata: AnnData | None = None,
+        indices: Sequence[int] | None = None,
+        transform_batch: Sequence[int | str] | None = None,
+        gene_list: Sequence[str] | None = None,
+        library_size: float | None = 1,
+        size_scaling: bool = False,
+        n_samples: int = 1,
+        n_samples_overall: int = None,
+        batch_size: int | None = None,
+        return_mean: bool = True,
+        return_numpy: bool | None = None,
+        silent: bool = True,
+        **kwargs,
+    ) -> np.ndarray | pd.DataFrame:
+        r"""Returns normalized gene expression (Pyro path).
+
+        Parameters
+        ----------
+        adata
+            AnnData object. If ``None``, defaults to the model's registered adata.
+        indices
+            Indices of cells to use.
+        transform_batch
+            Batch to condition on.
+        gene_list
+            Subset of genes to return.
+        library_size
+            Scale expression to this common library size.
+        size_scaling
+            Divide by size factor (requires ``size_factor_key`` in ``setup_anndata``).
+        n_samples
+            Number of posterior samples.
+        n_samples_overall
+            Overrides ``n_samples``.
+        batch_size
+            Minibatch size.
+        return_mean
+            Return the mean over samples.
+        return_numpy
+            Return :class:`~numpy.ndarray` instead of :class:`~pandas.DataFrame`.
+        silent
+            Suppress progress bar.
+
+        Returns
+        -------
+        Normalized expression array or DataFrame of shape ``(n_cells, n_genes)``.
+        """
+        import warnings as _warnings
+
+        from scvi.model._utils import _get_batch_code_from_category, parse_device_args
+
+        adata = self._validate_anndata(adata)
+
+        if indices is None:
+            indices = np.arange(adata.n_obs)
+        scdl = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+
+        transform_batch = _get_batch_code_from_category(
+            self.get_anndata_manager(adata, required=True), transform_batch
+        )
+
+        gene_mask = slice(None) if gene_list is None else adata.var_names.isin(gene_list)
+
+        if n_samples > 1 and return_mean is False:
+            if return_numpy is False:
+                _warnings.warn(
+                    "`return_numpy` must be `True` if `n_samples > 1` and `return_mean` "
+                    "is `False`, returning an `np.ndarray`.",
+                    UserWarning,
+                    stacklevel=settings.warnings_stacklevel,
+                )
+            return_numpy = True
+
+        exprs = []
+
+        _, _, device = parse_device_args(
+            accelerator="auto",
+            devices="auto",
+            return_device="torch",
+            validate_single_device=True,
+        )
+
+        for tensors in scdl:
+            per_batch_exprs = []
+            for batch in track(transform_batch, disable=silent):
+                _, kw = self.module._get_fn_args_from_batch(tensors)
+                kw = {k: v.to(device) if v is not None else v for k, v in kw.items()}
+
+                if kw["cat_covs"] is not None and self.module.encode_covariates:
+                    categorical_input = list(torch.split(kw["cat_covs"], 1, dim=1))
+                else:
+                    categorical_input = ()
+
+                qz_m, qz_v, _ = self.module.z_encoder(
+                    torch.log1p(kw["x"] / torch.mean(kw["x"], dim=1, keepdim=True)),
+                    kw["batch_index"],
+                    *categorical_input,
+                )
+                z = torch.distributions.Normal(qz_m, qz_v.sqrt()).sample([n_samples])
+
+                if kw["cat_covs"] is not None:
+                    categorical_input = list(torch.split(kw["cat_covs"], 1, dim=1))
+                else:
+                    categorical_input = ()
+                if batch is not None:
+                    batch = torch.full_like(kw["batch_index"], batch)
+                else:
+                    batch = kw["batch_index"]
+
+                px_scale, _, px_rate, _ = self.module.model.decoder(
+                    self.module.model.dispersion, z, kw["library"], batch, *categorical_input
+                )
+                if size_scaling:
+                    if "size_factor" in self.adata_manager.data_registry:
+                        size_factor = kw["size_factor"]
+                        px_rate = px_rate / size_factor.reshape(-1, 1, 1)
+                        exp_ = px_rate
+                    else:
+                        raise ValueError(
+                            "size_scaling is True but no size_factor_key was provided "
+                            "in setup_anndata."
+                        )
+                else:
+                    exp_ = library_size * px_scale if library_size is not None else px_rate
+
+                exp_ = exp_[..., gene_mask]
+                per_batch_exprs.append(exp_[None].cpu())
+            per_batch_exprs = torch.cat(per_batch_exprs, dim=0).mean(0).numpy()
+            exprs.append(per_batch_exprs)
+
+        exprs = np.concatenate(exprs, axis=1)
+        if return_mean:
+            exprs = exprs.mean(0)
+
+        if n_samples_overall is not None:
+            exprs = exprs.reshape(-1, exprs.shape[-1])
+            n_samples_ = exprs.shape[0]
+            ind_ = np.random.choice(n_samples_, n_samples_overall, replace=True)
+            exprs = exprs[ind_]
+
+        if return_numpy is None or return_numpy is False:
+            return pd.DataFrame(
+                exprs,
+                columns=adata.var_names[gene_mask],
+                index=adata.obs_names[indices],
+            )
+        else:
+            return exprs
 
     def train(
         self,

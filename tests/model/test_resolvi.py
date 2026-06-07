@@ -63,3 +63,15 @@ def test_resolvi_compute_neighbors(resolvi_adata):
     model.compute_neighbors(resolvi_adata, spatial_key="spatial", n_neighs=5)
     assert "index_neighbor" in resolvi_adata.obsm
     assert "distance_neighbor" in resolvi_adata.obsm
+
+
+@pytest.mark.optional
+def test_resolvi_neighbor_abundance(resolvi_adata):
+    """get_neighbor_abundance returns shape (n_obs, n_cell_types) with no NaNs."""
+    ResolVI.setup_anndata(resolvi_adata, labels_key="labels")
+    model = ResolVI(resolvi_adata, semisupervised=True)  # probs_prediction requires semisupervised
+    model.train(max_epochs=1, accelerator="cpu")
+    result = model.get_neighbor_abundance(return_numpy=True)
+    assert result.ndim == 2
+    assert result.shape[0] == resolvi_adata.n_obs
+    assert not np.isnan(result).any()

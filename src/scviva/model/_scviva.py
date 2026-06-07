@@ -38,7 +38,7 @@ from scvi.model.base._de_core import _de_core
 from scvi.utils import de_dsp, setup_anndata_dsp, unsupported_if_adata_minified
 
 from scviva._constants import SCVIVA_REGISTRY_KEYS
-from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
+from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin, SpatialPredictiveMixin
 from scviva.model.utils._scviva_de import _niche_de_core
 from scviva.module._nichevae import nicheVAE
 
@@ -61,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 
 class SCVIVA(
+    SpatialPredictiveMixin,
     SpatialNeighborhoodMixin,
     EmbeddingMixin,
     RNASeqMixin,
@@ -245,6 +246,43 @@ class SCVIVA(
                     "Install with: pip install 'scviva-tools[rapids]'"
                 ) from e
         return latent
+
+    def get_neighbor_abundance(
+        self,
+        adata=None,
+        indices=None,
+        return_numpy: bool = False,
+        **kwargs,
+    ):
+        """Return niche composition (fraction of each cell type among neighbors).
+
+        Returns the precomputed ``niche_composition`` stored in ``adata.obsm``
+        during :meth:`~scviva.model.SCVIVA.preprocessing_anndata`.
+
+        Parameters
+        ----------
+        adata
+            AnnData object. If ``None``, uses the model's registered adata.
+        indices
+            Cell indices. If ``None``, all cells are used.
+        return_numpy
+            Return :class:`~numpy.ndarray` instead of :class:`~pandas.DataFrame`.
+
+        Returns
+        -------
+        Niche composition as a DataFrame ``(n_cells, n_cell_types)`` or ndarray.
+        """
+        adata = self._validate_anndata(adata)
+        niche_comp_key = self.adata_manager.data_registry[
+            SCVIVA_REGISTRY_KEYS.NICHE_COMPOSITION_KEY
+        ]["attr_key"]
+        arr = adata.obsm[niche_comp_key]
+        if indices is not None:
+            arr = arr[indices]
+        if return_numpy:
+            return np.asarray(arr)
+        obs_names = adata.obs_names if indices is None else adata.obs_names[indices]
+        return pd.DataFrame(np.asarray(arr), index=obs_names)
 
     @staticmethod
     def preprocessing_anndata(
