@@ -81,9 +81,13 @@ def test_scviva_normalized_expression(scviva_adata):
     assert not np.isnan(expr).any()
 
 
-def test_scviva_normalized_expression_importance(scviva_adata):
+def test_scviva_importance_weighting_path(scviva_adata):
+    """SCVIVA has no standalone importance method; importance is a weights kwarg."""
     model = _trained_model(scviva_adata)
-    expr = model.get_normalized_expression_importance(n_samples=3, return_numpy=True)
+    # Importance-sampling expression is not a separate method on PyTorch models;
+    # it is obtained via get_normalized_expression(weights="importance").
+    assert not hasattr(model, "get_normalized_expression_importance")
+    expr = model.get_normalized_expression(n_samples=3, weights="importance", return_numpy=True)
     assert expr.shape == (scviva_adata.n_obs, scviva_adata.n_vars)
     assert not np.isnan(expr).any()
 

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import torch
-from scvi import settings
+from scvi import REGISTRY_KEYS, settings
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -25,68 +25,50 @@ class SpatialPredictiveMixin:
     Applied to: SCVIVA, ResolVI.
 
     Provides:
-    - ``get_normalized_expression_importance``: PyTorch default returns standard
-      normalized expression with multiple samples. Pyro-based models (ResolVI) override
-      this with a true importance-sampling implementation.
-    - ``get_neighbor_abundance``: predicts cell-type composition of spatial neighborhoods.
-      Implemented via Pyro posterior sampling; models without a Pyro module (SCVIVA) should
-      override this in their class body.
+    - ``get_neighbor_abundance``: cell-type composition of spatial neighborhoods.
+      Two intentionally different contracts depending on the model:
+
+      * ResolVI (Pyro): uses this mixin default — model-predicted abundance from
+        posterior sampling (``PyroSampleMixin.sample_posterior``). Honors
+        ``n_samples`` / ``return_mean`` / ``weights``.
+      * SCVIVA (PyTorch): overrides this in its class body to return the
+        *observed* precomputed niche composition (not a posterior quantity).
+
+    - ``_get_label_names``: shared accessor for cell-type label names from the
+      labels registry (used for DataFrame column labels). Note that a model whose
+      neighbor-composition array is stored in a different column order (e.g. SCVIVA's
+      observed ``niche_composition``) should keep its own stored columns rather than
+      relabel via this accessor.
+
+    Notes
+    -----
+    Importance-weighted expression (``get_normalized_expression_importance``) is
+    **not** provided here: it requires the Pyro guide and likelihood reweighting,
+    so it lives on ResolVI only. PyTorch models obtain importance weighting via
+    ``get_normalized_expression(weights="importance")`` (``RNASeqMixin``).
     """
 
-    def get_normalized_expression_importance(
-        self,
-        adata: AnnData | None = None,
-        indices: Sequence[int] | None = None,
-        gene_list: Sequence[str] | None = None,
-        library_size: float | None = 1,
-        n_samples: int = 30,
-        batch_size: int | None = None,
-        return_mean: bool = True,
-        return_numpy: bool | None = None,
-        **kwargs,
-    ) -> np.ndarray | pd.DataFrame:
-        r"""Returns importance-weighted normalized gene expression.
+    def _get_label_names(self) -> np.ndarray:
+        """Return cell-type label names from the labels registry.
 
-        For PyTorch-based models this is a standard multi-sample estimate via
-        ``get_normalized_expression``. For Pyro-based models (e.g. ResolVI) this
-        method is overridden with a proper importance-sampling implementation.
-
-        Parameters
-        ----------
-        adata
-            AnnData object. If ``None``, uses the model's registered adata.
-        indices
-            Cell indices. If ``None``, all cells are used.
-        gene_list
-            Return expression for a subset of genes only.
-        library_size
-            Scale expression to this library size.
-        n_samples
-            Number of posterior samples.
-        batch_size
-            Minibatch size. Defaults to ``scvi.settings.batch_size``.
-        return_mean
-            Return the mean over samples.
-        return_numpy
-            Return :class:`~numpy.ndarray` instead of :class:`~pandas.DataFrame`.
-        **kwargs
-            Additional keyword arguments passed to ``get_normalized_expression``.
+        Single source of truth for cell-type column labels, shared across spatial
+        models. Pulls the categorical mapping registered under
+        :attr:`~scvi.REGISTRY_KEYS.LABELS_KEY`, so it does not depend on
+        ``self._label_mapping`` (which ResolVI only sets in semisupervised mode).
 
         Returns
         -------
-        Normalized expression array or DataFrame of shape ``(n_cells, n_genes)``.
+        Array of label names.
         """
-        return self.get_normalized_expression(
-            adata=adata,
-            indices=indices,
-            gene_list=gene_list,
-            library_size=library_size,
-            n_samples=n_samples,
-            batch_size=batch_size,
-            return_mean=return_mean,
-            return_numpy=return_numpy,
-            **kwargs,
-        )
+        try:
+            state_registry = self.adata_manager.get_state_registry(REGISTRY_KEYS.LABELS_KEY)
+        except (KeyError, AttributeError) as e:
+            raise AttributeError(
+                "No labels were registered for this model, so cell-type names are "
+                "unavailable. Register a `labels_key` in `setup_anndata`, or request "
+                "numpy output (`return_numpy=True`)."
+            ) from e
+        return state_registry.categorical_mapping
 
     @torch.inference_mode()
     def get_neighbor_abundance(
@@ -202,7 +184,7 @@ class SpatialPredictiveMixin:
             n_labels = len(neighbor_abundance[-1])
             return pd.DataFrame(
                 neighbor_abundance,
-                columns=self._label_mapping[:n_labels],
+                columns=self._get_label_names()[:n_labels],
                 index=adata.obs_names[indices],
             )
         else:

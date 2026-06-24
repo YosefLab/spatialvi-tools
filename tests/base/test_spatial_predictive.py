@@ -46,8 +46,22 @@ def test_get_neighbor_abundance_shape(resolvi_model):
     assert not np.isnan(result).any()
 
 
-def test_get_normalized_expression_importance_pytorch():
-    """SpatialPredictiveMixin default (PyTorch path) shape matches get_normalized_expression."""
+@pytest.mark.optional
+def test_get_neighbor_abundance_dataframe_labels(resolvi_model):
+    """DataFrame output labels columns via the shared `_get_label_names` accessor."""
+    import pandas as pd
+
+    model, adata = resolvi_model
+    df = model.get_neighbor_abundance(return_numpy=False)
+    assert isinstance(df, pd.DataFrame)
+    assert df.shape[0] == adata.n_obs
+    # Columns come from the labels registry, not from `_label_mapping` directly.
+    expected = list(model._get_label_names()[: df.shape[1]])
+    assert list(df.columns) == expected
+
+
+def test_importance_is_pyro_only_not_on_pytorch_models():
+    """Importance expression is ResolVI-only; SCVIVA uses weights='importance' instead."""
     from scviva.model._scviva import SCVIVA
 
     adata = synthetic_iid(n_genes=20, n_batches=2, n_labels=3, sparse_format=None)
@@ -72,7 +86,11 @@ def test_get_normalized_expression_importance_pytorch():
     model = SCVIVA(adata, prior_mixture=False)
     model.train(max_epochs=1, accelerator="cpu")
 
-    result = model.get_normalized_expression_importance(n_samples=3, return_numpy=True)
+    # The mixin no longer provides a no-op importance default, so PyTorch models
+    # do not expose `get_normalized_expression_importance`.
+    assert not hasattr(model, "get_normalized_expression_importance")
+    # Importance weighting for PyTorch models is the `weights` kwarg path instead.
+    result = model.get_normalized_expression(n_samples=3, weights="importance", return_numpy=True)
     expected = model.get_normalized_expression(n_samples=3, return_numpy=True)
     assert result.shape == expected.shape
     assert not np.isnan(result).any()

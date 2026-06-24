@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from functools import partial
 from typing import TYPE_CHECKING
 
@@ -248,19 +249,7 @@ class ResolVI(
             if return_dist
             else _torch.cat(latent).numpy()
         )
-        if backend == "rapids":
-            try:
-                import cupy as cp
-
-                if isinstance(result, tuple):
-                    return tuple(cp.asarray(r) for r in result)
-                return cp.asarray(result)
-            except ImportError as e:
-                raise ImportError(
-                    "backend='rapids' requires cupy. "
-                    "Install with: pip install 'scviva-tools[rapids]'"
-                ) from e
-        return result
+        return self._maybe_rapids(result, backend)
 
     @torch.inference_mode()
     def get_normalized_expression_importance(
@@ -317,7 +306,7 @@ class ResolVI(
         import warnings as _warnings
 
         from pyro import infer as _infer
-        from scvi.model._utils import _get_batch_code_from_category, parse_device_args
+        from scvi.model._utils import parse_device_args
 
         adata = self._validate_anndata(adata)
 
@@ -325,9 +314,13 @@ class ResolVI(
             indices = np.arange(adata.n_obs)
         scdl = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
 
-        transform_batch = _get_batch_code_from_category(
-            self.get_anndata_manager(adata, required=True), transform_batch
-        )
+        if transform_batch is not None:
+            warnings.warn(
+                "`transform_batch` is not supported by "
+                "`get_normalized_expression_importance` and will be ignored.",
+                UserWarning,
+                stacklevel=settings.warnings_stacklevel,
+            )
 
         gene_mask = slice(None) if gene_list is None else adata.var_names.isin(gene_list)
 
@@ -384,6 +377,7 @@ class ResolVI(
             else:
                 exprs.append(samples[1, ...].cpu())
         exprs = torch.cat(exprs, axis=1).numpy()
+        exprs = exprs[..., gene_mask]
         if return_mean:
             exprs = exprs.mean(0)
         weighting = torch.cat(weighting, axis=0).numpy()
@@ -610,7 +604,25 @@ class ResolVI(
             List of parameters to train if running model in Arches mode.
         **kwargs
             Other keyword args for the Trainer.
+
+        Notes
+        -----
+        RESOLVI trains with Pyro SVI and maintains per-cell global parameters, so it does not
+        support a held-out validation set. ``train_size`` must be ``1.0`` and ``early_stopping``
+        is not available.
         """
+        train_size = kwargs.pop("train_size", 1.0)
+        if train_size != 1.0:
+            raise ValueError(
+                "RESOLVI does not support a validation set: it uses Pyro SVI with per-cell "
+                f"global parameters, so `train_size` must be 1.0 (got {train_size})."
+            )
+        if kwargs.pop("early_stopping", False):
+            raise ValueError(
+                "RESOLVI does not support `early_stopping` because it trains without a "
+                "validation set (`train_size` must be 1.0)."
+            )
+
         blocked = self._block_parameters.copy()
         for name, param in self.module.named_parameters():
             if not param.requires_grad:
@@ -914,7 +926,6 @@ class ResolVI(
                 return_numpy=True,
                 n_samples=n_samples,
                 batch_size=batch_size,
-                weights=weights,
                 return_mean=False,
                 size_scaling=size_scaling,
             )
