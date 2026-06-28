@@ -775,8 +775,21 @@ class ResolVI(
             if prepare_data_kwargs is None:
                 prepare_data_kwargs = {}
             spatial_rep = prepare_data_kwargs.get("spatial_rep", "X_spatial")
-            if spatial_rep in adata.obsm:
+            effective_config = {"batch_key": batch_key, **prepare_data_kwargs}
+            stored_config = adata.uns.get("_resolvi_prepare_data_config", None)
+            neighbors_valid = (
+                stored_config == effective_config
+                and "index_neighbor" in adata.obsm
+                and "distance_neighbor" in adata.obsm
+                and int(adata.obsm["index_neighbor"].max()) < adata.n_obs
+            )
+            if not neighbors_valid and spatial_rep in adata.obsm:
+                print(
+                    "Preparing data for training. This may take a while. "
+                    "RAPIDS SingleCell will be used if installed."
+                )
                 cls._prepare_data(adata, batch_key=batch_key, **prepare_data_kwargs)
+                adata.uns["_resolvi_prepare_data_config"] = effective_config
             elif "index_neighbor" not in adata.obsm:
                 raise KeyError(
                     f"Spatial key '{spatial_rep}' not found in adata.obsm and no pre-computed "
