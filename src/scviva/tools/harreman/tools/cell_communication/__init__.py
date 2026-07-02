@@ -21,6 +21,8 @@ from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
 from scviva.utils import resolve_device
 
+from ._stats import compute_max_cs, compute_max_cs_gp, flatten
+
 
 def _lazy_import_hotspot():
     """Resolve circular imports lazily."""
@@ -1653,15 +1655,6 @@ def standardize_ct_counts(adata, counts, model, num_umi, sample_specific, cell_t
         counts = center_ct_counts_torch(counts, num_umi, model, cell_types)
 
     return counts
-
-
-def flatten(nested_list):
-    """Yield scalar values from a nested list or tuple structure."""
-    for item in nested_list:
-        if isinstance(item, list | tuple):
-            yield from flatten(item)
-        else:
-            yield item
 
 
 def create_weights_ct_pairs(weights, cell_types, cell_type_pairs, device):
@@ -3864,20 +3857,6 @@ def normalize_values_old(
     return c_values_norm
 
 
-def compute_max_cs(node_degrees, counts, gene_pairs_ind):
-    """Compute max communication scores per gene pair."""
-    result = torch.empty(len(gene_pairs_ind), dtype=counts.dtype, device=counts.device)
-
-    for i, (g1, _) in enumerate(gene_pairs_ind):
-        if isinstance(g1, list):
-            vals = counts[g1].mean(dim=0)
-        else:
-            vals = counts[g1]
-        result[i] = compute_max_cs_gp(vals, node_degrees)
-
-    return result
-
-
 def compute_max_cs_old(node_degrees, counts, gene_pairs_ind):
     """Compute max communication scores per gene pair using NumPy."""
     result = np.zeros(len(gene_pairs_ind))
@@ -3890,11 +3869,6 @@ def compute_max_cs_old(node_degrees, counts, gene_pairs_ind):
         result[i] = compute_max_cs_gp_old(vals, node_degrees)
 
     return result
-
-
-def compute_max_cs_gp(vals, node_degrees):
-    """Compute max communication score for a single gene (vector)."""
-    return 0.5 * torch.sum(node_degrees * vals**2)
 
 
 @jit(nopython=True)
