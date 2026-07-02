@@ -1,6 +1,6 @@
 # scviva-tools
 
-**scviva-tools** is a consolidated spatial transcriptomics analysis toolkit built on top of [scvi-tools](https://scvi-tools.org), exposing ResolVI, DestVI, and scVIVA through a clean, unified API.
+**scviva-tools** is a consolidated spatial transcriptomics analysis toolkit built on top of [scvi-tools](https://scvi-tools.org), exposing ResolVI, DestVI, scVIVA, Harreman, gimVI, Stereoscope, and Tangram through a clean, unified API.
 
 ```{toctree}
 :maxdepth: 1
@@ -39,6 +39,34 @@ Cell-type deconvolution of spatial transcriptomics spots with sub-cell-type reso
 :link-type: doc
 
 Niche-aware variational inference for cellular microenvironment modeling.
+:::
+
+:::{grid-item-card} Harreman
+:link: user_guide/models/harreman
+:link-type: doc
+
+Metabolic exchange and cell-cell communication inference from spatial transcriptomics data.
+:::
+
+:::{grid-item-card} gimVI
+:link: user_guide/models/gimvi
+:link-type: doc
+
+Joint imputation of missing genes across paired scRNA-seq and spatial transcriptomics datasets.
+:::
+
+:::{grid-item-card} Stereoscope
+:link: user_guide/models/stereoscope
+:link-type: doc
+
+Two-stage deconvolution of cell type proportions in spatial transcriptomics spots.
+:::
+
+:::{grid-item-card} Tangram
+:link: user_guide/models/tangram
+:link-type: doc
+
+Mapping single-cell RNA-seq data onto spatial transcriptomics via optimal transport.
 :::
 
 ::::
