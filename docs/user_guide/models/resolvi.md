@@ -1,6 +1,6 @@
 # ResolVI
 
-**ResolVI** (Python class {class}`~scviva.ResolVI`) is a generative model of single-cell resolved spatial
+**ResolVI** {cite:p}`Ergen25` (Python class {class}`~scviva.ResolVI`) is a generative model of single-cell resolved spatial
 transcriptomics that can subsequently be used for many common downstream tasks.
 
 The advantages of ResolVI are:
