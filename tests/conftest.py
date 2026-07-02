@@ -13,6 +13,28 @@ from scviva.data._fields import SpatialCoordsField
 from scviva.model.base._spatial_base import SpatialBaseModel
 
 
+def pytest_addoption(parser):
+    """Add the --optional command line option."""
+    parser.addoption(
+        "--optional",
+        action="store_true",
+        default=False,
+        help="Run tests marked as optional (e.g. requiring real model training).",
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip optional tests unless --optional is passed, and vice versa."""
+    run_optional = config.getoption("--optional")
+    skip_optional = pytest.mark.skip(reason="need --optional option to run")
+    skip_non_optional = pytest.mark.skip(reason="test not marked with pytest.mark.optional")
+    for item in items:
+        if not run_optional and "optional" in item.keywords:
+            item.add_marker(skip_optional)
+        elif run_optional and "optional" not in item.keywords:
+            item.add_marker(skip_non_optional)
+
+
 class _MinimalSpatialModel(SpatialBaseModel, UnsupervisedTrainingMixin):
     """Minimal concrete model for testing SpatialBaseModel methods in isolation.
 

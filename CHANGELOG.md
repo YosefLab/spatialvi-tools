@@ -18,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its Pyro-specific posterior-sampling behavior via an override; SCVIVA now composes
   the same mixin, overriding `get_neighbor_abundance` to return its precomputed
   observed niche composition instead of a posterior-sampled quantity
+- **Harreman** downstream tool for inferring metabolic exchanges and cell-cell
+  communication in tissues using spatial transcriptomics (`scviva.tl.harreman`,
+  plotting via `scviva.pl.harreman`). Provides a scanpy-style functional API
+  (`harreman.tl`/`harreman.hs`/`harreman.vs`/`harreman.pp`/`harreman.ds`/`harreman.pl`)
+  plus a stateful `HarremanAnalysis` wrapper class that can integrate outputs from
+  DestVI, ResolVI, and SCVIVA. Ported from the open scvi-tools PR
+  [scverse/scvi-tools#3806](https://github.com/scverse/scvi-tools/pull/3806)
+- **`scviva.tl`/`scviva.pl`** top-level namespace aliases (`scviva/__init__.py`),
+  mirroring scanpy's `sc.tl`/`sc.pl` convention, resolving lazily to
+  `scviva.tools`/`scviva.plotting` (the underlying package names and folder layout are
+  unchanged; the alias avoids eagerly importing heavy optional dependencies at plain
+  `import scviva` time)
+- `.github/workflows/test_linux_optional.yml`: dedicated CI job for `@pytest.mark.optional`
+  integration tests (real model training), mirroring scvi-tools' `test_linux_optional.yml`.
+  Runs on schedule, `workflow_dispatch`, or the `optional tests`/`all tests` PR labels via
+  a new `--optional` pytest flag (`tests/conftest.py`); the default test job no longer runs
+  these slow/heavy tests
 
 ### Changed
 
@@ -33,6 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ResolVI.get_latent_representation` and `SCVIVA.get_latent_representation`
 - `docs/api/developer.md`: `ResolVIPredictiveMixin` entry replaced with
   `SpatialPredictiveMixin`
+- **Harreman**: rewired all internal imports from the upstream `scvi.external.harreman`
+  namespace to this repo's actual `scviva.tools.harreman` / `scviva.plotting.harreman`
+  layout (the initial port never updated them, so the package was unimportable);
+  populated `src/scviva/tools/__init__.py` and `src/scviva/plotting/__init__.py`/
+  `src/scviva/plotting/harreman/__init__.py` to expose `HarremanAnalysis` and the
+  plotting functions; added `numba`, `pooch`, `seaborn`, `statsmodels` to the `spatial`
+  extra (imported unconditionally by Harreman but previously undeclared)
 
 ### Fixed
 
@@ -41,6 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tangram**: Fixed `get_mapper_matrix` to correctly apply the learned filter when
   `constrained=True`, ensuring downstream projection methods respect the target_count
   constraint
+- **Harreman**: fixed `MODEL_RESOLVI` constant (`"RESOLVI"` → `"ResolVI"`) so
+  `HarremanAnalysis` correctly recognizes this repo's `scviva.model.ResolVI` during
+  model integration
+- **Harreman**: fixed the `pl` (plotting) accessor, which previously imported from a
+  nonexistent `plots` submodule under `scviva.tools.harreman` instead of the actual
+  `scviva.plotting.harreman` package
 
 ### Tests
 
@@ -52,6 +82,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `tests/base/test_spatial_predictive.py` covering the shared
   `SpatialPredictiveMixin`; extended ResolVI, DestVI, and SCVIVA test modules for the
   predictive-mixin refactor
+- Fixed the 4 Harreman test files (`tests/tools/harreman/*`, `tests/plotting/harreman/*`)
+  to import from `scviva.tools.harreman`/`scviva.plotting.harreman`/`scviva.model`
+  instead of the nonexistent `scvi.external.harreman`/`scvi.external`, which previously
+  caused collection errors; added the missing `adata_spatial` fixture to
+  `tests/plotting/harreman/test_harreman_analysis.py`; removed the stray
+  `tests/tools/harreman/__init__.py` (no other test subpackage in this repo uses one)
 
 ### Notes
 

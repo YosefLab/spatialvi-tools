@@ -42,7 +42,7 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        args: ["--skip=docs/tutorials/*.ipynb,docs/superpowers/**", "--ignore-words-list=theis,raison,mor,gord,commun,scarches"]
+        args: ["--skip=docs/tutorials/*.ipynb,docs/superpowers/**", "--ignore-words-list=theis,raison,mor,gord,commun,scarches,coo"]
 
   - repo: local
     hooks:

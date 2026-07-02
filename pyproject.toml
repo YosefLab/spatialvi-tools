@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "scviva-tools"
-version = "0.1.3"
+version = "0.1.4"
 description = "Consolidated spatial transcriptomics analysis toolkit with variational inference methods"
 readme = "README.md"
 keywords = [ "deconvolution", "deep learning", "single-cell", "spatial transcriptomics", "variational inference" ]
@@ -36,6 +36,7 @@ dependencies = [
   "scikit-learn>=1.4",
   "scipy>=1.12",
   "scvi-tools>=1.4",
+  "sparse>=0.14",
   "torch>=2",
   "tqdm>=4.60",
 ]
@@ -48,6 +49,7 @@ optional-dependencies.doc = [
   "ipython",
   "myst-nb",
   "myst-parser",
+  "pooch",
   "sphinx<9",
   "sphinx-autodoc-typehints",
   "sphinx-book-theme>=1.0.1",
@@ -59,7 +61,17 @@ optional-dependencies.file_sharing = [ "fcswrite", "gdown", "pooch", "readfcs" ]
 optional-dependencies.hub = [ "boto3", "dvc[s3]", "huggingface-hub" ]
 optional-dependencies.metal = [ "mlx-metal", "torchaudio", "torchvision" ]
 optional-dependencies.rapids = [ "cugraph>=24", "cuml>=24", "cupy-cuda12x", "rapids-singlecell[rapids]" ]
-optional-dependencies.spatial = [ "geomloss", "pynndescent", "spatialdata>=0.2", "squidpy>=1.4", "torch-geometric" ]
+optional-dependencies.spatial = [
+  "geomloss",
+  "numba",
+  "pooch",
+  "pynndescent",
+  "seaborn",
+  "spatialdata>=0.2",
+  "squidpy>=1.4",
+  "statsmodels",
+  "torch-geometric",
+]
 optional-dependencies.test = [
   "coverage",
   "pytest>=7",

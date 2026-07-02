@@ -1,6 +1,6 @@
 # DestVI
 
-**DestVI** [^ref1] (Deconvolution of Spatial Transcriptomics profiles using Variational Inference)
+**DestVI** {cite:p}`Lopez22` (Deconvolution of Spatial Transcriptomics profiles using Variational Inference)
 posits a conditional generative model of spatial transcriptomics down to the sub-cell-type variation level which
 can be used to explore the spatial organization of a tissue and understanding gene expression variation between tissues and conditions.
 
@@ -222,5 +222,4 @@ st_model.train()
 proportions = st_model.get_proportions()
 ```
 
-[^ref1]: Romain Lopez, Baoguo Li, Hadas Keren-Shaul, Pierre Boyeau, Merav Kedmi, David Pilzer, Adam Jelinski, Ido Yofe, Eyal David, Allon Wagner, Can Ergen, Yoseph Addadi, Ofra Golani, Franca Ronchese, Michael I Jordan, Ido Amit, Nir Yosef (2022). _DestVI identifies continuums of cell types in spatial transcriptomics data._ [Nature Biotechnology](https://www.nature.com/articles/s41587-022-01272-8)
 [^ref2]: Jakub Tomczak, Max Welling (2018),_VAE with a VampPrior_, [Proceedings of Machine Learning Research](https://proceedings.mlr.press/v84/tomczak18a.html)
