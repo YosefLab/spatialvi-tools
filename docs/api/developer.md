@@ -14,7 +14,7 @@ Internal base classes and mixins used to build new scviva models.
    SpatialBaseModel
    SpatialNeighborhoodMixin
    SpatialDeconvolutionMixin
-   ResolVIPredictiveMixin
+   SpatialPredictiveMixin
 ```
 
 ## Data fields

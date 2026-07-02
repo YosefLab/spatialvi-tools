@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tangram** model for mapping single-cell RNA-seq data to spatial transcriptomics
   (`scviva.external.Tangram`). Torch reimplementation of the Tangram algorithm
   supporting both "cells" and "constrained" modes for cell-to-spot mapping
+- **`SpatialPredictiveMixin`** (`scviva.model.base`): generalizes the former
+  ResolVI-only predictive mixin into a shared mixin providing `get_neighbor_abundance`
+  and `_get_label_names` for any spatial model with a neighbor graph. ResolVI keeps
+  its Pyro-specific posterior-sampling behavior via an override; SCVIVA now composes
+  the same mixin, overriding `get_neighbor_abundance` to return its precomputed
+  observed niche composition instead of a posterior-sampled quantity
 
 ### Changed
 
@@ -19,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   module name (`import spatialvi`) is unchanged
 - All documentation, GitHub workflow references, and install-hint strings updated to
   `scviva-tools` (e.g. `pip install "scviva-tools[spatial]"`)
+- **Breaking**: `ResolVIPredictiveMixin` removed (`src/scviva/model/base/_resolvi_predictive.py`
+  deleted). Use `SpatialPredictiveMixin` instead
+- `ResolVI` now inherits `SpatialPredictiveMixin` in place of `ResolVIPredictiveMixin`
+- `SpatialBaseModel` gained a shared `_maybe_rapids` helper for `backend="rapids"`
+  dispatch, deduplicating the cupy-cast logic previously copy-pasted in both
+  `ResolVI.get_latent_representation` and `SCVIVA.get_latent_representation`
+- `docs/api/developer.md`: `ResolVIPredictiveMixin` entry replaced with
+  `SpatialPredictiveMixin`
 
 ### Fixed
 
@@ -35,6 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed spurious `accelerator="cpu"` from every test that does not explicitly verify
   CPU inference; kept only in `test_*_get_latent_*_cpu` tests that exercise the
   `backend="cpu"` inference path
+- Added `tests/base/test_spatial_predictive.py` covering the shared
+  `SpatialPredictiveMixin`; extended ResolVI, DestVI, and SCVIVA test modules for the
+  predictive-mixin refactor
 
 ### Notes
 
