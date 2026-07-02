@@ -43,6 +43,7 @@ MANIFEST
 
 # ReadTheDocs
 /docs/_build/
+/docs/api/reference/
 
 # OS
 .DS_Store
