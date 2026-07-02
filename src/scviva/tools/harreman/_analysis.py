@@ -288,10 +288,10 @@ class HarremanAnalysis:
 
     @property
     def results(self) -> HarremanResults:
-        """Typed view over ``adata.uns['harreman']``."""
+        """Typed view over the analysis results stored in ``adata.uns``."""
         if STEP_SETUP not in self._completed_steps:
             raise RuntimeError("No results available. Run ha.setup() first, then analysis steps.")
-        return HarremanResults.from_uns(self._adata.uns[HARREMAN_UNS_KEY])
+        return HarremanResults.from_adata_uns(self._adata.uns, self._ccc_mode)
 
     @property
     def is_deconvolved(self) -> bool:

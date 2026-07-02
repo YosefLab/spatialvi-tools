@@ -12,13 +12,13 @@ from anndata import AnnData
 
 from scviva.tools.harreman._analysis import HarremanAnalysis
 from scviva.tools.harreman._constants import (
-    HARREMAN_AUTOCORR_KEY,
-    HARREMAN_CCC_KEY,
-    HARREMAN_CT_CCC_KEY,
-    HARREMAN_GENE_PAIRS_KEY,
-    HARREMAN_ICS_KEY,
+    HARREMAN_AUTOCORR_RESULTS_KEY,
+    HARREMAN_CCC_RESULTS_KEY,
+    HARREMAN_CT_CCC_RESULTS_KEY,
+    HARREMAN_GENE_PAIRS_RESULTS_KEY,
+    HARREMAN_ICS_RESULTS_KEY,
     HARREMAN_PARAMS_KEY,
-    HARREMAN_SIG_KEY,
+    HARREMAN_SIG_GP_SUFFIX,
     HARREMAN_UNS_KEY,
     STEP_CCC,
     STEP_FILTER,
@@ -52,15 +52,18 @@ def adata_spatial():
 
 @pytest.fixture
 def uns_with_results():
+    """Mimics the real top-level ``adata.uns`` shape written by the compute steps."""
     df = pd.DataFrame({"score": [0.1, 0.2]})
     return {
-        HARREMAN_AUTOCORR_KEY: df.copy(),
-        HARREMAN_GENE_PAIRS_KEY: df.copy(),
-        HARREMAN_CCC_KEY: df.copy(),
-        HARREMAN_CT_CCC_KEY: None,
-        HARREMAN_ICS_KEY: None,
-        HARREMAN_SIG_KEY: df.copy(),
-        HARREMAN_PARAMS_KEY: {"species": "human"},
+        HARREMAN_AUTOCORR_RESULTS_KEY: df.copy(),
+        HARREMAN_GENE_PAIRS_RESULTS_KEY: ["gene0_gene1"],
+        HARREMAN_CCC_RESULTS_KEY: {
+            "cell_com_df_gp": df.copy(),
+            "cell_com_df_m": df.copy(),
+            HARREMAN_SIG_GP_SUFFIX: df.copy(),
+        },
+        HARREMAN_ICS_RESULTS_KEY: {"gp": {"cs": [1, 2]}},
+        HARREMAN_UNS_KEY: {HARREMAN_PARAMS_KEY: {"species": "human"}},
     }
 
 
@@ -68,21 +71,32 @@ def uns_with_results():
 
 
 def test_results_from_uns(uns_with_results):
-    r = HarremanResults.from_uns(uns_with_results)
+    r = HarremanResults.from_adata_uns(uns_with_results, ccc_mode="standard")
     assert isinstance(r.autocorrelation, pd.DataFrame)
-    assert isinstance(r.cell_communication, pd.DataFrame)
+    assert r.gene_pairs == ["gene0_gene1"]
+    assert isinstance(r.cell_communication, dict)
     assert r.ct_cell_communication is None
+    assert r.interacting_cell_scores == {"gp": {"cs": [1, 2]}}
+    assert r.significant_interactions["gp"] is not None
     assert r.params == {"species": "human"}
 
 
+def test_results_from_uns_cell_type_mode_reads_ct_keys(uns_with_results):
+    uns_with_results[HARREMAN_CT_CCC_RESULTS_KEY] = uns_with_results.pop(HARREMAN_CCC_RESULTS_KEY)
+    r = HarremanResults.from_adata_uns(uns_with_results, ccc_mode="cell_type")
+    assert r.cell_communication is None
+    assert isinstance(r.ct_cell_communication, dict)
+    assert r.significant_interactions["gp"] is not None
+
+
 def test_results_from_uns_missing_params_key_raises(uns_with_results):
-    del uns_with_results[HARREMAN_PARAMS_KEY]
+    del uns_with_results[HARREMAN_UNS_KEY][HARREMAN_PARAMS_KEY]
     with pytest.raises(KeyError):
-        HarremanResults.from_uns(uns_with_results)
+        HarremanResults.from_adata_uns(uns_with_results, ccc_mode="standard")
 
 
 def test_results_repr_does_not_raise(uns_with_results):
-    r = HarremanResults.from_uns(uns_with_results)
+    r = HarremanResults.from_adata_uns(uns_with_results, ccc_mode="standard")
     repr(r)  # should not raise
 
 
@@ -298,6 +312,47 @@ def test_ccc_invalid_mode_raises(adata_spatial, monkeypatch):
     ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
     with pytest.raises(ValueError, match="mode"):
         ha.compute_cell_communication(mode="invalid")
+
+
+def test_results_reflects_real_top_level_uns_after_ccc(adata_spatial, monkeypatch):
+    """Regression test: ha.results must surface data the compute steps actually write.
+
+    The compute functions store their outputs at top-level adata.uns keys (e.g.
+    "ccc_results"), not under the adata.uns['harreman'] namespace — ha.results must
+    read from the same top-level keys or it silently reports None for everything.
+    """
+    ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
+
+    def _fake_compute_ccc(adata, **kwargs):
+        adata.uns["ccc_results"] = {"cell_com_df_gp": pd.DataFrame({"c": [1]})}
+
+    with patch(
+        "scviva.tools.harreman._analysis._compute_cell_communication",
+        side_effect=_fake_compute_ccc,
+    ):
+        ha.compute_cell_communication(mode="standard")
+
+    results = ha.results
+    assert isinstance(results.cell_communication, dict)
+    assert "cell_com_df_gp" in results.cell_communication
+    assert results.ct_cell_communication is None
+
+
+def test_results_reflects_real_top_level_uns_after_ct_ccc(adata_spatial, monkeypatch):
+    ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
+
+    def _fake_compute_ct_ccc(adata, **kwargs):
+        adata.uns["ct_ccc_results"] = {"cell_com_df_gp": pd.DataFrame({"c": [1]})}
+
+    with patch(
+        "scviva.tools.harreman._analysis._compute_ct_cell_communication",
+        side_effect=_fake_compute_ct_ccc,
+    ):
+        ha.compute_cell_communication(mode="cell_type")
+
+    results = ha.results
+    assert results.cell_communication is None
+    assert isinstance(results.ct_cell_communication, dict)
 
 
 # ── compute_interacting_cell_scores() + select_significant_interactions() ──────

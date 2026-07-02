@@ -1,15 +1,21 @@
 # src/scviva/tools/harreman/_constants.py
 from __future__ import annotations
 
-# ── adata.uns keys ────────────────────────────────────────────────────────────
+# ── adata.uns namespace for run config (see HarremanAnalysis.setup) ──────────
 HARREMAN_UNS_KEY = "harreman"
-HARREMAN_AUTOCORR_KEY = "autocorrelation"
-HARREMAN_GENE_PAIRS_KEY = "gene_pairs_results"
-HARREMAN_CCC_KEY = "cell_communication"
-HARREMAN_CT_CCC_KEY = "ct_cell_communication"
-HARREMAN_ICS_KEY = "interacting_cell_scores"
-HARREMAN_SIG_KEY = "significant_interactions"
 HARREMAN_PARAMS_KEY = "params"
+
+# ── Top-level adata.uns keys written by analysis steps ────────────────────────
+# Stored at the top level (not under HARREMAN_UNS_KEY) to match the internal
+# read/write conventions of scviva.tools.harreman.tools.cell_communication.
+HARREMAN_AUTOCORR_RESULTS_KEY = "gene_autocorrelation_results"
+HARREMAN_GENE_PAIRS_RESULTS_KEY = "gene_pairs"
+HARREMAN_CCC_RESULTS_KEY = "ccc_results"
+HARREMAN_CT_CCC_RESULTS_KEY = "ct_ccc_results"
+HARREMAN_ICS_RESULTS_KEY = "interacting_cell_results"
+HARREMAN_CT_ICS_RESULTS_KEY = "ct_interacting_cell_results"
+HARREMAN_SIG_GP_SUFFIX = "cell_com_df_gp_sig"
+HARREMAN_SIG_M_SUFFIX = "cell_com_df_m_sig"
 
 # ── Step names (used in _completed_steps set) ─────────────────────────────────
 STEP_SETUP = "setup"
