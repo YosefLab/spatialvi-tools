@@ -60,12 +60,21 @@ src/scviva/
 ├── model/           # High-level model classes
 │   ├── base/        # Shared mixins and base class
 │   └── utils/       # Model-level utilities and DE sub-packages
-│       └── _scviva_de/  # scVIVA niche differential expression
+│       └── _scviva_de/  # scVIVA niche differential expression (math/data only; plots live in plotting/)
 ├── module/          # PyTorch neural-network modules
 │   └── utils/       # Module-level component libraries
 │       └── _nichevae_components.py
 ├── data/            # Custom AnnData fields
 ├── external/        # External/ported model adaptations
+├── tools/           # Analysis tools (e.g. harreman/)
+├── plotting/        # All plotting functions, exposed via `scviva.pl`
+│   ├── harreman/    # Harreman plots
+│   ├── scviva_de.py # scVIVA niche DE plots
+│   └── _deconvolution.py  # DestVI cell-type-map plot
 ├── train/           # Training plan overrides
-└── utils/           # Shared spatial utilities
+└── utils/           # Shared utilities (spatial coords, device resolution)
+    ├── _spatial.py
+    └── _device.py
 ```
+
+Plotting functions live under `plotting/`, not inline in `model/`/`tools/` code. Model mixins and tool accessor classes expose thin `.plot_*()`/`.plot()` methods that delegate to a function in `plotting/` — see `SpatialDeconvolutionMixin.plot_cell_type_map` or `HarremanAnalysis.local_correlation_plot` for the pattern.

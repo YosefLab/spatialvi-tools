@@ -38,6 +38,16 @@ ResolVI corrects segmentation errors, background signal, and cell-size bias in
 cellular-resolution spatial transcriptomics (Xenium, MERFISH, CosMx) using a
 Pyro-based probabilistic model with neighbor-aware decoders.
 
+### Harreman
+
+> **Etxezarreta Arrastoa et al. (2025)**
+> *Metabolic zonation and characterization of tissue slices with spatial transcriptomics*
+> bioRxiv. doi: [10.1101/2025.11.11.687271](https://doi.org/10.1101/2025.11.11.687271)
+> `cite:Etxezarreta-Arrastoa25`
+
+Harreman infers spatially-resolved metabolic gene programs and cell-cell metabolic/ligand-receptor
+communication from spatial transcriptomics data using local autocorrelation and spatial proximity graphs.
+
 ---
 
 ## Foundation: scvi-tools

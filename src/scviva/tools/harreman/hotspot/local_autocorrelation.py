@@ -12,9 +12,9 @@ from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
 from scviva.tools.harreman._data import harreman_data_hash, harreman_data_url
-from scviva.tools.harreman._utils import _resolve_device
 from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
+from scviva.utils import resolve_device
 
 from . import models
 
@@ -124,7 +124,7 @@ def compute_local_autocorrelation(
         except (RuntimeError, ValueError):
             pass
 
-    device = _resolve_device(device)
+    device = resolve_device(device)
 
     adata.uns["layer_key"] = layer_key
     adata.uns["model"] = model

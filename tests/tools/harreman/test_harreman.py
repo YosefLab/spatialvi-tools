@@ -128,7 +128,7 @@ def test_compute_local_autocorrelation_device_fallback(monkeypatch, adata_with_g
         resolved.append(result)
         return result
 
-    monkeypatch.setattr(_la, "_resolve_device", mock_resolve_device)
+    monkeypatch.setattr(_la, "resolve_device", mock_resolve_device)
     _ha(adata_with_graph).hs.compute_local_autocorrelation(model="danb")
     assert len(resolved) == 1
     assert resolved[0] == torch.device("cpu")

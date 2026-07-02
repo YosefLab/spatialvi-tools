@@ -16,10 +16,10 @@ from scipy.stats import mannwhitneyu, norm, pearsonr, spearmanr
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from scviva.tools.harreman._utils import _resolve_device
 from scviva.tools.harreman.hotspot import models
 from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
+from scviva.utils import resolve_device
 
 
 def _lazy_import_hotspot():
@@ -610,7 +610,7 @@ def compute_cell_communication(
             - `uns["gene_pairs_ind"]`: Index-referenced version of `uns["gene_pairs"]`.
     """
     start = time.time()
-    device = _resolve_device(device)
+    device = resolve_device(device)
     if verbose:
         print("Starting cell-cell communication analysis...")
 
@@ -1123,7 +1123,7 @@ def compute_ct_cell_communication(
             - (optional) `ct_ccc_results["np"]["analytic_null"]`: permutation null outputs.
     """
     start = time.time()
-    device = _resolve_device(device)
+    device = resolve_device(device)
     if verbose:
         print("Starting cell type-aware cell-cell communication analysis...")
 

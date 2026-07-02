@@ -12,9 +12,9 @@ from sklearn.decomposition import PCA
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from scviva.tools.harreman._utils import _resolve_device
 from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
+from scviva.utils import resolve_device
 
 from .local_autocorrelation import center_counts_torch
 
@@ -49,8 +49,8 @@ def calculate_module_scores(
         - `adata.uns['gene_modules']`: dictionary mapping module names to gene lists
     """
     start = time.time()
-    device = _resolve_device(device)
-    device = _resolve_device(device)
+    device = resolve_device(device)
+    device = resolve_device(device)
 
     layer_key = adata.uns["layer_key"]
     model = adata.uns["model"]
@@ -599,7 +599,7 @@ def calculate_super_module_scores(
         - `adata.uns['gene_modules_sm']`: dictionary mapping super-module names to gene lists
     """
     start = time.time()
-    device = _resolve_device(device)
+    device = resolve_device(device)
 
     gene_modules = adata.uns["gene_modules"]
 

@@ -177,7 +177,3 @@ corrected = model.get_normalized_expression(adata)
 # Get latent representation
 latent = model.get_latent_representation()
 ```
-
-## Reference
-
-> Ergen & Yosef (2025) — ResolVI - addressing noise and bias in spatial transcriptomics. *bioRxiv*. doi: 10.1101/2025.01.20.634005

@@ -8,9 +8,9 @@ from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from scviva.tools.harreman._utils import _resolve_device
 from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
+from scviva.utils import resolve_device
 
 from .local_autocorrelation import standardize_counts
 
@@ -82,7 +82,7 @@ def compute_local_correlation(
     # UMI counts
     num_umi = adata.uns["umi_counts"]
 
-    device = _resolve_device(device)
+    device = resolve_device(device)
 
     # Convert to tensors
     num_umi = torch.tensor(adata.uns["umi_counts"], dtype=torch.float64, device=device)

@@ -62,6 +62,9 @@ import scviva
    pl.harreman.plot_interacting_cell_scores
    pl.harreman.plot_ct_interacting_cell_scores
    pl.harreman.plot_interaction_module_correlation
+   pl.plot_cell_type_map
+   pl.scviva_de.plot_niche_de_decision_boundary
+   pl.scviva_de.plot_connectivity_distribution
 ```
 
 ## Settings
