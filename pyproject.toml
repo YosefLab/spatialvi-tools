@@ -49,6 +49,7 @@ optional-dependencies.doc = [
   "ipython",
   "myst-nb",
   "myst-parser",
+  "pooch",
   "sphinx<9",
   "sphinx-autodoc-typehints",
   "sphinx-book-theme>=1.0.1",
