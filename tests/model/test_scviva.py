@@ -64,3 +64,66 @@ def test_scviva_compute_neighbors(scviva_adata):
     model = SCVIVA(scviva_adata)
     model.compute_neighbors(scviva_adata, spatial_key="spatial", n_neighs=5)
     assert "index_neighbor" in scviva_adata.obsm
+
+
+def _trained_model(adata):
+    SCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **setup_kwargs)
+    SCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **setup_kwargs)
+    model = SCVIVA(adata, prior_mixture=False)
+    model.train(max_epochs=N_EPOCHS, accelerator="cpu")
+    return model
+
+
+def test_scviva_normalized_expression(scviva_adata):
+    model = _trained_model(scviva_adata)
+    expr = model.get_normalized_expression(return_numpy=True)
+    assert expr.shape == (scviva_adata.n_obs, scviva_adata.n_vars)
+    assert not np.isnan(expr).any()
+
+
+def test_scviva_importance_weighting_path(scviva_adata):
+    """SCVIVA has no standalone importance method; importance is a weights kwarg."""
+    model = _trained_model(scviva_adata)
+    # Importance-sampling expression is not a separate method on PyTorch models;
+    # it is obtained via get_normalized_expression(weights="importance").
+    assert not hasattr(model, "get_normalized_expression_importance")
+    expr = model.get_normalized_expression(n_samples=3, weights="importance", return_numpy=True)
+    assert expr.shape == (scviva_adata.n_obs, scviva_adata.n_vars)
+    assert not np.isnan(expr).any()
+
+
+def test_scviva_neighbor_abundance(scviva_adata):
+    model = _trained_model(scviva_adata)
+    df = model.get_neighbor_abundance()
+    import pandas as pd
+
+    assert isinstance(df, pd.DataFrame)
+    assert df.shape[0] == scviva_adata.n_obs
+    assert not df.isnull().any().any()
+
+
+def test_scviva_differential_expression(scviva_adata):
+    model = _trained_model(scviva_adata)
+    import pandas as pd
+
+    de = model.differential_expression(
+        groupby="labels",
+        group1="label_0",
+        group2="label_1",
+        batch_correction=False,
+        niche_mode=False,
+        fdr_target=1,
+        delta=0.5,
+    )
+    assert isinstance(de, pd.DataFrame)
+    assert de.shape[0] == scviva_adata.n_vars
+
+
+def test_scviva_differential_abundance(scviva_adata):
+    import pandas as pd
+
+    model = _trained_model(scviva_adata)
+    # differential_abundance stores results in adata.obsm["da_log_probs"] (returns None)
+    model.differential_abundance(sample_key="batch")
+    assert "da_log_probs" in scviva_adata.obsm
+    assert isinstance(scviva_adata.obsm["da_log_probs"], pd.DataFrame)

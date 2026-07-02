@@ -38,7 +38,7 @@ from scvi.model.base._de_core import _de_core
 from scvi.utils import de_dsp, setup_anndata_dsp, unsupported_if_adata_minified
 
 from scviva._constants import SCVIVA_REGISTRY_KEYS
-from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin
+from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin, SpatialPredictiveMixin
 from scviva.model.utils._scviva_de import _niche_de_core
 from scviva.module._nichevae import nicheVAE
 
@@ -61,6 +61,7 @@ logger = logging.getLogger(__name__)
 
 
 class SCVIVA(
+    SpatialPredictiveMixin,
     SpatialNeighborhoodMixin,
     EmbeddingMixin,
     RNASeqMixin,
@@ -234,17 +235,64 @@ class SCVIVA(
         latent = super().get_latent_representation(
             adata=adata, indices=indices, give_mean=give_mean, batch_size=batch_size, **kwargs
         )
-        if backend == "rapids":
-            try:
-                import cupy as cp
+        return self._maybe_rapids(latent, backend)
 
-                return cp.asarray(latent)
-            except ImportError as e:
-                raise ImportError(
-                    "backend='rapids' requires cupy. "
-                    "Install with: pip install 'scviva-tools[rapids]'"
-                ) from e
-        return latent
+    def get_neighbor_abundance(
+        self,
+        adata=None,
+        indices=None,
+        return_numpy: bool = False,
+        n_samples: int = 1,
+        return_mean: bool = True,
+        **kwargs,
+    ):
+        """Return niche composition (fraction of each cell type among neighbors).
+
+        Returns the precomputed ``niche_composition`` stored in ``adata.obsm``
+        during :meth:`~scviva.model.SCVIVA.preprocessing_anndata`.
+
+        Unlike the :class:`~scviva.model.base.SpatialPredictiveMixin` default (used by
+        ResolVI), this is the *observed* composition, not a posterior quantity. It is
+        deterministic, so multi-sample / no-mean modes are not supported.
+
+        Parameters
+        ----------
+        adata
+            AnnData object. If ``None``, uses the model's registered adata.
+        indices
+            Cell indices. If ``None``, all cells are used.
+        return_numpy
+            Return :class:`~numpy.ndarray` instead of :class:`~pandas.DataFrame`.
+        n_samples
+            Must be ``1``. Present only for API compatibility with the mixin; the
+            observed composition has no posterior to sample.
+        return_mean
+            Must be ``True``. Present only for API compatibility with the mixin.
+
+        Returns
+        -------
+        Niche composition as a DataFrame ``(n_cells, n_cell_types)`` or ndarray.
+        """
+        if n_samples != 1 or return_mean is False:
+            raise NotImplementedError(
+                "SCVIVA.get_neighbor_abundance returns the observed niche composition "
+                "and does not support posterior sampling (`n_samples > 1` or "
+                "`return_mean=False`). Use ResolVI for model-predicted neighbor abundance."
+            )
+        adata = self._validate_anndata(adata)
+        niche_comp_key = self.adata_manager.data_registry[
+            SCVIVA_REGISTRY_KEYS.NICHE_COMPOSITION_KEY
+        ]["attr_key"]
+        arr = adata.obsm[niche_comp_key]
+        # Preserve cell-type column names when the stored composition is a DataFrame.
+        columns = arr.columns if isinstance(arr, pd.DataFrame) else None
+        values = arr.values if isinstance(arr, pd.DataFrame) else np.asarray(arr)
+        if indices is not None:
+            values = values[indices]
+        if return_numpy:
+            return values
+        obs_names = adata.obs_names if indices is None else adata.obs_names[indices]
+        return pd.DataFrame(values, index=obs_names, columns=columns)
 
     @staticmethod
     def preprocessing_anndata(
