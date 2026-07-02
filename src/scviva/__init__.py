@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 from importlib import import_module
+from importlib.metadata import version as _version
 
 from scviva._settings import settings
 
@@ -21,7 +22,7 @@ from . import tools as tl
 # deeper than one hop should use the real `scviva.tools.*`/`scviva.plotting.*` path.
 sys.modules.update({f"{__name__}.{m}": globals()[m] for m in ["tl", "pl"]})
 
-__version__ = "0.1.0"
+__version__ = _version("scviva-tools")
 
 _MODEL_NAMES = {"SCVIVA", "DestVI", "ResolVI", "GIMVI"}
 
