@@ -13,21 +13,22 @@ import torch
 from anndata import AnnData
 from numba import jit, njit
 from scipy.stats import mannwhitneyu, norm, pearsonr, spearmanr
-from scvi.external.harreman._utils import _resolve_device
-from scvi.external.harreman.hotspot import models
-from scvi.external.harreman.preprocessing.anndata import counts_from_anndata
-from scvi.external.harreman.tools.knn import make_weights_non_redundant
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
+
+from scviva.tools.harreman._utils import _resolve_device
+from scviva.tools.harreman.hotspot import models
+from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
+from scviva.tools.harreman.tools.knn import make_weights_non_redundant
 
 
 def _lazy_import_hotspot():
     """Resolve circular imports lazily."""
     global compute_local_autocorrelation, standardize_counts
-    from scvi.external.harreman.hotspot.local_autocorrelation import (
+    from scviva.tools.harreman.hotspot.local_autocorrelation import (
         compute_local_autocorrelation as _cla,
     )
-    from scvi.external.harreman.hotspot.local_autocorrelation import (
+    from scviva.tools.harreman.hotspot.local_autocorrelation import (
         standardize_counts as _sc,
     )
 

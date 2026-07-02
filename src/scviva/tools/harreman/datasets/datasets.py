@@ -1,6 +1,7 @@
 import anndata
 import pooch
-from scvi.external.harreman._data import harreman_data_hash, harreman_data_url
+
+from scviva.tools.harreman._data import harreman_data_hash, harreman_data_url
 
 DATASETS_DIR = "datasets"
 

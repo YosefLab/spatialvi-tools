@@ -60,7 +60,17 @@ optional-dependencies.file_sharing = [ "fcswrite", "gdown", "pooch", "readfcs" ]
 optional-dependencies.hub = [ "boto3", "dvc[s3]", "huggingface-hub" ]
 optional-dependencies.metal = [ "mlx-metal", "torchaudio", "torchvision" ]
 optional-dependencies.rapids = [ "cugraph>=24", "cuml>=24", "cupy-cuda12x", "rapids-singlecell[rapids]" ]
-optional-dependencies.spatial = [ "geomloss", "pynndescent", "spatialdata>=0.2", "squidpy>=1.4", "torch-geometric" ]
+optional-dependencies.spatial = [
+  "geomloss",
+  "numba",
+  "pooch",
+  "pynndescent",
+  "seaborn",
+  "spatialdata>=0.2",
+  "squidpy>=1.4",
+  "statsmodels",
+  "torch-geometric",
+]
 optional-dependencies.test = [
   "coverage",
   "pytest>=7",

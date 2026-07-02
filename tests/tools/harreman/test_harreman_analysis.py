@@ -9,8 +9,9 @@ import numpy as np
 import pandas as pd
 import pytest
 from anndata import AnnData
-from scvi.external.harreman._analysis import HarremanAnalysis
-from scvi.external.harreman._constants import (
+
+from scviva.tools.harreman._analysis import HarremanAnalysis
+from scviva.tools.harreman._constants import (
     HARREMAN_AUTOCORR_KEY,
     HARREMAN_CCC_KEY,
     HARREMAN_CT_CCC_KEY,
@@ -26,7 +27,7 @@ from scvi.external.harreman._constants import (
     STEP_SETUP,
     STEP_SIG,
 )
-from scvi.external.harreman._results import HarremanResults
+from scviva.tools.harreman._results import HarremanResults
 
 _NUMBA_CACHE_DIR = os.path.join(tempfile.gettempdir(), "numba_cache")
 os.environ.setdefault("NUMBA_CACHE_DIR", _NUMBA_CACHE_DIR)
@@ -168,7 +169,7 @@ def _make_mock_extract_db(adata):
 
 def _setup_ha_no_network(adata, monkeypatch, cell_type_key=None):
     """Create HarremanAnalysis with setup() mocked to avoid S3 calls."""
-    import scvi.external.harreman._analysis as _mod
+    import scviva.tools.harreman._analysis as _mod
 
     monkeypatch.setattr(_mod, "_extract_interaction_db", _make_mock_extract_db(adata))
     ha = HarremanAnalysis(adata)
@@ -203,7 +204,7 @@ def test_setup_with_cell_type_key(adata_spatial, monkeypatch):
 
 
 def test_setup_second_call_overwrites_params(adata_spatial, monkeypatch):
-    import scvi.external.harreman._analysis as _mod
+    import scviva.tools.harreman._analysis as _mod
 
     monkeypatch.setattr(_mod, "_extract_interaction_db", _make_mock_extract_db(adata_spatial))
     ha = HarremanAnalysis(adata_spatial)
@@ -218,7 +219,7 @@ def test_setup_second_call_overwrites_params(adata_spatial, monkeypatch):
 
 def test_filter_genes_marks_step_complete(adata_spatial, monkeypatch):
     ha = _setup_ha_no_network(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._apply_gene_filtering") as mock_filt:
+    with patch("scviva.tools.harreman._analysis._apply_gene_filtering") as mock_filt:
         mock_filt.return_value = None
         ha.filter_genes()
     assert STEP_FILTER in ha._completed_steps
@@ -226,7 +227,7 @@ def test_filter_genes_marks_step_complete(adata_spatial, monkeypatch):
 
 def test_filter_genes_calls_underlying_function(adata_spatial, monkeypatch):
     ha = _setup_ha_no_network(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._apply_gene_filtering") as mock_filt:
+    with patch("scviva.tools.harreman._analysis._apply_gene_filtering") as mock_filt:
         mock_filt.return_value = None
         ha.filter_genes(feature_elimination=True, threshold=0.3)
     mock_filt.assert_called_once()
@@ -240,20 +241,20 @@ def test_filter_genes_calls_underlying_function(adata_spatial, monkeypatch):
 
 def test_compute_gene_pairs_marks_step_complete(adata_spatial, monkeypatch):
     ha = _setup_ha_no_network(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_gene_pairs") as mock_gp:
+    with patch("scviva.tools.harreman._analysis._compute_gene_pairs") as mock_gp:
         mock_gp.return_value = None
         ha.compute_gene_pairs()
     assert STEP_GENE_PAIRS in ha._completed_steps
 
 
 def test_compute_gene_pairs_passes_layer_key(adata_spatial, monkeypatch):
-    import scvi.external.harreman._analysis as _mod
+    import scviva.tools.harreman._analysis as _mod
 
     monkeypatch.setattr(_mod, "_extract_interaction_db", _make_mock_extract_db(adata_spatial))
     adata_spatial.layers["my_layer"] = adata_spatial.X.copy()
     ha = HarremanAnalysis(adata_spatial, layer_key="my_layer")
     ha.setup(compute_neighbors_on_key="spatial", n_neighbors=5)
-    with patch("scvi.external.harreman._analysis._compute_gene_pairs") as mock_gp:
+    with patch("scviva.tools.harreman._analysis._compute_gene_pairs") as mock_gp:
         mock_gp.return_value = None
         ha.compute_gene_pairs()
     _, kwargs = mock_gp.call_args
@@ -271,7 +272,7 @@ def _ha_after_gene_pairs(adata, monkeypatch):
 
 def test_ccc_standard_marks_step(adata_spatial, monkeypatch):
     ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_cell_communication") as mock_ccc:
+    with patch("scviva.tools.harreman._analysis._compute_cell_communication") as mock_ccc:
         mock_ccc.return_value = None
         ha.compute_cell_communication(mode="standard")
     assert STEP_CCC in ha._completed_steps
@@ -279,7 +280,7 @@ def test_ccc_standard_marks_step(adata_spatial, monkeypatch):
 
 def test_ccc_cell_type_mode_calls_ct_function(adata_spatial, monkeypatch):
     ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_ct_cell_communication") as mock_ct:
+    with patch("scviva.tools.harreman._analysis._compute_ct_cell_communication") as mock_ct:
         mock_ct.return_value = None
         ha.compute_cell_communication(mode="cell_type")
     mock_ct.assert_called_once()
@@ -287,7 +288,7 @@ def test_ccc_cell_type_mode_calls_ct_function(adata_spatial, monkeypatch):
 
 def test_ccc_standard_mode_calls_standard_function(adata_spatial, monkeypatch):
     ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_cell_communication") as mock_std:
+    with patch("scviva.tools.harreman._analysis._compute_cell_communication") as mock_std:
         mock_std.return_value = None
         ha.compute_cell_communication(mode="standard")
     mock_std.assert_called_once()
@@ -310,7 +311,7 @@ def _ha_after_ccc(adata, monkeypatch):
 
 def test_ics_standard_marks_step(adata_spatial, monkeypatch):
     ha = _ha_after_ccc(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_interacting_cell_scores") as mock_ics:
+    with patch("scviva.tools.harreman._analysis._compute_interacting_cell_scores") as mock_ics:
         mock_ics.return_value = None
         ha.compute_interacting_cell_scores(mode="standard")
     assert STEP_ICS in ha._completed_steps
@@ -318,7 +319,7 @@ def test_ics_standard_marks_step(adata_spatial, monkeypatch):
 
 def test_ics_cell_type_mode_calls_ct_function(adata_spatial, monkeypatch):
     ha = _ha_after_ccc(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_ct_interacting_cell_scores") as mock_ct:
+    with patch("scviva.tools.harreman._analysis._compute_ct_interacting_cell_scores") as mock_ct:
         mock_ct.return_value = None
         ha.compute_interacting_cell_scores(mode="cell_type")
     mock_ct.assert_called_once()
@@ -326,7 +327,7 @@ def test_ics_cell_type_mode_calls_ct_function(adata_spatial, monkeypatch):
 
 def test_select_significant_marks_step(adata_spatial, monkeypatch):
     ha = _ha_after_ccc(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._select_significant_interactions") as mock_sig:
+    with patch("scviva.tools.harreman._analysis._select_significant_interactions") as mock_sig:
         mock_sig.return_value = None
         ha.select_significant_interactions()
     assert STEP_SIG in ha._completed_steps
@@ -334,7 +335,7 @@ def test_select_significant_marks_step(adata_spatial, monkeypatch):
 
 def test_select_significant_passes_threshold(adata_spatial, monkeypatch):
     ha = _ha_after_ccc(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._select_significant_interactions") as mock_sig:
+    with patch("scviva.tools.harreman._analysis._select_significant_interactions") as mock_sig:
         mock_sig.return_value = None
         ha.select_significant_interactions(fdr_threshold=0.01)
     _, kwargs = mock_sig.call_args
@@ -343,10 +344,10 @@ def test_select_significant_passes_threshold(adata_spatial, monkeypatch):
 
 def test_select_significant_defaults_to_standard_mode(adata_spatial, monkeypatch):
     ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_cell_communication") as mock_ccc:
+    with patch("scviva.tools.harreman._analysis._compute_cell_communication") as mock_ccc:
         mock_ccc.return_value = None
         ha.compute_cell_communication(mode="standard")
-    with patch("scvi.external.harreman._analysis._select_significant_interactions") as mock_sig:
+    with patch("scviva.tools.harreman._analysis._select_significant_interactions") as mock_sig:
         mock_sig.return_value = None
         ha.select_significant_interactions()
     _, kwargs = mock_sig.call_args
@@ -355,10 +356,10 @@ def test_select_significant_defaults_to_standard_mode(adata_spatial, monkeypatch
 
 def test_select_significant_defaults_to_cell_type_mode(adata_spatial, monkeypatch):
     ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_ct_cell_communication") as mock_ccc:
+    with patch("scviva.tools.harreman._analysis._compute_ct_cell_communication") as mock_ccc:
         mock_ccc.return_value = None
         ha.compute_cell_communication(mode="cell_type")
-    with patch("scvi.external.harreman._analysis._select_significant_interactions") as mock_sig:
+    with patch("scviva.tools.harreman._analysis._select_significant_interactions") as mock_sig:
         mock_sig.return_value = None
         ha.select_significant_interactions()
     _, kwargs = mock_sig.call_args
@@ -367,11 +368,11 @@ def test_select_significant_defaults_to_cell_type_mode(adata_spatial, monkeypatc
 
 def test_ics_mode_mismatch_warns(adata_spatial, monkeypatch):
     ha = _ha_after_gene_pairs(adata_spatial, monkeypatch)
-    with patch("scvi.external.harreman._analysis._compute_cell_communication") as mock_ccc:
+    with patch("scviva.tools.harreman._analysis._compute_cell_communication") as mock_ccc:
         mock_ccc.return_value = None
         ha.compute_cell_communication(mode="standard")
     with patch(
-        "scvi.external.harreman._analysis._compute_ct_interacting_cell_scores"
+        "scviva.tools.harreman._analysis._compute_ct_interacting_cell_scores"
     ) as mock_ct_ics:
         mock_ct_ics.return_value = None
         with pytest.warns(UserWarning, match="does not match"):
@@ -401,7 +402,9 @@ def test_repr_updates_after_setup(adata_spatial, monkeypatch):
 def destvi_model_and_adata():
     """Train minimal DestVI model on synthetic data."""
     from scvi.data import synthetic_iid
-    from scvi.model import CondSCVI, DestVI
+    from scvi.model import CondSCVI
+
+    from scviva.model import DestVI
 
     n_labels = 3
     dataset = synthetic_iid(n_labels=n_labels, n_genes=50)
@@ -421,12 +424,13 @@ def destvi_model_and_adata():
 def resolvi_model_and_adata():
     """Train minimal RESOLVI model on synthetic spatial data."""
     from scvi.data import synthetic_iid
-    from scvi.external import RESOLVI
+
+    from scviva.model import ResolVI
 
     adata = synthetic_iid(generate_coordinates=True, n_regions=5, n_genes=50)
     adata.obsm["X_spatial"] = adata.obsm["coordinates"]
-    RESOLVI.setup_anndata(adata)
-    model = RESOLVI(adata)
+    ResolVI.setup_anndata(adata)
+    model = ResolVI(adata)
     model.train(max_epochs=2)
     return model, adata
 
@@ -435,7 +439,8 @@ def resolvi_model_and_adata():
 def scviva_model_and_adata():
     """Train minimal SCVIVA model on synthetic spatial data."""
     from scvi.data import synthetic_iid
-    from scvi.external import SCVIVA
+
+    from scviva.model import SCVIVA
 
     adata = synthetic_iid(
         batch_size=64,
@@ -510,7 +515,7 @@ def test_integration_destvi_layer_shape(destvi_model_and_adata):
 @pytest.mark.optional
 def test_integration_resolvi_attaches_denoised_layer(resolvi_model_and_adata):
     """RESOLVI: verify denoised layer attached."""
-    from scvi.external.harreman._constants import HARREMAN_DENOISED_LAYER
+    from scviva.tools.harreman._constants import HARREMAN_DENOISED_LAYER
 
     model, adata = resolvi_model_and_adata
     ha = HarremanAnalysis(adata.copy(), model=model)
@@ -526,7 +531,7 @@ def test_integration_resolvi_not_deconvolved(resolvi_model_and_adata):
 
 @pytest.mark.optional
 def test_integration_resolvi_denoised_shape(resolvi_model_and_adata):
-    from scvi.external.harreman._constants import HARREMAN_DENOISED_LAYER
+    from scviva.tools.harreman._constants import HARREMAN_DENOISED_LAYER
 
     model, adata = resolvi_model_and_adata
     adata_copy = adata.copy()
@@ -537,7 +542,7 @@ def test_integration_resolvi_denoised_shape(resolvi_model_and_adata):
 @pytest.mark.optional
 def test_integration_scviva_attaches_latent(scviva_model_and_adata):
     """SCVIVA: verify latent representation attached to obsm."""
-    from scvi.external.harreman._constants import HARREMAN_LATENT_OBSM
+    from scviva.tools.harreman._constants import HARREMAN_LATENT_OBSM
 
     model, adata = scviva_model_and_adata
     ha = HarremanAnalysis(adata.copy(), model=model)
@@ -553,7 +558,7 @@ def test_integration_scviva_not_deconvolved(scviva_model_and_adata):
 
 @pytest.mark.optional
 def test_integration_scviva_latent_shape(scviva_model_and_adata):
-    from scvi.external.harreman._constants import HARREMAN_LATENT_OBSM
+    from scviva.tools.harreman._constants import HARREMAN_LATENT_OBSM
 
     model, adata = scviva_model_and_adata
     adata_copy = adata.copy()
@@ -625,7 +630,7 @@ def test_tl_compute_knn_graph_via_accessor(adata_spatial):
 
 def test_compute_neighbors_use_gpu_false_skips_gpu(adata_spatial):
     """use_gpu=False must not call _gpu_neighbors."""
-    from scvi.external.harreman.tools import knn as knn_mod
+    from scviva.tools.harreman.tools import knn as knn_mod
 
     with patch.object(knn_mod, "_gpu_neighbors", wraps=knn_mod._gpu_neighbors) as mock_gpu:
         knn_mod.compute_neighbors(
@@ -640,7 +645,7 @@ def test_compute_neighbors_use_gpu_false_skips_gpu(adata_spatial):
 
 def test_compute_neighbors_use_gpu_none_falls_back_when_gpu_unavailable(adata_spatial):
     """use_gpu=None falls back to sklearn when _gpu_neighbors returns None."""
-    from scvi.external.harreman.tools import knn as knn_mod
+    from scviva.tools.harreman.tools import knn as knn_mod
 
     with patch.object(knn_mod, "_gpu_neighbors", return_value=None) as mock_gpu:
         knn_mod.compute_neighbors(
@@ -655,7 +660,7 @@ def test_compute_neighbors_use_gpu_none_falls_back_when_gpu_unavailable(adata_sp
 
 def test_compute_neighbors_use_gpu_true_raises_when_gpu_unavailable(adata_spatial):
     """use_gpu=True raises RuntimeError when _gpu_neighbors returns None."""
-    from scvi.external.harreman.tools import knn as knn_mod
+    from scviva.tools.harreman.tools import knn as knn_mod
 
     with patch.object(knn_mod, "_gpu_neighbors", return_value=None):
         with pytest.raises(RuntimeError, match="GPU neighbor computation failed"):
@@ -671,7 +676,8 @@ def test_compute_neighbors_uses_gpu_result_when_available(adata_spatial):
     """When _gpu_neighbors returns a matrix, it must be used without sklearn fallback."""
     import numpy as np
     from scipy.sparse import csr_matrix
-    from scvi.external.harreman.tools import knn as knn_mod
+
+    from scviva.tools.harreman.tools import knn as knn_mod
 
     n = adata_spatial.n_obs
     # Build a minimal sparse distance matrix: each cell connected to next
@@ -695,7 +701,7 @@ def test_compute_neighbors_uses_gpu_result_when_available(adata_spatial):
 
 def test_setup_use_gpu_param_forwarded(adata_spatial, monkeypatch):
     """use_gpu kwarg is forwarded from ha.setup() to compute_knn_graph."""
-    import scvi.external.harreman._analysis as _mod
+    import scviva.tools.harreman._analysis as _mod
 
     monkeypatch.setattr(_mod, "_extract_interaction_db", _make_mock_extract_db(adata_spatial))
     with patch.object(_mod, "_compute_knn_graph") as mock_knn:

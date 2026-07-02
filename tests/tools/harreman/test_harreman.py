@@ -3,12 +3,13 @@ import tempfile
 import numpy as np
 import pandas as pd
 import pytest
-import scvi.external.harreman.hotspot.local_autocorrelation as local_autocorrelation
 import torch
 from anndata import AnnData
-from scvi.external import HarremanAnalysis
-from scvi.external.harreman.preprocessing import read_h5ad, write_h5ad
-from scvi.external.harreman.preprocessing.anndata import counts_from_anndata
+
+import scviva.tools.harreman.hotspot.local_autocorrelation as local_autocorrelation
+from scviva.tools import HarremanAnalysis
+from scviva.tools.harreman.preprocessing import read_h5ad, write_h5ad
+from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
 
 
 def _ha(adata: AnnData) -> HarremanAnalysis:
@@ -118,7 +119,7 @@ def test_compute_local_autocorrelation(adata_with_graph):
 
 def test_compute_local_autocorrelation_device_fallback(monkeypatch, adata_with_graph):
     """Test that device resolution falls back to CPU when CUDA is unavailable."""
-    import scvi.external.harreman.hotspot.local_autocorrelation as _la
+    import scviva.tools.harreman.hotspot.local_autocorrelation as _la
 
     resolved = []
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from scvi.external.harreman._constants import (
+from scviva.tools.harreman._constants import (
     HARREMAN_AUTOCORR_KEY,
     HARREMAN_CCC_KEY,
     HARREMAN_CT_CCC_KEY,

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from scvi.external.harreman._constants import (
+from scviva.tools.harreman._constants import (
     HARREMAN_DENOISED_LAYER,
     HARREMAN_LATENT_OBSM,
     HARREMAN_PARAMS_KEY,
@@ -19,32 +19,32 @@ from scvi.external.harreman._constants import (
     STEP_SIG,
     SUPPORTED_MODELS,
 )
-from scvi.external.harreman._results import HarremanResults
-from scvi.external.harreman.preprocessing.database import (
+from scviva.tools.harreman._results import HarremanResults
+from scviva.tools.harreman.preprocessing.database import (
     extract_interaction_db as _extract_interaction_db,
 )
-from scvi.external.harreman.tools.cell_communication import (
+from scviva.tools.harreman.tools.cell_communication import (
     apply_gene_filtering as _apply_gene_filtering,
 )
-from scvi.external.harreman.tools.cell_communication import (
+from scviva.tools.harreman.tools.cell_communication import (
     compute_cell_communication as _compute_cell_communication,
 )
-from scvi.external.harreman.tools.cell_communication import (
+from scviva.tools.harreman.tools.cell_communication import (
     compute_ct_cell_communication as _compute_ct_cell_communication,
 )
-from scvi.external.harreman.tools.cell_communication import (
+from scviva.tools.harreman.tools.cell_communication import (
     compute_ct_interacting_cell_scores as _compute_ct_interacting_cell_scores,
 )
-from scvi.external.harreman.tools.cell_communication import (
+from scviva.tools.harreman.tools.cell_communication import (
     compute_gene_pairs as _compute_gene_pairs,
 )
-from scvi.external.harreman.tools.cell_communication import (
+from scviva.tools.harreman.tools.cell_communication import (
     compute_interacting_cell_scores as _compute_interacting_cell_scores,
 )
-from scvi.external.harreman.tools.cell_communication import (
+from scviva.tools.harreman.tools.cell_communication import (
     select_significant_interactions as _select_significant_interactions,
 )
-from scvi.external.harreman.tools.knn import compute_knn_graph as _compute_knn_graph
+from scviva.tools.harreman.tools.knn import compute_knn_graph as _compute_knn_graph
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -588,39 +588,39 @@ class _HarremanHsAccessor:
         return adata if adata is not None else self._ha._adata
 
     def compute_local_autocorrelation(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.hotspot.local_autocorrelation import (
+        from scviva.tools.harreman.hotspot.local_autocorrelation import (
             compute_local_autocorrelation,
         )
 
         compute_local_autocorrelation(self._resolve(adata), **kwargs)
 
     def compute_local_correlation(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.hotspot.local_correlation import compute_local_correlation
+        from scviva.tools.harreman.hotspot.local_correlation import compute_local_correlation
 
         compute_local_correlation(self._resolve(adata), **kwargs)
 
     def create_modules(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.hotspot.modules import create_modules
+        from scviva.tools.harreman.hotspot.modules import create_modules
 
         create_modules(self._resolve(adata), **kwargs)
 
     def calculate_module_scores(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.hotspot.modules import calculate_module_scores
+        from scviva.tools.harreman.hotspot.modules import calculate_module_scores
 
         calculate_module_scores(self._resolve(adata), **kwargs)
 
     def calculate_super_module_scores(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.hotspot.modules import calculate_super_module_scores
+        from scviva.tools.harreman.hotspot.modules import calculate_super_module_scores
 
         calculate_super_module_scores(self._resolve(adata), **kwargs)
 
     def compute_top_scoring_modules(self, adata: AnnData | None = None, **kwargs):
-        from scvi.external.harreman.hotspot.modules import compute_top_scoring_modules
+        from scviva.tools.harreman.hotspot.modules import compute_top_scoring_modules
 
         return compute_top_scoring_modules(self._resolve(adata), **kwargs)
 
     def integrate_vision_hotspot_results(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.hotspot.modules import integrate_vision_hotspot_results
+        from scviva.tools.harreman.hotspot.modules import integrate_vision_hotspot_results
 
         integrate_vision_hotspot_results(self._resolve(adata), **kwargs)
 
@@ -635,18 +635,18 @@ class _HarremanVsAccessor:
         return adata if adata is not None else self._ha._adata
 
     def load_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.vision.signature import load_signatures
+        from scviva.tools.harreman.vision.signature import load_signatures
 
         load_signatures(self._resolve(adata), **kwargs)
 
     def signatures_from_file(self, adata: AnnData | None = None, **kwargs) -> None:
         """Alias for :meth:`load_signatures`."""
-        from scvi.external.harreman.vision.signature import load_signatures
+        from scviva.tools.harreman.vision.signature import load_signatures
 
         load_signatures(self._resolve(adata), **kwargs)
 
     def compute_vision_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.vision.signature import compute_vision_signatures
+        from scviva.tools.harreman.vision.signature import compute_vision_signatures
 
         compute_vision_signatures(self._resolve(adata), **kwargs)
 
@@ -679,14 +679,14 @@ class _HarremanVsAccessor:
             does not yet have a neighbourhood graph in ``adata.obsp``.
         **kwargs
             Forwarded to
-            :func:`~scvi.external.harreman.vision.signature.compute_vision_signatures`.
+            :func:`~scviva.tools.harreman.vision.signature.compute_vision_signatures`.
         """
         if not scores_only:
             raise NotImplementedError(
                 "Full VISION analysis (scores_only=False) is not yet supported. "
                 "Pass scores_only=True to compute per-cell signature scores only."
             )
-        from scvi.external.harreman.vision.signature import compute_vision_signatures
+        from scviva.tools.harreman.vision.signature import compute_vision_signatures
 
         compute_vision_signatures(
             self._resolve(adata),
@@ -707,21 +707,21 @@ class _HarremanTlAccessor:
         return adata if adata is not None else self._ha._adata
 
     def compute_knn_graph(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.tools.knn import compute_knn_graph
+        from scviva.tools.harreman.tools.knn import compute_knn_graph
 
         compute_knn_graph(self._resolve(adata), **kwargs)
 
     def compute_interaction_module_correlation(
         self, adata: AnnData | None = None, **kwargs
     ) -> None:
-        from scvi.external.harreman.tools.cell_communication import (
+        from scviva.tools.harreman.tools.cell_communication import (
             compute_interaction_module_correlation,
         )
 
         compute_interaction_module_correlation(self._resolve(adata), **kwargs)
 
     def select_significant_interactions(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.tools.cell_communication import select_significant_interactions
+        from scviva.tools.harreman.tools.cell_communication import select_significant_interactions
 
         select_significant_interactions(self._resolve(adata), **kwargs)
 
@@ -736,31 +736,31 @@ class _HarremanPlAccessor:
         return adata if adata is not None else self._ha._adata
 
     def local_correlation_plot(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.plots import local_correlation_plot
+        from scviva.plotting.harreman.plots import local_correlation_plot
 
         local_correlation_plot(self._resolve(adata), **kwargs)
 
     def average_local_correlation_plot(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.plots import average_local_correlation_plot
+        from scviva.plotting.harreman.plots import average_local_correlation_plot
 
         average_local_correlation_plot(self._resolve(adata), **kwargs)
 
     def module_score_correlation_plot(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.plots import module_score_correlation_plot
+        from scviva.plotting.harreman.plots import module_score_correlation_plot
 
         module_score_correlation_plot(self._resolve(adata), **kwargs)
 
     def plot_interacting_cell_scores(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.plots import plot_interacting_cell_scores
+        from scviva.plotting.harreman.plots import plot_interacting_cell_scores
 
         plot_interacting_cell_scores(self._resolve(adata), **kwargs)
 
     def plot_ct_interacting_cell_scores(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.plots import plot_ct_interacting_cell_scores
+        from scviva.plotting.harreman.plots import plot_ct_interacting_cell_scores
 
         plot_ct_interacting_cell_scores(self._resolve(adata), **kwargs)
 
     def plot_interaction_module_correlation(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scvi.external.harreman.plots import plot_interaction_module_correlation
+        from scviva.plotting.harreman.plots import plot_interaction_module_correlation
 
         plot_interaction_module_correlation(self._resolve(adata), **kwargs)

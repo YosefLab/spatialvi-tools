@@ -3,10 +3,11 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-import scvi.external.harreman.datasets.datasets as datasets_mod
-import scvi.external.harreman.hotspot.local_autocorrelation as autocorr_mod
-import scvi.external.harreman.preprocessing.database as database_mod
 from anndata import AnnData
+
+import scviva.tools.harreman.datasets.datasets as datasets_mod
+import scviva.tools.harreman.hotspot.local_autocorrelation as autocorr_mod
+import scviva.tools.harreman.preprocessing.database as database_mod
 
 BASE_URL = "https://exampledata.scverse.org/scvi-tools/harreman"
 

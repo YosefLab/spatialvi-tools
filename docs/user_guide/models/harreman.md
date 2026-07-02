@@ -1,6 +1,6 @@
 # Harreman
 
-**Harreman** (`scvi.external.harreman`) is a framework for inferring metabolic exchanges and cell-cell communication in tissues using spatial transcriptomics data.
+**Harreman** {cite:p}`Etxezarreta-Arrastoa25` (`scviva.tl.harreman`) is a framework for inferring metabolic exchanges and cell-cell communication in tissues using spatial transcriptomics data.
 
 The advantages of Harreman include:
 
@@ -17,7 +17,7 @@ The limitations of Harreman include:
 
 ```{topic} Tutorials:
 
--   {doc}`/tutorials/notebooks/spatial/harreman_tutorial`
+-   {doc}`/tutorials/Visium_colon_Harreman_pipeline`
 ```
 
 ```{topic} External links:
@@ -30,9 +30,9 @@ The limitations of Harreman include:
 
 Harreman operates in three main steps:
 
-1.  **Spatial graph construction** ({func}`~scvi.external.harreman.tl.compute_knn_graph`): Builds a spatial proximity graph from cell coordinates, supporting both k-nearest neighbors and radius-based neighborhoods, with optional Gaussian kernel weighting.
-2.  **Local autocorrelation** ({func}`~scvi.external.harreman.hs.compute_local_autocorrelation`): Identifies spatially variable genes using the local autocorrelation statistic from the Hotspot algorithm (DeTomaso and Yosef, *Cell Systems*, 2021), supporting DANB, Bernoulli, and normal count models.
-3.  **Cell communication** ({func}`~scvi.external.harreman.tl.compute_cell_communication`): Infers spatially-resolved metabolic exchanges and ligand-receptor interactions between neighboring cells using HarremanDB and CellChatDB.
+1.  **Spatial graph construction** ({func}`~scviva.tl.harreman.tl.compute_knn_graph`): Builds a spatial proximity graph from cell coordinates, supporting both k-nearest neighbors and radius-based neighborhoods, with optional Gaussian kernel weighting.
+2.  **Local autocorrelation** ({func}`~scviva.tl.harreman.hs.compute_local_autocorrelation`): Identifies spatially variable genes using the local autocorrelation statistic from the Hotspot algorithm (DeTomaso and Yosef, *Cell Systems*, 2021), supporting DANB, Bernoulli, and normal count models.
+3.  **Cell communication** ({func}`~scviva.tl.harreman.tl.compute_cell_communication`): Infers spatially-resolved metabolic exchanges and ligand-receptor interactions between neighboring cells using HarremanDB and CellChatDB.
 
 ## Generative process
 
@@ -103,7 +103,9 @@ where $m$ is a metabolite exchanged by genes $a$ and $b$.
 ## Usage
 
 ```python
-import scvi.external.harreman as harreman
+from scviva import tl
+
+harreman = tl.harreman
 
 # 1. Build spatial KNN graph
 harreman.tl.compute_knn_graph(adata, compute_neighbors_on_key="spatial", n_neighbors=10)
@@ -120,4 +122,4 @@ harreman.tl.compute_cell_communication(adata)
 
 ## API
 
-Please see {mod}`scvi.external.harreman` for the full API reference.
+Please see {mod}`scviva.tl.harreman` and {mod}`scviva.pl.harreman` for the full API reference.

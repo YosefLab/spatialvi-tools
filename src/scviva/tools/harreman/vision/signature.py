@@ -348,7 +348,7 @@ def compute_vision_signatures(
     fallback).  For dense inputs the standard VISION z-score formula is used.
 
     Calling this function is a prerequisite for
-    :func:`~scvi.external.harreman.hotspot.modules.integrate_vision_hotspot_results`.
+    :func:`~scviva.tools.harreman.hotspot.modules.integrate_vision_hotspot_results`.
 
     Parameters
     ----------

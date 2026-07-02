@@ -6,7 +6,8 @@ from typing import Literal
 import pandas as pd
 import pooch
 from anndata import AnnData
-from scvi.external.harreman._data import harreman_data_hash, harreman_data_url
+
+from scviva.tools.harreman._data import harreman_data_hash, harreman_data_url
 
 IMPORT_METAB_KEY = "IMPORT"
 EXPORT_METAB_KEY = "EXPORT"

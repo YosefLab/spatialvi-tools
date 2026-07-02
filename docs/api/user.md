@@ -35,6 +35,35 @@ import scviva
    external.Tangram
 ```
 
+## Tools
+
+```{eval-rst}
+.. currentmodule:: scviva
+
+.. autosummary::
+   :toctree: reference/
+   :nosignatures:
+
+   tl.HarremanAnalysis
+```
+
+## Plotting
+
+```{eval-rst}
+.. currentmodule:: scviva
+
+.. autosummary::
+   :toctree: reference/
+   :nosignatures:
+
+   pl.harreman.local_correlation_plot
+   pl.harreman.average_local_correlation_plot
+   pl.harreman.module_score_correlation_plot
+   pl.harreman.plot_interacting_cell_scores
+   pl.harreman.plot_ct_interacting_cell_scores
+   pl.harreman.plot_interaction_module_correlation
+```
+
 ## Settings
 
 ```{eval-rst}

@@ -1,4 +1,4 @@
-# src/scvi/external/harreman/_constants.py
+# src/scviva/tools/harreman/_constants.py
 from __future__ import annotations
 
 # ── adata.uns keys ────────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ STEP_SIG = "select_significant_interactions"
 
 # ── Model type strings ────────────────────────────────────────────────────────
 MODEL_DESTVI = "DestVI"
-MODEL_RESOLVI = "RESOLVI"
+MODEL_RESOLVI = "ResolVI"
 MODEL_SCVIVA = "SCVIVA"
 
 SUPPORTED_MODELS = (MODEL_DESTVI, MODEL_RESOLVI, MODEL_SCVIVA)

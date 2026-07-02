@@ -6,4 +6,8 @@
 resolvi
 destvi
 scviva
+gimvi
+stereoscope
+tangram
+harreman
 ```

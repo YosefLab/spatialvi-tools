@@ -8,12 +8,13 @@ from anndata import AnnData
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
 from scipy.stats import hypergeom, norm, pearsonr, spearmanr, zscore
-from scvi.external.harreman._utils import _resolve_device
-from scvi.external.harreman.preprocessing.anndata import counts_from_anndata
-from scvi.external.harreman.tools.knn import make_weights_non_redundant
 from sklearn.decomposition import PCA
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
+
+from scviva.tools.harreman._utils import _resolve_device
+from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
+from scviva.tools.harreman.tools.knn import make_weights_non_redundant
 
 from .local_autocorrelation import center_counts_torch
 
@@ -823,7 +824,7 @@ def integrate_vision_hotspot_results(
         - ``obsm['signature_modules_overlap']``: per-cell scores for each
           significant signature–module overlap.
     """
-    from scvi.external.harreman.vision.signature import compute_vision_signatures
+    from scviva.tools.harreman.vision.signature import compute_vision_signatures
 
     gene_modules_key = "gene_modules_sm" if use_super_modules else "gene_modules"
 
