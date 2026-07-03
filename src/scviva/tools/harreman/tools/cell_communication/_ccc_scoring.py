@@ -1525,3 +1525,5 @@ def compute_interaction_module_correlation(
     adata.uns["interaction_module_correlation_coefs"] = cor_coef_df
     adata.uns["interaction_module_correlation_pvals"] = cor_pval_df
     adata.uns["interaction_module_correlation_FDR"] = cor_FDR_df
+
+    return
