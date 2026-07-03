@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import torch
 from anndata import AnnData
-from numba import jit
 from scipy.stats import norm, pearsonr, spearmanr
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
@@ -1348,30 +1347,6 @@ def normalize_values(counts, gene_pairs_ind, lcs, D):
         torch.isinf(c_values_norm), torch.tensor(1.0, device=c_values_norm.device), c_values_norm
     )
     return c_values_norm
-
-
-def compute_local_cov_pairs_max(node_degrees, counts):
-    """Compute the maximal pairwise local covariance for genes."""
-    N_GENES = counts.shape[0]
-
-    gene_maxs = np.zeros(N_GENES)
-    for i in range(N_GENES):
-        gene_maxs[i] = compute_local_cov_max(counts[i].todense(), node_degrees)
-
-    result = gene_maxs.reshape((-1, 1)) + gene_maxs.reshape((1, -1))
-    result = result / 2
-    return result
-
-
-@jit(nopython=True)
-def compute_local_cov_max(vals, node_degrees):
-    """Compute local covariance for one vector."""
-    tot = 0.0
-
-    for i in range(node_degrees.size):
-        tot += node_degrees[i] * (vals[i] ** 2)
-
-    return tot / 2
 
 
 def compute_interaction_module_correlation(
