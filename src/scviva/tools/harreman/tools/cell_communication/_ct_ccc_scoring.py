@@ -2,7 +2,7 @@ import itertools
 import time
 import warnings
 from collections import defaultdict
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ from ._metabolite_scoring import compute_metabolite_cs_ct
 from ._stats import compute_max_cs, flatten, z_to_pval_fdr
 
 
-def _make_hashable(pair):
+def _make_hashable(pair: tuple[Any, Any]) -> tuple[Any, Any]:
     """Convert list elements in a pair-like tuple to tuples so it can be hashed/used in a set."""
     return tuple(tuple(x) if isinstance(x, list) else x for x in pair)
 
@@ -42,7 +42,7 @@ def compute_ct_cell_communication(
     check_analytic_null: bool | None = False,
     device: torch.device | str = "auto",
     verbose: bool | None = False,
-):
+) -> None:
     """Compute cell type-aware cell-cell communication scores.
 
     Communication is stratified by interacting cell type pairs and supports parametric and
@@ -179,23 +179,23 @@ def compute_ct_cell_communication(
 
 
 def run_ct_cell_communication_analysis(
-    adata,
-    layer_key_p_test,
-    layer_key_np_test,
-    model,
-    cell_type_key,
-    center_counts_for_np_test,
-    subset_gene_pairs,
-    subset_metabolites,
-    fix_gp,
-    M,
-    seed,
-    test,
-    mean,
-    check_analytic_null,
-    device,
-    verbose,
-):
+    adata: AnnData,
+    layer_key_p_test: Literal["use_raw"] | str | None,
+    layer_key_np_test: Literal["use_raw"] | str | None,
+    model: str | None,
+    cell_type_key: str | None,
+    center_counts_for_np_test: bool | None,
+    subset_gene_pairs: list | None,
+    subset_metabolites: list | None,
+    fix_gp: bool | None,
+    M: int | None,
+    seed: int | None,
+    test: Literal["parametric"] | Literal["non-parametric"] | Literal["both"] | None,
+    mean: Literal["algebraic"] | Literal["geometric"] | None,
+    check_analytic_null: bool | None,
+    device: torch.device | str,
+    verbose: bool | None,
+) -> None:
     """Run the cell type-aware CCC score and significance workflow."""
     use_raw = (layer_key_p_test == "use_raw") & (layer_key_np_test == "use_raw")
     obs = adata.raw.obs if use_raw else adata.obs
@@ -620,7 +620,14 @@ def run_ct_cell_communication_analysis(
     return
 
 
-def standardize_ct_counts(adata, counts, model, num_umi, sample_specific, cell_types):
+def standardize_ct_counts(
+    adata: AnnData,
+    counts: torch.Tensor,
+    model: str | None,
+    num_umi: torch.Tensor,
+    sample_specific: bool,
+    cell_types: pd.Series,
+) -> torch.Tensor:
     """Standardize counts within cell types and optional samples."""
     if sample_specific:
         sample_key = adata.uns["sample_key"]
@@ -635,7 +642,12 @@ def standardize_ct_counts(adata, counts, model, num_umi, sample_specific, cell_t
     return counts
 
 
-def create_weights_ct_pairs(weights, cell_types, cell_type_pairs, device):
+def create_weights_ct_pairs(
+    weights: Any,
+    cell_types: pd.Series,
+    cell_type_pairs: list[tuple[str, str]],
+    device: torch.device | str,
+) -> torch.Tensor:
     """Create sparse weight tensors for each cell type pair."""
     indices = torch.tensor([weights.row, weights.col], dtype=torch.long, device=device)
     values = torch.tensor(weights.data, dtype=torch.float64, device=device)
@@ -695,7 +707,7 @@ def compute_ct_interacting_cell_scores(
     | None = "both",
     device: torch.device | str = "auto",
     verbose: bool | None = False,
-):
+) -> None:
     """Compute cell-type-aware interacting cell scores for gene pairs and metabolites.
 
     Parameters
@@ -1158,14 +1170,14 @@ def compute_ct_interacting_cell_scores(
 
 
 def compute_ct_p_results(
-    C_gp,
-    C_m,
-    gene_pairs_per_ct_pair_ind,
-    ct_specific_gene_pairs,
-    EG2_gp,
-    cell_type_key,
-    gene_pair_dict,
-):
+    C_gp: torch.Tensor,
+    C_m: torch.Tensor,
+    gene_pairs_per_ct_pair_ind: dict[Any, list[int]],
+    ct_specific_gene_pairs: list[int],
+    EG2_gp: torch.Tensor,
+    cell_type_key: str | None,
+    gene_pair_dict: dict,
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Compute cell type-aware parametric Z-scores."""
     EG2_gp = EG2_gp.unsqueeze(1).expand(-1, C_gp.shape[1]) if len(EG2_gp.shape) == 1 else EG2_gp
 
@@ -1195,18 +1207,18 @@ def compute_ct_p_results(
 
 
 def get_ct_cell_communication_results(
-    adata,
-    genes,
-    cells,
-    layer_key_p_test,
-    layer_key_np_test,
-    model,
-    cell_types,
-    cell_type_pairs,
-    D,
-    test,
-    device,
-):
+    adata: AnnData,
+    genes: list[str],
+    cells: np.ndarray,
+    layer_key_p_test: Literal["use_raw"] | str | None,
+    layer_key_np_test: Literal["use_raw"] | str | None,
+    model: str | None,
+    cell_types: pd.Series,
+    cell_type_pairs: list[tuple[str, str]],
+    D: np.ndarray | torch.Tensor,
+    test: Literal["parametric"] | Literal["non-parametric"] | Literal["both"] | None,
+    device: torch.device | str,
+) -> None:
     """Assemble cell type-aware communication result dataframes."""
     gene_pairs_ind_per_ct_pair = adata.uns["gene_pairs_ind_per_ct_pair"]
     gene_pair_dict = adata.uns["gene_pair_dict"]
@@ -1316,13 +1328,13 @@ def get_ct_cell_communication_results(
 
 
 def normalize_ct_values(
-    counts,
-    cell_types,
-    cell_type_pairs,
-    gene_pairs_per_ct_pair_ind,
-    lcs,
-    D,
-):
+    counts: torch.Tensor,
+    cell_types: pd.Series | np.ndarray,
+    cell_type_pairs: list[tuple[str, str]],
+    gene_pairs_per_ct_pair_ind: dict[Any, list[tuple[Any, Any]]],
+    lcs: torch.Tensor | np.ndarray,
+    D: torch.Tensor,
+) -> torch.Tensor:
     """Normalize communication scores within each cell type pair."""
     if isinstance(cell_types, pd.Series):
         cell_types = cell_types.values
@@ -1357,7 +1369,9 @@ def normalize_ct_values(
     return c_values_norm
 
 
-def center_ct_counts_torch(counts, num_umi, model, cell_types):
+def center_ct_counts_torch(
+    counts: torch.Tensor, num_umi: torch.Tensor, model: str, cell_types: pd.Series
+) -> torch.Tensor:
     """Center counts within cell types.
 
     counts: Tensor [genes, cells]

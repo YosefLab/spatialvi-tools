@@ -1,5 +1,5 @@
 import time
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -31,7 +31,7 @@ def compute_cell_communication(
     check_analytic_null: bool | None = False,
     device: torch.device | str = "auto",
     verbose: bool | None = False,
-):
+) -> None:
     """Compute spatially informed cell-type-agnostic CCC scores.
 
     Scores and significance are computed across all gene pairs using both parametric and
@@ -146,20 +146,20 @@ def compute_cell_communication(
 
 
 def run_cell_communication_analysis(
-    adata,
-    layer_key_p_test,
-    layer_key_np_test,
-    model,
-    center_counts_for_np_test,
-    subset_gene_pairs,
-    M,
-    seed,
-    test,
-    mean,
-    check_analytic_null,
-    device,
-    verbose,
-):
+    adata: AnnData,
+    layer_key_p_test: Literal["use_raw"] | str | None,
+    layer_key_np_test: Literal["use_raw"] | str | None,
+    model: str | None,
+    center_counts_for_np_test: bool | None,
+    subset_gene_pairs: str | None,
+    M: int | None,
+    seed: int | None,
+    test: Literal["parametric"] | Literal["non-parametric"] | Literal["both"] | None,
+    mean: Literal["algebraic"] | Literal["geometric"] | None,
+    check_analytic_null: bool | None,
+    device: torch.device | str,
+    verbose: bool | None,
+) -> None:
     """Run the cell-type-agnostic CCC score and significance workflow."""
     use_raw = (layer_key_p_test == "use_raw") & (layer_key_np_test == "use_raw")
 
@@ -525,7 +525,7 @@ def select_significant_interactions(
     test: Literal["parametric"] | Literal["non-parametric"] | None = "parametric",
     use_FDR: bool | None = True,
     threshold: float | None = 0.05,
-):
+) -> None:
     """Select significant gene pairs or metabolite-mediated interactions.
 
     Selection is based on FDR/p-value thresholds and optional cell-type-aware tests.
@@ -604,7 +604,7 @@ def compute_interacting_cell_scores(
     check_analytic_null: bool | None = False,
     device: torch.device | str = "auto",
     verbose: bool | None = False,
-):
+) -> None:
     """
     Compute interacting cell scores for gene pairs and metabolites.
 
@@ -1115,7 +1115,14 @@ def compute_interacting_cell_scores(
     return
 
 
-def compute_p_results(C_gp, C_m, gene_pairs_ind, Wtot2, eg2s_gp, gene_pair_dict):
+def compute_p_results(
+    C_gp: torch.Tensor | tuple[torch.Tensor, torch.Tensor],
+    C_m: torch.Tensor | tuple[torch.Tensor, torch.Tensor],
+    gene_pairs_ind: list[tuple[Any, Any]],
+    Wtot2: torch.Tensor,
+    eg2s_gp: tuple[torch.Tensor, torch.Tensor],
+    gene_pair_dict: dict,
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Compute parametric Z-scores for gene pairs and metabolites."""
     device = Wtot2.device
 
@@ -1176,7 +1183,14 @@ def compute_p_results(C_gp, C_m, gene_pairs_ind, Wtot2, eg2s_gp, gene_pair_dict)
     return Z_gp, Z_m
 
 
-def compute_p_int_cell_results_no_ct(C_gp, C_m, gene_pairs_ind, Wtot2, eg2s_gp, gene_pair_dict):
+def compute_p_int_cell_results_no_ct(
+    C_gp: torch.Tensor | tuple[torch.Tensor, torch.Tensor],
+    C_m: torch.Tensor | tuple[torch.Tensor, torch.Tensor],
+    gene_pairs_ind: list[tuple[Any, Any]],
+    Wtot2: torch.Tensor,
+    eg2s_gp: tuple[torch.Tensor, torch.Tensor],
+    gene_pair_dict: dict,
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Compute interacting-cell parametric results without cell type stratification."""
     device = Wtot2.device
 
@@ -1238,15 +1252,15 @@ def compute_p_int_cell_results_no_ct(C_gp, C_m, gene_pairs_ind, Wtot2, eg2s_gp, 
 
 
 def get_cell_communication_results(
-    adata,
-    genes,
-    layer_key_p_test,
-    layer_key_np_test,
-    model,
-    D,
-    test,
-    device,
-):
+    adata: AnnData,
+    genes: list[str],
+    layer_key_p_test: Literal["use_raw"] | str | None,
+    layer_key_np_test: Literal["use_raw"] | str | None,
+    model: str | None,
+    D: np.ndarray | torch.Tensor,
+    test: Literal["parametric"] | Literal["non-parametric"] | Literal["both"] | None,
+    device: torch.device | str,
+) -> None:
     """Assemble cell-type-agnostic communication result dataframes."""
     gene_pairs = adata.uns["gene_pairs"]
     gene_pairs_ind = adata.uns["gene_pairs_ind"]
@@ -1330,7 +1344,12 @@ def get_cell_communication_results(
     return
 
 
-def normalize_values(counts, gene_pairs_ind, lcs, D):
+def normalize_values(
+    counts: torch.Tensor,
+    gene_pairs_ind: list[tuple[Any, Any]],
+    lcs: torch.Tensor | np.ndarray,
+    D: torch.Tensor,
+) -> torch.Tensor:
     """Normalize communication scores (lcs) using maximum possible score estimates."""
     lc_maxs = compute_max_cs(D, counts, gene_pairs_ind)
     lc_maxs = torch.where(lc_maxs == 0, torch.tensor(1.0, device=lc_maxs.device), lc_maxs)
@@ -1353,7 +1372,7 @@ def compute_interaction_module_correlation(
     use_FDR: bool | None = True,
     use_super_modules: bool | None = False,
     ct_aware: bool | None = None,
-):
+) -> None:
     """Compute correlations between interacting cell scores and module scores.
 
     Parameters

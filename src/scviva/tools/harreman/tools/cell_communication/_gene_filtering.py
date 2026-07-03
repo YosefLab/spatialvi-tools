@@ -3,7 +3,7 @@
 import ast
 import itertools
 import time
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -29,7 +29,7 @@ def apply_gene_filtering(
     umi_counts_obs_key: str | None = None,
     device: torch.device | str = "auto",
     verbose: bool | None = False,
-):
+) -> None:
     """
     Applies multi-step gene filtering to an AnnData object.
 
@@ -110,7 +110,12 @@ def apply_gene_filtering(
     return
 
 
-def perform_feature_elimination(adata, layer_key, database_varm_key, threshold):
+def perform_feature_elimination(
+    adata: AnnData,
+    layer_key: Literal["use_raw"] | str | None,
+    database_varm_key: str,
+    threshold: float,
+) -> None:
     """
     Filters out genes that are too sparse across all cells.
 
@@ -140,14 +145,14 @@ def perform_feature_elimination(adata, layer_key, database_varm_key, threshold):
 
 
 def filter_genes(
-    adata,
-    layer_key,
-    database_varm_key,
-    cell_type_key,
-    expression_filt,
-    de_filt,
-    autocorrelation_filt,
-):
+    adata: AnnData,
+    layer_key: Literal["use_raw"] | str | None,
+    database_varm_key: str,
+    cell_type_key: str,
+    expression_filt: bool,
+    de_filt: bool,
+    autocorrelation_filt: bool,
+) -> tuple[list[str], dict[Any, list[str]]]:
     """
     Applies expression and/or DE filtering per cell type.
 
@@ -222,13 +227,13 @@ def filter_genes(
     return sorted(filtered_genes), filtered_genes_ct
 
 
-def filter_expr_matrix(matrix, threshold):
+def filter_expr_matrix(matrix: np.ndarray, threshold: float) -> np.ndarray:
     """Return genes expressed in at least a threshold fraction of cells."""
     return (matrix > 0).sum(axis=1) / matrix.shape[1] >= threshold
 
 
 @njit(parallel=True)
-def cohens_d(x, y):
+def cohens_d(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Compute Cohen's d row-wise between two matrices."""
     out = np.empty(x.shape[0])
 
@@ -241,7 +246,9 @@ def cohens_d(x, y):
     return out
 
 
-def de_threshold(counts_ct, counts_no_ct):
+def de_threshold(
+    counts_ct: np.ndarray, counts_no_ct: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute differential-expression statistics for cell-type counts."""
     stat = np.array(
         [
@@ -268,7 +275,7 @@ def compute_gene_pairs(
     ct_specific: bool | None = True,
     fix_ct: Literal["all"] | str | None = None,
     verbose: bool | None = False,
-):
+) -> None:
     """Identify biologically plausible gene pairs.
 
     This includes ligand-receptor (LR) signaling or metabolite transport pairs based on annotated
@@ -517,7 +524,7 @@ def compute_gene_pairs(
     return
 
 
-def get_interacting_cell_type_pairs(x, weights, cell_types):
+def get_interacting_cell_type_pairs(x: tuple, weights: Any, cell_types: np.ndarray) -> bool:
     """Return whether a cell type pair has nonzero spatial weights."""
     ct_1, ct_2 = x
 

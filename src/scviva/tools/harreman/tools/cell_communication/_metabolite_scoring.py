@@ -44,13 +44,13 @@ def compute_metabolite_cs(
 
 
 def compute_metabolite_cs_ct(
-    cs_gp,
-    cell_type_key,
-    gene_pair_dict,
-    gene_pairs_per_ct_pair_ind=None,
-    ct_specific_gene_pairs=None,
-    interacting_cell_scores=False,
-):
+    cs_gp: torch.Tensor,
+    cell_type_key: str | None,
+    gene_pair_dict: dict,
+    gene_pairs_per_ct_pair_ind: dict | None = None,
+    ct_specific_gene_pairs: list[int] | None = None,
+    interacting_cell_scores: bool = False,
+) -> torch.Tensor:
     """Compute metabolite scores with optional cell type-pair masking."""
     if cell_type_key and ct_specific_gene_pairs:
         for i, ct_pair in enumerate(gene_pairs_per_ct_pair_ind.keys()):
