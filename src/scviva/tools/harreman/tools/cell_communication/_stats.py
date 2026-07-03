@@ -1,6 +1,23 @@
 """Shared statistics helpers used by both cell-type-agnostic and cell-type-aware CCC scoring."""
 
+import numpy as np
 import torch
+from scipy.stats import norm
+from statsmodels.stats.multitest import multipletests
+
+
+def z_to_pval_fdr(Z, method: str = "fdr_bh") -> tuple:
+    """Convert an array of Z-scores to (p-values, FDR-corrected p-values).
+
+    Z is expected to already be a numpy array (callers convert torch tensors
+    to numpy via ``.detach().cpu().numpy()`` before calling this function,
+    matching every existing call site's current behavior).
+    """
+    pvals = norm.sf(Z)
+    flat_pvals = np.asarray(pvals).flatten()
+    fdr_flat = multipletests(flat_pvals, method=method)[1]
+    fdr = fdr_flat.reshape(np.asarray(pvals).shape)
+    return pvals, fdr
 
 
 def flatten(nested_list):

@@ -14,7 +14,7 @@ from scviva.tools.harreman.tools.knn import make_weights_non_redundant
 from scviva.utils import resolve_device
 
 from ._metabolite_scoring import compute_metabolite_cs
-from ._stats import compute_max_cs, flatten
+from ._stats import compute_max_cs, flatten, z_to_pval_fdr
 
 
 def compute_cell_communication(
@@ -330,10 +330,8 @@ def run_cell_communication_analysis(
         Z_gp_np = Z_gp.detach().cpu().numpy()
         Z_m_np = Z_m.detach().cpu().numpy()
         # Compute p-values and FDRs
-        Z_pvals_gp = norm.sf(Z_gp_np)
-        Z_pvals_m = norm.sf(Z_m_np)
-        FDR_gp = multipletests(Z_pvals_gp, method="fdr_bh")[1]
-        FDR_m = multipletests(Z_pvals_m, method="fdr_bh")[1]
+        Z_pvals_gp, FDR_gp = z_to_pval_fdr(Z_gp_np)
+        Z_pvals_m, FDR_m = z_to_pval_fdr(Z_m_np)
 
         # Store in AnnData
         adata.uns["ccc_results"]["p"]["gp"]["Z"] = Z_gp_np
@@ -870,12 +868,8 @@ def compute_interacting_cell_scores(
             Z_gp_np = Z_gp.detach().cpu().numpy()
             Z_m_np = Z_m.detach().cpu().numpy()
             # Compute p-values and FDRs
-            Z_pvals_gp = norm.sf(Z_gp_np)
-            Z_pvals_m = norm.sf(Z_m_np)
-            FDR_gp = multipletests(Z_pvals_gp.flatten(), method="fdr_bh")[1].reshape(
-                Z_pvals_gp.shape
-            )
-            FDR_m = multipletests(Z_pvals_m.flatten(), method="fdr_bh")[1].reshape(Z_pvals_m.shape)
+            Z_pvals_gp, FDR_gp = z_to_pval_fdr(Z_gp_np)
+            Z_pvals_m, FDR_m = z_to_pval_fdr(Z_m_np)
 
             adata.uns["interacting_cell_results"]["p"]["gp"]["Z"] = Z_gp_np
             adata.uns["interacting_cell_results"]["p"]["gp"]["Z_pval"] = Z_pvals_gp
