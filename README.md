@@ -82,3 +82,6 @@ changes.
 ## References
 
 See [docs/references.md](docs/references.md) for full citations.
+
+Copyright (c) 2026, Yosef Lab, Weizmann Institute of Science
+
