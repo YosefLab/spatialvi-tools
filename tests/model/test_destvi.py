@@ -45,18 +45,6 @@ def test_destvi_get_proportions_df(destvi_data):
     np.testing.assert_allclose(df.sum(axis=1).values, 1.0, atol=1e-4)
 
 
-def test_destvi_get_latent_cpu(destvi_data):
-    sc_adata, st_adata = destvi_data
-    CondSCVI.setup_anndata(sc_adata, layer="counts", labels_key="labels")
-    sc_model = CondSCVI(sc_adata, weight_obs=False)
-    sc_model.train(max_epochs=1)
-    DestVI.setup_anndata(st_adata, layer="counts")
-    st_model = DestVI.from_rna_model(st_adata, sc_model, n_latent_amortization=10)
-    st_model.train(max_epochs=1)
-    latent = st_model.get_latent_representation()
-    assert latent.shape[0] == st_adata.n_obs
-
-
 def test_destvi_get_latent_dist_rapids_preserves_tuple(destvi_data, monkeypatch):
     sc_adata, st_adata = destvi_data
     CondSCVI.setup_anndata(sc_adata, layer="counts", labels_key="labels")

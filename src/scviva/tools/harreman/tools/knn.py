@@ -36,17 +36,23 @@ def _gpu_neighbors(
             nn = cuNN(n_neighbors=n_neighbors + 1, metric="euclidean")
             nn.fit(coords_gpu)
             dist = nn.kneighbors_graph(coords_gpu, mode="distance")
+            # cuML returns scipy sparse; fall back for cupy sparse
+            if hasattr(dist, "get"):
+                return dist.get()
+            return csr_matrix(dist)
         else:
+            # cuML's radius_neighbors_graph has no "mode" kwarg and only returns
+            # connectivity (unlike sklearn); compute distances for the matched
+            # pairs ourselves.
             nn = cuNN(metric="euclidean")
             nn.fit(coords_gpu)
-            dist = nn.radius_neighbors_graph(
-                coords_gpu, radius=float(neighborhood_radius), mode="distance"
-            )
-
-        # cuML returns scipy sparse; fall back for cupy sparse
-        if hasattr(dist, "get"):
-            return dist.get()
-        return csr_matrix(dist)
+            conn = nn.radius_neighbors_graph(coords_gpu, radius=float(neighborhood_radius))
+            if hasattr(conn, "get"):
+                conn = conn.get()
+            conn = csr_matrix(conn).tocoo()
+            deltas = coords[conn.row] - coords[conn.col]
+            data = np.sqrt((deltas**2).sum(axis=-1))
+            return csr_matrix((data, (conn.row, conn.col)), shape=conn.shape)
 
     except (ImportError, RuntimeError, AttributeError):
         return None
