@@ -76,7 +76,7 @@ def test_resolvi_neighbor_abundance():
     adata = _prepare_adata_with_neighbors(n_neighs=10)
     ResolVI.setup_anndata(adata, labels_key="labels")
     model = ResolVI(adata, semisupervised=True)  # probs_prediction requires semisupervised
-    model.train(max_epochs=1, accelerator="cpu")
+    model.train(max_epochs=1)
     result = model.get_neighbor_abundance(return_numpy=True)
     assert result.ndim == 2
     assert result.shape[0] == adata.n_obs

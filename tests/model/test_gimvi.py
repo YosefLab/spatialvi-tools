@@ -53,9 +53,11 @@ def test_gimvi_get_latent_representation(gimvi_data):
 def test_gimvi_get_latent_backend_cpu(gimvi_data):
     adata_seq, adata_spatial = gimvi_data
     model = _setup_and_build(adata_seq, adata_spatial)
-    model.train(max_epochs=1, accelerator="cpu")
+    model.train(
+        max_epochs=1,
+    )
 
-    latents = model.get_latent_representation(backend="cpu")
+    latents = model.get_latent_representation()
     assert all(isinstance(z, np.ndarray) for z in latents)
 
 

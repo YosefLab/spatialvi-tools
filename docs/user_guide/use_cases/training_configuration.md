@@ -27,7 +27,7 @@ Training automatically uses a GPU when one is available via PyTorch Lightning's
 `accelerator="auto"` default. To force CPU:
 
 ```python
-model.train(max_epochs=300, accelerator="cpu")
+model.train(max_epochs=300,)
 ```
 
 ## Monitoring training

@@ -52,7 +52,7 @@ jobs:
           MPLBACKEND: agg
           COLUMNS: 120
         run: |
-          pytest tests/ -v --color=yes --accelerator cuda --devices auto
+          pytest tests/ -v --color=yes
 
       - uses: codecov/codecov-action@v4
         with:

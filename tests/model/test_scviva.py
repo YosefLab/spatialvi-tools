@@ -52,8 +52,8 @@ def test_scviva_get_latent_cpu(scviva_adata):
     SCVIVA.preprocessing_anndata(scviva_adata, k_nn=K_NN, **setup_kwargs)
     SCVIVA.setup_anndata(scviva_adata, layer="counts", batch_key="batch", **setup_kwargs)
     model = SCVIVA(scviva_adata)
-    model.train(max_epochs=N_EPOCHS, accelerator="cpu")
-    latent = model.get_latent_representation(backend="cpu")
+    model.train(max_epochs=N_EPOCHS)
+    latent = model.get_latent_representation()
     assert latent.shape[0] == scviva_adata.n_obs
 
 
@@ -70,7 +70,7 @@ def _trained_model(adata):
     SCVIVA.preprocessing_anndata(adata, k_nn=K_NN, **setup_kwargs)
     SCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **setup_kwargs)
     model = SCVIVA(adata, prior_mixture=False)
-    model.train(max_epochs=N_EPOCHS, accelerator="cpu")
+    model.train(max_epochs=N_EPOCHS)
     return model
 
 

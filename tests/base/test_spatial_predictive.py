@@ -33,7 +33,7 @@ def resolvi_model():
     adata = _make_resolvi_adata()
     ResolVI.setup_anndata(adata, labels_key="labels")
     model = ResolVI(adata, semisupervised=True)  # semisupervised needed for probs_prediction site
-    model.train(max_epochs=N_EPOCHS, accelerator="cpu")
+    model.train(max_epochs=N_EPOCHS)
     return model, adata
 
 
@@ -84,7 +84,7 @@ def test_importance_is_pyro_only_not_on_pytorch_models():
     SCVIVA.preprocessing_anndata(adata, k_nn=5, **setup_kwargs)
     SCVIVA.setup_anndata(adata, layer="counts", batch_key="batch", **setup_kwargs)
     model = SCVIVA(adata, prior_mixture=False)
-    model.train(max_epochs=1, accelerator="cpu")
+    model.train(max_epochs=1)
 
     # The mixin no longer provides a no-op importance default, so PyTorch models
     # do not expose `get_normalized_expression_importance`.
