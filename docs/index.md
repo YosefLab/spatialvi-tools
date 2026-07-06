@@ -8,11 +8,15 @@
 
 installation
 user_guide/index
+tutorials/index
 api/index
 developer/index
-tutorials/index
 faq
+changelog.md
 references
+Discussion <https://discourse.scvi-tools.org>
+GitHub <https://github.com/YosefLab/scviva-tools>
+Model hub <https://huggingface.co/scvi-tools>
 ```
 
 ## Models
