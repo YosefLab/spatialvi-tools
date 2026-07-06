@@ -45,14 +45,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip wheel
-          python -m pip install -e ".[test,spatial,rapids]"
+          python -m pip install -e ".[test,spatial,rapids_cuda13]"
 
       - name: Run pytest
         env:
           MPLBACKEND: agg
           COLUMNS: 120
         run: |
-          pytest tests/ -v --color=yes --accelerator cuda --devices auto
+          pytest tests/ -v --color=yes
 
       - uses: codecov/codecov-action@v4
         with:

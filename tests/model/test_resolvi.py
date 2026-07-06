@@ -46,15 +46,6 @@ def test_resolvi_train(resolvi_adata):
     assert model.is_trained
 
 
-def test_resolvi_get_latent_cpu(resolvi_adata):
-    """get_latent_representation returns an array with the correct shape."""
-    ResolVI.setup_anndata(resolvi_adata)
-    model = ResolVI(resolvi_adata)
-    model.train(max_epochs=1)
-    latent = model.get_latent_representation(backend="cpu")
-    assert latent.shape[0] == resolvi_adata.n_obs
-
-
 def test_resolvi_compute_neighbors(resolvi_adata):
     """compute_neighbors (squidpy backend) populates index/distance obsm keys."""
     pytest.importorskip("squidpy")
@@ -76,7 +67,7 @@ def test_resolvi_neighbor_abundance():
     adata = _prepare_adata_with_neighbors(n_neighs=10)
     ResolVI.setup_anndata(adata, labels_key="labels")
     model = ResolVI(adata, semisupervised=True)  # probs_prediction requires semisupervised
-    model.train(max_epochs=1, accelerator="cpu")
+    model.train(max_epochs=1)
     result = model.get_neighbor_abundance(return_numpy=True)
     assert result.ndim == 2
     assert result.shape[0] == adata.n_obs

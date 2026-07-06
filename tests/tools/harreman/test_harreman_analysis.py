@@ -535,7 +535,7 @@ def scviva_model_and_adata():
         niche_distances_key="niche_distances",
     )
     model = SCVIVA(adata, prior_mixture=False, semisupervised=False)
-    model.train(max_epochs=2, accelerator="cpu")
+    model.train(max_epochs=2)
     return model, adata
 
 

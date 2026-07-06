@@ -60,7 +60,19 @@ optional-dependencies.doc = [
 optional-dependencies.file_sharing = [ "fcswrite", "gdown", "pooch", "readfcs" ]
 optional-dependencies.hub = [ "boto3", "dvc[s3]", "huggingface-hub" ]
 optional-dependencies.metal = [ "mlx-metal", "torchaudio", "torchvision" ]
-optional-dependencies.rapids = [ "cugraph>=24", "cuml>=24", "cupy-cuda12x", "rapids-singlecell[rapids]" ]
+optional-dependencies.rapids = [ "cugraph", "cuml", "cupy", "rapids-singlecell[rapids]" ]
+optional-dependencies.rapids_cuda12 = [
+  "cugraph-cu12>=24",
+  "cuml-cu12>=24",
+  "cupy-cuda12x",
+  "rapids-singlecell-cu12[rapids]",
+]
+optional-dependencies.rapids_cuda13 = [
+  "cugraph-cu13>=24",
+  "cuml-cu13>=24",
+  "cupy-cuda13x",
+  "rapids-singlecell-cu13[rapids]",
+]
 optional-dependencies.spatial = [
   "geomloss",
   "numba",
