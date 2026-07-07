@@ -619,11 +619,6 @@ class _HarremanHsAccessor:
 
         return compute_top_scoring_modules(self._resolve(adata), **kwargs)
 
-    def integrate_vision_hotspot_results(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.harreman.hotspot.modules import integrate_vision_hotspot_results
-
-        integrate_vision_hotspot_results(self._resolve(adata), **kwargs)
-
 
 class _HarremanVsAccessor:
     """VISION signature analysis methods accessible as ``ha.vs.<method>``."""
@@ -635,20 +630,25 @@ class _HarremanVsAccessor:
         return adata if adata is not None else self._ha._adata
 
     def load_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.harreman.vision.signature import load_signatures
+        from scviva.tools.vision.signature import load_signatures
 
         load_signatures(self._resolve(adata), **kwargs)
 
     def signatures_from_file(self, adata: AnnData | None = None, **kwargs) -> None:
         """Alias for :meth:`load_signatures`."""
-        from scviva.tools.harreman.vision.signature import load_signatures
+        from scviva.tools.vision.signature import load_signatures
 
         load_signatures(self._resolve(adata), **kwargs)
 
     def compute_vision_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.harreman.vision.signature import compute_vision_signatures
+        from scviva.tools.vision.signature import compute_signatures_anndata
 
-        compute_vision_signatures(self._resolve(adata), **kwargs)
+        compute_signatures_anndata(self._resolve(adata), **kwargs)
+
+    def integrate_vision_hotspot_results(self, adata: AnnData | None = None, **kwargs) -> None:
+        from scviva.tools.harreman.vision._integration import integrate_vision_hotspot_results
+
+        integrate_vision_hotspot_results(self._resolve(adata), **kwargs)
 
     def analyze_vision(
         self,
@@ -679,20 +679,20 @@ class _HarremanVsAccessor:
             does not yet have a neighbourhood graph in ``adata.obsp``.
         **kwargs
             Forwarded to
-            :func:`~scviva.tools.harreman.vision.signature.compute_vision_signatures`.
+            :func:`~scviva.tools.vision.signature.compute_signatures_anndata`.
         """
         if not scores_only:
             raise NotImplementedError(
                 "Full VISION analysis (scores_only=False) is not yet supported. "
                 "Pass scores_only=True to compute per-cell signature scores only."
             )
-        from scviva.tools.harreman.vision.signature import compute_vision_signatures
+        from scviva.tools.vision.signature import compute_signatures_anndata
 
-        compute_vision_signatures(
+        compute_signatures_anndata(
             self._resolve(adata),
-            norm_data_key=norm_data_key,
-            signature_varm_key=signature_varm_key,
-            signature_names_uns_key=signature_names_uns_key,
+            norm_data_key,
+            signature_varm_key,
+            signature_names_uns_key,
             **kwargs,
         )
 

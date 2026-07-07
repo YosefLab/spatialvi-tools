@@ -1024,7 +1024,7 @@ def plot_sig_mod_correlation(
 
     if coef is None or padj is None:
         raise ValueError(
-            'Run the "harreman.hs.integrate_vision_hotspot_results" function '
+            'Run the "harreman.vs.integrate_vision_hotspot_results" function '
             "before plotting the results."
         )
 
@@ -1122,7 +1122,7 @@ def plot_sig_mod_enrichment(
 
     if coef is None or padj is None:
         raise ValueError(
-            'Run the "harreman.hs.integrate_vision_hotspot_results" function '
+            'Run the "harreman.vs.integrate_vision_hotspot_results" function '
             "before plotting the results."
         )
 

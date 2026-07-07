@@ -45,6 +45,7 @@ import scviva
    :nosignatures:
 
    tl.HarremanAnalysis
+   tl.VisionAnalysis
 ```
 
 ## Plotting
