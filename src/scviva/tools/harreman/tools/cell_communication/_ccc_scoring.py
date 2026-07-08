@@ -354,7 +354,9 @@ def run_cell_communication_analysis(
         for i, (g1, g2) in enumerate(gene_pairs_):
             lc_zs.iloc[genes_.index(g1), genes_.index(g2)] = Z_gp_np[i]
         # Force diagonal to 0 and symmetrize
-        np.fill_diagonal(lc_zs.values, 0)
+        lc_zs_arr = lc_zs.to_numpy(copy=True)
+        np.fill_diagonal(lc_zs_arr, 0)
+        lc_zs.loc[:, :] = lc_zs_arr
         adata.uns["lc_zs"] = (lc_zs + lc_zs.T) / 2
 
         if verbose:
