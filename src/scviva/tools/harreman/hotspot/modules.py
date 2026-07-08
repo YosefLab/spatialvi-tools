@@ -463,7 +463,7 @@ def create_modules(
             z_threshold = allZ[-1] + 1
 
     # Compute the linkage matrix
-    dd = Z_scores.copy().values
+    dd = Z_scores.to_numpy(copy=True)
     np.fill_diagonal(dd, 0)
     condensed = squareform(dd) * -1
     offset = condensed.min() * -1

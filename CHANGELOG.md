@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2026-07-08
+
+### Fixed
+
+- **Harreman**: pandas 3.0 always-on copy-on-write broke three in-place mutation sites
+  that relied on `.values` returning a writable view:
+  - `create_modules` raised `ValueError: underlying array is read-only` on
+    `np.fill_diagonal`; now forces a real copy via `to_numpy(copy=True)`
+  - `run_cell_communication_analysis` hit the same `fill_diagonal` failure on the
+    symmetric LC Z-score matrix; now mutates a copy and writes it back via `.loc[:, :]`
+  - `extract_lr_pairs` raised `ValueError: Length of indexer and values mismatch`
+    because pandas 3.0's default Arrow-backed string dtype no longer allows storing
+    variable-length arrays into single-element slots; ligand/receptor columns now use
+    `to_numpy(dtype=object)` to restore plain object-array semantics
+
 ## [0.1.5] - 2026-07-06
 
 ### Added
