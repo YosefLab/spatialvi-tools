@@ -221,8 +221,8 @@ def extract_lr_pairs(adata, species):
     complex = pd.read_csv(complex_path, index_col=0)
 
     ligands, receptors = (
-        interaction.pop("ligand").to_numpy(dtype=object),
-        interaction.pop("receptor").to_numpy(dtype=object),
+        interaction.pop("ligand").to_numpy(dtype=object, copy=True),
+        interaction.pop("receptor").to_numpy(dtype=object, copy=True),
     )
 
     for i in range(len(ligands)):

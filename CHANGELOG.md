@@ -18,7 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `extract_lr_pairs` raised `ValueError: Length of indexer and values mismatch`
     because pandas 3.0's default Arrow-backed string dtype no longer allows storing
     variable-length arrays into single-element slots; ligand/receptor columns now use
-    `to_numpy(dtype=object)` to restore plain object-array semantics
+    `to_numpy(dtype=object, copy=True)` to restore plain, guaranteed-writable
+    object-array semantics
 
 ## [0.1.5] - 2026-07-06
 
