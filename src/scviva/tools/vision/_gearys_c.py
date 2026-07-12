@@ -90,9 +90,9 @@ def _gearys_c_inner_sparse_x_densevec(
         i_indices = g_indices[s]
         i_data = g_data[s]
         total += np.sum(i_data * ((x[i] - x[i_indices]) ** 2))
-    numer = (n - 1) * total
+    numerator = (n - 1) * total
     denom = 2 * w * ((x - x_bar) ** 2).sum()
-    return numer / denom
+    return numerator / denom
 
 
 @_njit

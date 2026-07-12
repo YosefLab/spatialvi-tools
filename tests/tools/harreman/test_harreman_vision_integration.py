@@ -132,7 +132,8 @@ def test_reuses_existing_weights_even_when_x_pca_also_present(adata_with_prebuil
 
     ha = HarremanAnalysis(adata_with_prebuilt_weights)
     ha.vs.load_signatures(dicts=[SIG_DICT])
-    ha.vs.analyze_vision()  # no setup_kwargs -> must still reuse obsp["weights"], not rebuild from X_pca
+    # no setup_kwargs -> must still reuse obsp["weights"], not rebuild from X_pca
+    ha.vs.analyze_vision()
 
     np.testing.assert_allclose(
         adata_with_prebuilt_weights.obsp["weights"].toarray(),
