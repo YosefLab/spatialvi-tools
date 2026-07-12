@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 import os
 import warnings
-from itertools import cycle
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -20,9 +19,9 @@ from scvi.train import Trainer
 from scvi.train._config import merge_kwargs
 from scvi.utils import setup_anndata_dsp
 from scvi.utils._docstrings import devices_dsp
-from torch.utils.data import DataLoader
 
 from scviva.model.base._spatial_base import SpatialBaseModel
+from scviva.model.utils._dataloaders import CyclicMultiDataLoader as TrainDL
 from scviva.model.utils._gimvi_utils import _load_saved_gimvi_files
 from scviva.module._jvae import JVAE
 from scviva.train._gimvi_trainingplans import GIMVITrainingPlan
@@ -625,23 +624,3 @@ class GIMVI(SpatialBaseModel):
         adata_manager = AnnDataManager(fields=anndata_fields, setup_method_args=setup_method_args)
         adata_manager.register_fields(adata, **kwargs)
         cls.register_manager(adata_manager)
-
-
-class TrainDL(DataLoader):
-    """Train data loader for GIMVI that cycles the shorter dataset."""
-
-    def __init__(self, data_loader_list, **kwargs):
-        self.data_loader_list = data_loader_list
-        self.largest_train_dl_idx = np.argmax([len(dl.indices) for dl in data_loader_list])
-        self.largest_dl = self.data_loader_list[self.largest_train_dl_idx]
-        super().__init__(self.largest_dl, **kwargs)
-
-    def __len__(self):
-        return len(self.largest_dl)
-
-    def __iter__(self):
-        train_dls = [
-            dl if i == self.largest_train_dl_idx else cycle(dl)
-            for i, dl in enumerate(self.data_loader_list)
-        ]
-        return zip(*train_dls, strict=True)
