@@ -6,7 +6,8 @@ and mixins.
 
 from __future__ import annotations
 
+from scviva.external.diagvi import DIAGVI
 from scviva.external.stereoscope._model import RNAStereoscope, SpatialStereoscope
 from scviva.external.tangram import Tangram
 
-__all__ = ["RNAStereoscope", "SpatialStereoscope", "Tangram"]
+__all__ = ["RNAStereoscope", "SpatialStereoscope", "Tangram", "DIAGVI"]

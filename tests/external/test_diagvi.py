@@ -985,7 +985,7 @@ class MockModule(torch.nn.Module):
 @pytest.mark.parametrize("explicit_lam_class", [0.0, 50.0, 100.0, 200.0])
 def test_lam_class_initialization_explicit(explicit_lam_class):
     """Test that explicit lam_class values are respected."""
-    from scvi.external.diagvi._task import DiagTrainingPlan
+    from scviva.external.diagvi._task import DiagTrainingPlan
 
     # Even with semi_supervised=True, explicit value should be used
     mock_module = MockModule(semi_supervised=True)
@@ -1019,7 +1019,7 @@ def test_diagvi_training_with_loss_annealing(adata_seq, adata_spatial):
 
 def test_anneal_param_function():
     """Test the _anneal_param helper function directly."""
-    from scvi.external.diagvi._task import _anneal_param
+    from scviva.external.diagvi._task import _anneal_param
 
     # Test at epoch 0 (start of training)
     result = _anneal_param(current_epoch=0, max_epochs=30, init_value=10.0, target_value=1.0)
@@ -1371,8 +1371,9 @@ def test_setup_anndata_negative_data_continuous_likelihood():
 
 def test_guidance_graph_consistency_check_fails():
     """Test that inconsistent guidance graph raises ValueError."""
-    from scvi.external.diagvi._utils import _check_guidance_graph_consistency
     from torch_geometric.data import Data
+
+    from scviva.external.diagvi._utils import _check_guidance_graph_consistency
 
     # Create adatas
     adata1 = AnnData(X=np.random.poisson(1.0, size=(50, 20)))
@@ -1392,8 +1393,9 @@ def test_guidance_graph_consistency_check_fails():
 
 def test_guidance_graph_missing_self_loops():
     """Test that graph without self-loops raises ValueError."""
-    from scvi.external.diagvi._utils import _check_guidance_graph_consistency
     from torch_geometric.data import Data
+
+    from scviva.external.diagvi._utils import _check_guidance_graph_consistency
 
     adata1 = AnnData(X=np.random.poisson(1.0, size=(50, 5)))
     adata2 = AnnData(X=np.random.poisson(1.0, size=(40, 5)))
@@ -1417,7 +1419,7 @@ def test_guidance_graph_missing_self_loops():
 
 def test_decoder_single_pathway_outputs():
     """Test DecoderSinglePathway output shapes."""
-    from scvi.external.diagvi._base_components import DecoderSinglePathway
+    from scviva.external.diagvi._base_components import DecoderSinglePathway
 
     n_output = 50
     n_batches = 2
@@ -1444,7 +1446,7 @@ def test_decoder_single_pathway_outputs():
 
 def test_decoder_dual_pathway_outputs():
     """Test DecoderDualPathway output shapes."""
-    from scvi.external.diagvi._base_components import DecoderDualPathway
+    from scviva.external.diagvi._base_components import DecoderDualPathway
 
     n_output = 50
     n_batches = 2
@@ -1476,7 +1478,7 @@ def test_decoder_dual_pathway_outputs():
 
 def test_graph_encoder_outputs():
     """Test GraphEncoder output shapes."""
-    from scvi.external.diagvi._base_components import GraphEncoder
+    from scviva.external.diagvi._base_components import GraphEncoder
 
     n_nodes = 100
     n_latent = 50
@@ -1495,7 +1497,7 @@ def test_graph_encoder_outputs():
 
 def test_decoder_batch_index_out_of_bounds():
     """Test that out-of-bounds batch index raises IndexError."""
-    from scvi.external.diagvi._base_components import DecoderSinglePathway
+    from scviva.external.diagvi._base_components import DecoderSinglePathway
 
     decoder = DecoderSinglePathway(n_output=50, n_batches=2, normalize=True)
 
@@ -1515,7 +1517,7 @@ def test_decoder_batch_index_out_of_bounds():
 
 def test_construct_guidance_graph_auto():
     """Test automatic guidance graph construction with shared features."""
-    from scvi.external.diagvi._utils import _construct_guidance_graph
+    from scviva.external.diagvi._utils import _construct_guidance_graph
 
     # Create adatas with overlapping features
     shared_genes = [f"shared_gene{i}" for i in range(10)]
@@ -1542,7 +1544,7 @@ def test_construct_guidance_graph_auto():
 
 def test_construct_guidance_graph_no_overlap_error():
     """Test that no overlapping features raises ValueError."""
-    from scvi.external.diagvi._utils import _construct_guidance_graph
+    from scviva.external.diagvi._utils import _construct_guidance_graph
 
     adata1 = AnnData(
         X=np.random.poisson(1.0, size=(50, 5)),
@@ -1557,9 +1559,31 @@ def test_construct_guidance_graph_no_overlap_error():
         _construct_guidance_graph({"mod1": adata1, "mod2": adata2}, mapping_df=None)
 
 
+def test_diagvi_guidance_graph_reports_missing_torch_geometric(
+    adata_seq, adata_spatial, monkeypatch
+):
+    """geomloss/torch-geometric are hard deps upstream but optional here (scviva-tools[spatial]);
+    a missing install must raise a clear, actionable error, not a bare ImportError."""
+    import importlib
+
+    from scviva.external.diagvi._utils import _construct_guidance_graph
+
+    real_import_module = importlib.import_module
+
+    def fake_import_module(name, *args, **kwargs):
+        if name == "torch_geometric":
+            raise ImportError("simulated missing torch_geometric")
+        return real_import_module(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib, "import_module", fake_import_module)
+
+    with pytest.raises(ModuleNotFoundError, match="torch_geometric"):
+        _construct_guidance_graph({"seq": adata_seq, "spatial": adata_spatial}, mapping_df=None)
+
+
 def test_kl_divergence_graph():
     """Test KL divergence computation for graph latent variables."""
-    from scvi.external.diagvi._utils import kl_divergence_graph
+    from scviva.external.diagvi._utils import kl_divergence_graph
 
     n_nodes = 100
     n_latent = 50
