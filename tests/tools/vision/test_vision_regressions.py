@@ -1,0 +1,242 @@
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+from anndata import AnnData
+from scipy.sparse import csr_matrix
+
+os.environ.setdefault("NUMBA_CACHE_DIR", os.path.join(tempfile.gettempdir(), "numba_cache"))
+
+from scviva.tools.harreman._analysis import HarremanAnalysis
+from scviva.tools.vision import signature as vision_signature
+from scviva.tools.vision._analysis import VisionAnalysis
+from scviva.tools.vision._constants import (
+    CLUSTERS_OBS_KEY,
+    META_DIFFERENTIAL_UNS_KEY,
+    SIGNATURE_SCORES_UNS_KEY,
+    STEP_SETUP,
+)
+
+
+def _make_adata(n_obs: int = 8, n_vars: int = 6, *, obs: pd.DataFrame | None = None) -> AnnData:
+    rng = np.random.default_rng(0)
+    X = rng.poisson(2.0, size=(n_obs, n_vars)).astype(float)
+    if obs is None:
+        obs = pd.DataFrame(index=[f"cell{i}" for i in range(n_obs)])
+    var = pd.DataFrame(index=[f"gene{i}" for i in range(n_vars)])
+    return AnnData(X=X, obs=obs, var=var)
+
+
+def _row_normalized_complete_graph(n_obs: int) -> csr_matrix:
+    weights = np.ones((n_obs, n_obs), dtype=float)
+    np.fill_diagonal(weights, 0.0)
+    weights /= weights.sum(axis=1, keepdims=True)
+    return csr_matrix(weights)
+
+
+def _signature_matrix(adata: AnnData, columns: list[str] | None = None) -> pd.DataFrame:
+    if columns is None:
+        columns = ["sig0", "sig1"]
+    data = np.zeros((adata.n_vars, len(columns)), dtype=float)
+    for i, _ in enumerate(columns):
+        data[i % adata.n_vars, i] = 1.0
+        data[(i + 1) % adata.n_vars, i] = 1.0
+    return pd.DataFrame(data, index=adata.var_names, columns=columns)
+
+
+def test_import_scviva_does_not_eagerly_import_vision_dependencies():
+    repo_root = Path(__file__).resolve().parents[3]
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(repo_root / "src")
+    env["NUMBA_DISABLE_JIT"] = "1"
+    env["MPLCONFIGDIR"] = tempfile.gettempdir()
+    code = """
+import json
+import sys
+
+import scviva  # noqa: F401
+
+print(json.dumps({
+    "scanpy": "scanpy" in sys.modules,
+    "vision_diffexp": "scviva.tools.vision.diffexp" in sys.modules,
+}))
+"""
+    proc = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    loaded = json.loads(proc.stdout.strip().splitlines()[-1])
+
+    assert loaded == {"scanpy": False, "vision_diffexp": False}
+
+
+def test_compute_signature_scores_restores_signature_varm_key(monkeypatch):
+    adata = _make_adata()
+    adata.obsp["weights"] = _row_normalized_complete_graph(adata.n_obs)
+    adata.varm["signatures"] = _signature_matrix(adata)
+    adata.obsm["vision_signatures"] = pd.DataFrame(
+        np.arange(adata.n_obs * 2).reshape(adata.n_obs, 2),
+        index=adata.obs_names,
+        columns=["sig0", "sig1"],
+    )
+    adata.uns["norm_data_key"] = None
+    adata.uns["signature_varm_key"] = "signatures"
+
+    def fake_gearys_c(_weights, ranked):
+        return np.zeros(ranked.shape[0], dtype=float)
+
+    def fake_generate_null(_adata, _norm_data_key, _signature_varm_key):
+        random_sig = pd.DataFrame(
+            {"RANDOM_BG_0_0": [1.0, 1.0, 0.0, 0.0, 0.0, 0.0]},
+            index=_adata.var_names,
+        )
+        clusters = pd.Series([0, 0], index=["sig0", "sig1"])
+        random_clusters = pd.Series([0], index=["RANDOM_BG_0_0"])
+        return random_sig, clusters, random_clusters
+
+    monkeypatch.setattr(vision_signature, "_gearys_c", fake_gearys_c)
+    monkeypatch.setattr(vision_signature, "generate_permutations_null", fake_generate_null)
+
+    vision_signature.compute_signature_scores(adata, None, "signatures")
+
+    assert adata.uns["signature_varm_key"] == "signatures"
+    assert "random_signatures" not in adata.varm
+    assert list(adata.obsm["vision_signatures"].columns) == ["sig0", "sig1"]
+
+
+def test_setup_reuses_existing_weights_when_pca_is_present():
+    adata = _make_adata()
+    rng = np.random.default_rng(1)
+    adata.obsm["X_pca"] = rng.normal(size=(adata.n_obs, 3))
+    original_weights = _row_normalized_complete_graph(adata.n_obs)
+    adata.obsp["weights"] = original_weights.copy()
+
+    VisionAnalysis(adata).setup(exact_knn=True)
+
+    np.testing.assert_allclose(adata.obsp["weights"].toarray(), original_weights.toarray())
+
+
+def test_infer_obs_columns_ignores_plain_identifier_strings():
+    obs = pd.DataFrame(
+        {
+            "barcode": [f"AAAC{i}" for i in range(6)],
+            "condition": pd.Categorical(["ctrl", "stim", "ctrl", "stim", "ctrl", "stim"]),
+            "score": np.arange(6, dtype=float),
+        },
+        index=[f"cell{i}" for i in range(6)],
+    )
+    adata = _make_adata(n_obs=6, obs=obs)
+
+    categorical, numeric = VisionAnalysis._infer_obs_columns(adata)
+
+    assert categorical == ["condition"]
+    assert numeric == ["score"]
+
+
+def test_compute_de_uses_obs_columns_added_after_init(monkeypatch):
+    adata = _make_adata()
+    va = VisionAnalysis(adata)
+    adata.obs[CLUSTERS_OBS_KEY] = pd.Categorical(["0", "0", "0", "0", "1", "1", "1", "1"])
+    va._completed_steps.add(STEP_SETUP)
+
+    def fake_obs_scores(_adata):
+        return pd.DataFrame(
+            {"c_prime": [0.0], "pvals": [1.0], "fdr": [1.0]},
+            index=[CLUSTERS_OBS_KEY],
+        )
+
+    monkeypatch.setattr(vision_signature, "compute_obs_df_scores", fake_obs_scores)
+
+    va.compute_differential_expression()
+
+    assert CLUSTERS_OBS_KEY in adata.uns[META_DIFFERENTIAL_UNS_KEY]
+
+
+def test_harreman_compute_vision_signatures_uses_default_signature_keys(monkeypatch):
+    adata = _make_adata()
+    calls = []
+
+    def fake_compute(adata_arg, norm_data_key, signature_varm_key, signature_names_uns_key=None):
+        calls.append((adata_arg, norm_data_key, signature_varm_key, signature_names_uns_key))
+        return pd.DataFrame(index=adata_arg.obs_names)
+
+    monkeypatch.setattr(vision_signature, "compute_signatures_anndata", fake_compute)
+
+    HarremanAnalysis(adata).vs.compute_vision_signatures()
+
+    assert calls == [(adata, None, "signatures", None)]
+
+
+def test_harreman_analyze_vision_runs_full_signature_pipeline_without_de(monkeypatch):
+    adata = _make_adata()
+    adata.obsp["weights"] = _row_normalized_complete_graph(adata.n_obs)
+    adata.varm["signatures"] = _signature_matrix(adata)
+
+    def fake_signature_scores(_adata, _norm_data_key, _signature_varm_key):
+        return pd.DataFrame(
+            {"c_prime": [0.0, 0.0], "pvals": [1.0, 1.0], "fdr": [1.0, 1.0]},
+            index=["sig0", "sig1"],
+        )
+
+    monkeypatch.setattr(vision_signature, "compute_signature_scores", fake_signature_scores)
+
+    HarremanAnalysis(adata).vs.analyze_vision(scores_only=False, signature_varm_key="signatures")
+
+    assert "vision_signatures" in adata.obsm
+    assert SIGNATURE_SCORES_UNS_KEY in adata.uns
+    assert META_DIFFERENTIAL_UNS_KEY not in adata.uns
+
+
+def test_vision_analysis_load_signatures_honors_custom_varm_key():
+    adata = _make_adata()
+
+    VisionAnalysis(adata).load_signatures(
+        dicts=[{"custom_sig": ["gene0", "gene1"]}],
+        min_signature_genes=1,
+        varm_key="custom_signatures",
+    )
+
+    assert "custom_signatures" in adata.varm
+    assert list(adata.varm["custom_signatures"].columns) == ["custom_sig"]
+
+
+def test_load_signatures_use_raw_stores_raw_aligned_signatures():
+    adata = _make_adata(n_vars=3)
+    raw = AnnData(
+        X=np.ones((adata.n_obs, 5)),
+        obs=adata.obs.copy(),
+        var=pd.DataFrame(index=["gene0", "gene1", "gene2", "gene3", "gene4"]),
+    )
+    adata.raw = raw
+
+    vision_signature.load_signatures(
+        adata,
+        use_raw=True,
+        dicts=[{"raw_sig": ["gene0", "gene1", "gene2", "gene3"]}],
+        min_signature_genes=1,
+    )
+
+    assert "signatures" in adata.raw.varm
+    assert list(adata.raw.varm["signatures"].index) == adata.raw.var_names.tolist()
+
+
+def test_generate_permutations_null_matches_small_signature_clusters():
+    adata = _make_adata(n_vars=6)
+    adata.varm["signatures"] = _signature_matrix(adata, columns=["sig0"])
+
+    _, clusters, random_clusters = vision_signature.generate_permutations_null(
+        adata, None, "signatures"
+    )
+
+    for cluster in clusters:
+        assert (random_clusters == cluster).any()
