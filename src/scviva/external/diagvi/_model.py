@@ -17,13 +17,12 @@ from scvi.data._constants import _MODEL_NAME_KEY, _SETUP_ARGS_KEY
 from scvi.data.fields import CategoricalObsField, LabelsWithUnlabeledObsField, LayerField
 from scvi.dataloaders import DataSplitter
 from scvi.model._utils import get_max_epochs_heuristic, parse_device_args, use_distributed_sampler
-from scvi.model.base import VAEMixin
+from scvi.model.base import BaseModelClass, VAEMixin
 from scvi.module._constants import MODULE_KEYS
 from scvi.train import Trainer
 from scvi.utils import dependencies, setup_anndata_dsp
 from scvi.utils._docstrings import devices_dsp
 
-from scviva.model.base._spatial_base import SpatialBaseModel
 from scviva.model.utils._dataloaders import CyclicMultiDataLoader as TrainDL
 
 from ._module import DIAGVAE
@@ -46,7 +45,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class DIAGVI(SpatialBaseModel, VAEMixin):
+class DIAGVI(BaseModelClass, VAEMixin):
     """Diagonal Multi-Modal Integration Variational Inference (DIAGVI) model.
 
     Integrates multi-modal single-cell data using a guidance graph and supports
@@ -99,6 +98,13 @@ class DIAGVI(SpatialBaseModel, VAEMixin):
         dropout_rate: float = 0.1,
         **model_kwargs,
     ):
+        warnings.warn(
+            "DiagVI is a spatial transcriptomics model that will be moved to the "
+            "scvi-tools spatial companion package `scviva-tools` starting in scvi-tools v1.5 and "
+            "will no longer be supported here. It will be deprecated from scvi-tools in v1.6.",
+            FutureWarning,
+            stacklevel=settings.warnings_stacklevel,
+        )
         super().__init__()
         # Handle MuData input by extracting modalities as dict
         if isinstance(adatas, MuData):

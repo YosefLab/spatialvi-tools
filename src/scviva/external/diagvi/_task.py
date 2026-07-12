@@ -106,8 +106,7 @@ class DiagTrainingPlan(TrainingPlan):
     epsilon_scale
         Scaling factor: `epsilon = epsilon_scale * statistic(C)`.
     sinkhorn_reach
-        Reach parameter for unbalanced optimal transport. If None, compute
-        adaptive reach from blur.
+        Reach parameter for unbalanced OT. If None, calculate adaptive reach from blur.
     reach_scale
         Scaling factor for adaptive reach: `reach = reach_scale * blur`.
     lr
