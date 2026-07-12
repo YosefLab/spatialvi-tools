@@ -156,7 +156,18 @@ class VisionAnalysis:
     @staticmethod
     def _infer_obs_columns(adata: AnnData) -> tuple[list[str], list[str]]:
         numeric_cols = adata.obs._get_numeric_data().columns.tolist()
-        cat_cols = [c for c in adata.obs.columns.tolist() if c not in numeric_cols]
+        n_obs = adata.n_obs
+        cat_cols = [
+            c
+            for c in adata.obs.columns.tolist()
+            if c not in numeric_cols
+            # Exclude per-cell identifier columns (e.g. a barcode column
+            # duplicating obs_names): every value is unique, so there is no
+            # real grouping, and such a column isn't necessarily a pandas
+            # "category" dtype, which crashes the one-vs-all comparisons
+            # in _compute_one_vs_all_obs_cols/_compute_one_vs_all_signatures.
+            and adata.obs[c].nunique(dropna=False) < n_obs
+        ]
         return cat_cols, numeric_cols
 
     # ── Prerequisite checking ────────────────────────────────────────────────
@@ -254,6 +265,8 @@ class VisionAnalysis:
         from scviva.tools.vision.phylo import cluster_cells_tree
 
         adata = self._adata
+        params = adata.uns.setdefault(VISION_UNS_KEY, {}).setdefault(VISION_PARAMS_KEY, {})
+        weights_owned_by_vision = params.get("weights_owned_by_vision", False)
         neighbors_key = None
         if tree is not None:
             import os
@@ -268,20 +281,39 @@ class VisionAnalysis:
                 compute_knn_weights_from_tree_anndata(adata, newick_str, K=num_neighbors)
             adata.uns[TREE_UNS_KEY] = newick_str
             cluster_cells_tree(adata, newick_str)
+            params["weights_owned_by_vision"] = True
         elif compute_neighbors_on_key is not None:
             compute_knn_weights_anndata(
                 adata, obsm_key=compute_neighbors_on_key, K=num_neighbors, exact=exact_knn
             )
             neighbors_key = compute_neighbors_on_key
+            params["weights_owned_by_vision"] = True
+        elif WEIGHTS_OBSP_KEY in adata.obsp and not weights_owned_by_vision:
+            # A weight graph already exists under the same obsp key VISION uses,
+            # but VISION itself didn't build it -- i.e. another tool sharing this
+            # adata did (e.g. Harreman's own neighbor graph). Reuse it as-is
+            # rather than silently overwriting it with a possibly differently
+            # -parameterized graph built from an unrelated obsm embedding that
+            # merely happens to also be present -- but skip Louvain
+            # re-clustering, since we don't know which obsm embedding it came
+            # from. Pass compute_neighbors_on_key explicitly to force VISION to
+            # build (and own) its own graph instead.
+            logger.info(
+                "VisionAnalysis: no latent space/tree given; reusing existing "
+                "adata.obsp['%s'] weight graph (not built by this VisionAnalysis) as-is.",
+                WEIGHTS_OBSP_KEY,
+            )
         elif "X_pca" in adata.obsm:
             compute_knn_weights_anndata(adata, obsm_key="X_pca", K=num_neighbors, exact=exact_knn)
             neighbors_key = "X_pca"
+            params["weights_owned_by_vision"] = True
         elif "connectivities" in adata.obsp:
             from sklearn.preprocessing import normalize
 
             adata.obsp[WEIGHTS_OBSP_KEY] = normalize(
                 adata.obsp["connectivities"], norm="l1", axis=1
             )
+            params["weights_owned_by_vision"] = True
         else:
             raise ValueError(
                 "No latent space or neighbor graph found in adata. Call "
@@ -440,6 +472,31 @@ class VisionAnalysis:
         if split_signed:
             split_signed_signatures(self._adata, varm_key=varm_key)
 
+    def attach_signatures(self, varm_key: str = "signatures") -> None:
+        """Point this session at signatures already loaded into ``adata.varm``.
+
+        Use this instead of :meth:`load_signatures` when signatures were
+        already loaded by another call on the same ``adata`` (e.g. a prior
+        ``VisionAnalysis`` session, or
+        :func:`~scviva.tools.vision.signature.load_signatures` called
+        directly) and re-parsing the source GMT/dict would be redundant.
+
+        Parameters
+        ----------
+        varm_key
+            Key in ``adata.varm`` (or ``adata.raw.varm`` when
+            ``norm_data_key == "use_raw"``) for the gene x signature weight
+            matrix to use.
+        """
+        store = self._adata.raw.varm if self._norm_data_key == "use_raw" else self._adata.varm
+        if varm_key not in store:
+            location = "adata.raw.varm" if self._norm_data_key == "use_raw" else "adata.varm"
+            raise ValueError(
+                f"{location}['{varm_key}'] not found. Call va.load_signatures() "
+                "first, or pass the correct varm_key."
+            )
+        self._signature_varm_key = varm_key
+
     def compute_signatures(
         self,
         signature_names_uns_key: str | None = None,
@@ -500,6 +557,14 @@ class VisionAnalysis:
         from scviva.tools.vision.signature import compute_obs_df_scores
 
         adata = self._adata
+        # Re-infer categorical/numeric obs columns now, not just at __init__
+        # time: setup() may have just added VISION_Clusters (or
+        # VISION_Clusters_Tree for PhyloVision) to adata.obs, and the
+        # one-vs-all comparisons below should include it as a grouping
+        # variable. Without this refresh, datasets with no other categorical
+        # obs column would silently get an empty differential-expression
+        # result instead of the expected cluster-vs-rest comparison.
+        self._cat_obs_cols, self._numeric_obs_cols = self._infer_obs_columns(adata)
         adata.uns[OBS_DF_SCORES_UNS_KEY] = compute_obs_df_scores(adata)
         self._compute_one_vs_all_obs_cols()
         self._persist_meta_differential()

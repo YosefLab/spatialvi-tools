@@ -10,6 +10,7 @@ p-values for both signatures and observation metadata.
 from __future__ import annotations
 
 import logging
+import math
 import random
 import time
 from re import compile, match
@@ -17,13 +18,13 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
-from scanpy.metrics._gearys_c import _gearys_c
 from scipy import sparse
 from scipy.sparse import csr_matrix, issparse
 from scipy.stats import chi2_contingency, rankdata
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
 
+from ._gearys_c import _gearys_c
 from ._normalization import get_normalized_copy_sparse
 from ._utils import _get_mean_var
 
@@ -434,10 +435,21 @@ def compute_obs_df_scores(adata: AnnData) -> pd.DataFrame:
             x_lm = (c_hat_im.T @ one_hot_cat).toarray()
 
             # Cramer's V: https://www.statology.org/cramers-v-in-python/
-            chi_sq, pval, _, _ = chi2_contingency(x_lm)
             n = np.sum(x_lm)
+            try:
+                chi_sq, pval, _, _ = chi2_contingency(x_lm)
+            except ValueError:
+                # Degenerate contingency table (e.g. a zero expected-frequency
+                # cell, common with many small categories relative to n_obs).
+                # Same fallback convention as _compute_one_vs_all_obs_cols:
+                # treat as maximal association / maximally significant rather
+                # than crashing.
+                chi_sq, pval = n, 0.0
+            if math.isinf(pval) or math.isnan(pval):
+                pval = 1.0
             min_dim = min(x_lm.shape) - 1
-            cramers_v.append(np.sqrt((chi_sq / n) / min_dim))
+            v = 1.0 if (math.isinf(chi_sq) or math.isnan(chi_sq)) else np.sqrt((chi_sq / n) / min_dim)
+            cramers_v.append(v)
             pvals_cat.append(pval)
         fdr_cat = multipletests(pvals_cat, method="fdr_bh")[1]
 
@@ -532,6 +544,12 @@ def compute_signature_scores(
         )
         del adata.varm["random_signatures"]
         adata.obsm["vision_signatures"] = df  # restore real scores overwritten by random run
+        # compute_signatures_anndata() above also overwrote
+        # adata.uns["signature_varm_key"] to "random_signatures" as a side
+        # effect; restore it so callers that read this key afterwards (e.g.
+        # scviva.tools.harreman.vision.integrate_vision_hotspot_results)
+        # find the real signatures, not the transient random background set.
+        adata.uns["signature_varm_key"] = signature_varm_key
 
     random_df_ranked = _rank_cols(random_df.to_numpy())  # returns (n_sigs, n_cells)
     random_gearys_c = _gearys_c(weights, random_df_ranked)
