@@ -123,9 +123,11 @@ def test_reuses_existing_weights_even_when_x_pca_also_present(adata_with_prebuil
     mere presence used to take priority and silently rebuild (overwrite)
     Harreman's graph with a differently-parameterized one.
     """
-    adata_with_prebuilt_weights.obsm["X_pca"] = np.random.default_rng(3).normal(
-        size=(adata_with_prebuilt_weights.n_obs, 5)
-    ).astype(np.float32)
+    adata_with_prebuilt_weights.obsm["X_pca"] = (
+        np.random.default_rng(3)
+        .normal(size=(adata_with_prebuilt_weights.n_obs, 5))
+        .astype(np.float32)
+    )
     weights_before = adata_with_prebuilt_weights.obsp["weights"].toarray().copy()
 
     ha = HarremanAnalysis(adata_with_prebuilt_weights)

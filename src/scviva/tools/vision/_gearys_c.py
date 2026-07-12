@@ -50,10 +50,9 @@ def _numba_threading_layer() -> str | None:
 
 def _is_in_unsafe_thread_pool() -> bool:
     current_thread = threading.current_thread()
-    return (
-        current_thread.name.startswith("ThreadPoolExecutor")
-        and _numba_threading_layer() not in ("tbb", "omp")
-    )
+    return current_thread.name.startswith(
+        "ThreadPoolExecutor"
+    ) and _numba_threading_layer() not in ("tbb", "omp")
 
 
 def _njit(fn: Callable) -> Callable:

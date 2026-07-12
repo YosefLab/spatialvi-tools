@@ -448,7 +448,11 @@ def compute_obs_df_scores(adata: AnnData) -> pd.DataFrame:
             if math.isinf(pval) or math.isnan(pval):
                 pval = 1.0
             min_dim = min(x_lm.shape) - 1
-            v = 1.0 if (math.isinf(chi_sq) or math.isnan(chi_sq)) else np.sqrt((chi_sq / n) / min_dim)
+            v = (
+                1.0
+                if (math.isinf(chi_sq) or math.isnan(chi_sq))
+                else np.sqrt((chi_sq / n) / min_dim)
+            )
             cramers_v.append(v)
             pvals_cat.append(pval)
         fdr_cat = multipletests(pvals_cat, method="fdr_bh")[1]
