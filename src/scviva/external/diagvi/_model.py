@@ -17,12 +17,13 @@ from scvi.data._constants import _MODEL_NAME_KEY, _SETUP_ARGS_KEY
 from scvi.data.fields import CategoricalObsField, LabelsWithUnlabeledObsField, LayerField
 from scvi.dataloaders import DataSplitter
 from scvi.model._utils import get_max_epochs_heuristic, parse_device_args, use_distributed_sampler
-from scvi.model.base import BaseModelClass, VAEMixin
+from scvi.model.base import VAEMixin
 from scvi.module._constants import MODULE_KEYS
 from scvi.train import Trainer
 from scvi.utils import dependencies, setup_anndata_dsp
 from scvi.utils._docstrings import devices_dsp
 
+from scviva.model.base._spatial_base import SpatialBaseModel
 from scviva.model.utils._dataloaders import CyclicMultiDataLoader as TrainDL
 
 from ._module import DIAGVAE
@@ -45,7 +46,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class DIAGVI(BaseModelClass, VAEMixin):
+class DIAGVI(SpatialBaseModel, VAEMixin):
     """Diagonal Multi-Modal Integration Variational Inference (DIAGVI) model.
 
     Integrates multi-modal single-cell data using a guidance graph and supports
@@ -519,6 +520,23 @@ class DIAGVI(BaseModelClass, VAEMixin):
                 **kwargs,
             )
 
+    @classmethod
+    def from_spatialdata(
+        cls, sdata, table_key: str = "table", region: str | None = None, **model_kwargs
+    ):
+        """Not supported: DIAGVI is multi-modal and cannot be constructed from one AnnData table.
+
+        Use :meth:`setup_spatialdata` to register each modality's AnnData individually
+        (once per modality, extracting the relevant table from your ``SpatialData``
+        objects), then construct ``DIAGVI({"modality_a": adata_a, "modality_b": adata_b})``
+        directly.
+        """
+        raise NotImplementedError(
+            "DIAGVI is a multi-modal model and cannot be constructed from a single "
+            "SpatialData table via from_spatialdata(). Call setup_spatialdata() once per "
+            "modality, then construct DIAGVI with a dict of the registered AnnData objects."
+        )
+
     @staticmethod
     @dependencies("torch_geometric")
     def construct_custom_guidance_graph(
@@ -626,6 +644,7 @@ class DIAGVI(BaseModelClass, VAEMixin):
         adatas: dict[str, AnnData] | list[AnnData] | None = None,
         indices: dict[str, Sequence[int]] | None = None,
         batch_size: int = 1024,
+        backend: str = "cpu",
     ) -> dict[str, np.ndarray]:
         """Return the latent space embedding for each dataset.
 
@@ -638,6 +657,9 @@ class DIAGVI(BaseModelClass, VAEMixin):
             If ``None``, all cells are used for each modality.
         batch_size
             Minibatch size for data loading.
+        backend
+            ``"cpu"`` (default) returns numpy arrays as normal. ``"rapids"`` transfers
+            each modality's result to a cupy array (requires ``pip install cuml``).
 
         Returns
         -------
@@ -675,9 +697,34 @@ class DIAGVI(BaseModelClass, VAEMixin):
                     .detach()
                 )
             latent = torch.cat(latent).numpy()
-            latents[input_name] = latent
+            latents[input_name] = self._maybe_rapids(latent, backend)
 
         return latents
+
+    def plot_spatial_embedding(self, adata=None, basis: str = "spatial", color=None, **kwargs):
+        """Plot latent embedding overlaid on tissue spatial coordinates for one modality.
+
+        DIAGVI is multi-modal and has no single default ``adata``, so — unlike
+        :meth:`SpatialBaseModel.plot_spatial_embedding` — an explicit ``adata`` is
+        required here.
+
+        Parameters
+        ----------
+        adata
+            AnnData object for one modality, e.g. ``model.adatas["spatial"]``.
+        basis
+            Key in ``adata.obsm`` containing 2D spatial coordinates.
+        color
+            Keys to color cells by (obs columns, gene names, etc.).
+        **kwargs
+            Forwarded to :func:`scanpy.pl.embedding`.
+        """
+        if adata is None:
+            raise ValueError(
+                "DIAGVI is multi-modal; specify which modality's adata to plot, e.g. "
+                "model.plot_spatial_embedding(adata=model.adatas['spatial'])."
+            )
+        return super().plot_spatial_embedding(adata=adata, basis=basis, color=color, **kwargs)
 
     @torch.inference_mode()
     def posterior_predictive_sample(
