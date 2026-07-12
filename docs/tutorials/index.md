@@ -10,6 +10,7 @@ gimvi_tutorial
 stereoscope_heart_LV_tutorial
 cell2location_lymph_node_spatial_tutorial
 tangram_scvi_tools
+preprocessing
 Visium_colon_Harreman_pipeline
 Harreman_Vision_singlecell_tutorial
 ```
