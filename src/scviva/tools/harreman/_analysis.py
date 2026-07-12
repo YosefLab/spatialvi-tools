@@ -636,9 +636,7 @@ class _HarremanVsAccessor:
 
     def signatures_from_file(self, adata: AnnData | None = None, **kwargs) -> None:
         """Alias for :meth:`load_signatures`."""
-        from scviva.tools.vision.signature import load_signatures
-
-        load_signatures(self._resolve(adata), **kwargs)
+        self.load_signatures(adata, **kwargs)
 
     def compute_vision_signatures(
         self,
@@ -648,13 +646,13 @@ class _HarremanVsAccessor:
         signature_names_uns_key: str | None = None,
         **kwargs,
     ) -> None:
-        from scviva.tools.vision.signature import compute_signatures_anndata
-
-        compute_signatures_anndata(
-            self._resolve(adata),
-            norm_data_key,
-            signature_varm_key,
-            signature_names_uns_key,
+        """Alias for :meth:`analyze_vision` with ``scores_only=True``."""
+        self.analyze_vision(
+            adata,
+            norm_data_key=norm_data_key,
+            signature_varm_key=signature_varm_key,
+            signature_names_uns_key=signature_names_uns_key,
+            scores_only=True,
             **kwargs,
         )
 
