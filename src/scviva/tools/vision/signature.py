@@ -686,6 +686,7 @@ def load_signatures(
     dicts: Sequence[dict] | None = None,
     min_signature_genes: int = 5,
     sig_gene_threshold: float = 0.001,
+    varm_key: str = "signatures",
 ) -> None:
     """Compute signature scores from .gmt/.txt files or dictionaries.
 
@@ -708,13 +709,18 @@ def load_signatures(
         Genes expressed in fewer than this fraction of cells are excluded
         from signatures. Mirrors R VISION's ``sig_gene_threshold``
         (default 0.001).
+    varm_key
+        Key to store the resulting gene x signature matrix under. Written to
+        ``adata.raw.varm[varm_key]`` when ``use_raw=True`` (since the matrix
+        is aligned to ``adata.raw.var_names``, not ``adata.var_names``),
+        otherwise to ``adata.varm[varm_key]``.
 
     Returns
     -------
     None
-        ``adata.varm["signatures"]`` is created or overwritten in place with
-        a genes by signatures dataframe of +1 / -1 / 0 values, aligned to
-        genes from adata.
+        A genes by signatures dataframe of +1 / -1 / 0 values is created or
+        overwritten in place under ``varm_key``, aligned to genes from
+        ``adata`` (or ``adata.raw`` when ``use_raw=True``).
     """
     if dicts is None and gmt_files is None:
         raise ValueError("Please provide either gmt_files or dicts.")
@@ -769,7 +775,10 @@ def load_signatures(
                 "more gene overlap with this dataset."
             )
 
-    adata.varm["signatures"] = sig_df
+    if use_raw:
+        adata.raw.varm[varm_key] = sig_df
+    else:
+        adata.varm[varm_key] = sig_df
 
 
 def split_signed_signatures(
@@ -1216,7 +1225,11 @@ def generate_permutations_null(
 
     if sig_vars.shape[0] <= n_components:
         n_components = sig_vars.shape[0]
-        centers = sig_vars
+        # Re-index by integer position (0..n-1), not signature name: `clusters`
+        # below holds the same integer positions as its *values*, and the
+        # random-background loop iterates `centers.index` expecting it to
+        # line up with those cluster labels.
+        centers = sig_vars.reset_index(drop=True)
         clusters = pd.Series(list(range(sig_vars.shape[0])))
         clusters = clusters.astype("category")
         clusters.index = sig_vars.index

@@ -640,10 +640,23 @@ class _HarremanVsAccessor:
 
         load_signatures(self._resolve(adata), **kwargs)
 
-    def compute_vision_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
+    def compute_vision_signatures(
+        self,
+        adata: AnnData | None = None,
+        norm_data_key: str | None = None,
+        signature_varm_key: str = "signatures",
+        signature_names_uns_key: str | None = None,
+        **kwargs,
+    ) -> None:
         from scviva.tools.vision.signature import compute_signatures_anndata
 
-        compute_signatures_anndata(self._resolve(adata), **kwargs)
+        compute_signatures_anndata(
+            self._resolve(adata),
+            norm_data_key,
+            signature_varm_key,
+            signature_names_uns_key,
+            **kwargs,
+        )
 
     def integrate_vision_hotspot_results(self, adata: AnnData | None = None, **kwargs) -> None:
         from scviva.tools.harreman.vision._integration import integrate_vision_hotspot_results

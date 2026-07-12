@@ -1,7 +1,6 @@
 from ._analysis import VisionAnalysis
 from ._normalization import NormData, get_normalized_copy, get_normalized_copy_sparse
 from ._results import VisionResults
-from .diffexp import rank_genes_groups
 from .filters import apply_filters, filter_genes_fano, filter_genes_novar, filter_genes_threshold
 from .knn import (
     compute_knn_weights,
@@ -81,3 +80,15 @@ __all__ = [
     "rank_genes_groups",
     "split_signed_signatures",
 ]
+
+
+def __getattr__(name: str):
+    # `.diffexp` imports scanpy at module level, so it's kept out of the
+    # eager imports above -- otherwise plain `import scviva` would always
+    # pull in all of scanpy (and trigger its numba cache setup) just to
+    # reach `HarremanAnalysis`/`VisionAnalysis`.
+    if name == "rank_genes_groups":
+        from .diffexp import rank_genes_groups
+
+        return rank_genes_groups
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

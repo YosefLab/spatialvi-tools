@@ -467,6 +467,7 @@ class VisionAnalysis:
             use_raw=use_raw,
             min_signature_genes=min_signature_genes,
             sig_gene_threshold=sig_gene_threshold,
+            varm_key=varm_key,
         )
         self._signature_varm_key = varm_key
         if split_signed:
