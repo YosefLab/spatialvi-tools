@@ -407,6 +407,48 @@ def test_get_imputed_values_combined_batch_and_libsize(trained_model):
     assert imputed3.shape == (N_OBS_SPATIAL, N_VARS)
 
 
+def test_get_imputed_values_reference_batch_uses_reference_modality_categories():
+    """`reference_batch` labels are decoded via `mode=reference_name` (the modality
+    other than `query_name`), so they must be resolved against that modality's own
+    batch categories, not the query modality's."""
+    var = pd.DataFrame(index=[f"gene{i}" for i in range(N_VARS)])
+
+    adata_diss = AnnData(
+        X=np.random.poisson(1.0, size=(N_OBS_SEQ, N_VARS)),
+        obs={"batch": pd.Categorical(np.random.choice(["diss_b0", "diss_b1"], size=N_OBS_SEQ))},
+        var=var,
+    )
+    adata_spatial = AnnData(
+        X=np.random.poisson(1.0, size=(N_OBS_SPATIAL, N_VARS)),
+        obs={"batch": pd.Categorical(np.random.choice(["sp_b0", "sp_b1"], size=N_OBS_SPATIAL))},
+        var=var.copy(),
+    )
+
+    DIAGVI.setup_anndata(adata_diss, batch_key="batch", likelihood="nb")
+    DIAGVI.setup_anndata(adata_spatial, batch_key="batch", likelihood="nb")
+    model = DIAGVI({"diss": adata_diss, "spatial": adata_spatial})
+    model.train(max_epochs=1, batch_size=16)
+
+    # query="spatial" -> decoded/reference modality is "diss"; "diss_b0" is only a
+    # valid category there, not in spatial's own ["sp_b0", "sp_b1"] categories.
+    imputed = model.get_imputed_values(query_name="spatial", reference_batch="diss_b0")
+    assert np.all(np.isfinite(imputed))
+
+
+def test_get_imputed_values_reference_libsize_is_log_transformed(trained_model):
+    """LIBRARY_KEY is stored log-scale (decoders compute torch.exp(l) * px_scale), but
+    `reference_libsize` is documented/passed as a raw library size; passing raw values
+    straight through would overflow after exp() instead of scaling output sensibly."""
+    model, adata_seq, adata_spatial = trained_model
+
+    imputed_small = model.get_imputed_values(query_name="spatial", reference_libsize=100.0)
+    imputed_large = model.get_imputed_values(query_name="spatial", reference_libsize=100_000.0)
+
+    assert np.all(np.isfinite(imputed_small))
+    assert np.all(np.isfinite(imputed_large))
+    assert imputed_large.mean() > imputed_small.mean()
+
+
 def test_get_imputed_values_with_indices(trained_model):
     """Test get_imputed_values with subset of indices."""
     model, adata_seq, adata_spatial = trained_model
@@ -1310,6 +1352,54 @@ def test_semi_supervised_both_modalities(adata_seq_with_labels, adata_spatial_wi
     assert model.is_trained_ is True
 
 
+def test_classification_loss_excludes_unlabeled_cells(monkeypatch):
+    """Cells registered under `unlabeled_category` (always remapped to the last label
+    index, n_labels[mode] - 1) must never be fed into the classifier's cross_entropy
+    as a real supervised target."""
+    n_labeled = 60
+    n_unlabeled = 20
+    n = n_labeled + n_unlabeled
+    var = pd.DataFrame(index=[f"gene{i}" for i in range(N_VARS)])
+
+    labels = np.array([f"celltype_{i % 3}" for i in range(n_labeled)] + ["unknown"] * n_unlabeled)
+    adata_diss = AnnData(
+        X=np.random.poisson(1.0, size=(n, N_VARS)),
+        obs=pd.DataFrame(
+            {
+                "batch": pd.Categorical(np.random.choice(["batch1", "batch2"], size=n)),
+                "cell_type": pd.Categorical(labels),
+            }
+        ),
+        var=var,
+    )
+    adata_spatial = AnnData(
+        X=np.random.poisson(1.0, size=(N_OBS_SPATIAL, N_VARS)),
+        obs={"batch": pd.Categorical(np.random.choice(["batch1", "batch2"], size=N_OBS_SPATIAL))},
+        var=var.copy(),
+    )
+
+    DIAGVI.setup_anndata(adata_diss, batch_key="batch", labels_key="cell_type", likelihood="nb")
+    DIAGVI.setup_anndata(adata_spatial, batch_key="batch", likelihood="nb")
+    model = DIAGVI({"diss": adata_diss, "spatial": adata_spatial})
+
+    unlabeled_index = model.module.n_labels["diss"] - 1
+    seen_targets = []
+    real_cross_entropy = torch.nn.functional.cross_entropy
+
+    def spy_cross_entropy(input, target, **kwargs):
+        seen_targets.append(target.detach().clone())
+        return real_cross_entropy(input, target, **kwargs)
+
+    monkeypatch.setattr(torch.nn.functional, "cross_entropy", spy_cross_entropy)
+    model.train(max_epochs=1, batch_size=16)
+
+    assert seen_targets, "classifier cross_entropy was never called"
+    for target in seen_targets:
+        assert not (target == unlabeled_index).any(), (
+            "cross_entropy was called with unlabeled_category cells as targets"
+        )
+
+
 # =============================================================================
 # Tests for pre-provided guidance graph
 # =============================================================================
@@ -1557,6 +1647,31 @@ def test_construct_guidance_graph_no_overlap_error():
 
     with pytest.raises(ValueError, match="No overlapping features"):
         _construct_guidance_graph({"mod1": adata1, "mod2": adata2}, mapping_df=None)
+
+
+def test_construct_guidance_graph_mapping_df_disambiguates_shared_feature_names():
+    """Feature names shared across modalities (e.g. identical gene symbols mapped
+    gene-to-gene) must map to distinct graph nodes per modality when using
+    mapping_df, not collide into a single shared index."""
+    from scviva.external.diagvi._utils import _construct_guidance_graph
+
+    shared_names = [f"gene{i}" for i in range(5)]
+    adata1 = AnnData(
+        X=np.random.poisson(1.0, size=(10, 5)),
+        var=pd.DataFrame(index=shared_names),
+    )
+    adata2 = AnnData(
+        X=np.random.poisson(1.0, size=(10, 5)),
+        var=pd.DataFrame(index=shared_names),
+    )
+    mapping_df = pd.DataFrame({"mod1": shared_names, "mod2": shared_names})
+
+    graph = _construct_guidance_graph({"mod1": adata1, "mod2": adata2}, mapping_df=mapping_df)
+
+    assert graph.num_nodes == 10  # 5 + 5, not collapsed to 5 via name collision
+    mod1_indices = set(graph.mod1_indices.tolist())
+    mod2_indices = set(graph.mod2_indices.tolist())
+    assert mod1_indices.isdisjoint(mod2_indices)
 
 
 def test_diagvi_guidance_graph_reports_missing_torch_geometric(
