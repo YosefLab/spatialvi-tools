@@ -53,7 +53,6 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "superpowers"]
 
 html_theme = "sphinx_book_theme"
 html_title = "scviva-tools"
-html_extra_path = ["architecture/scviva-tools-block-diagram.html"]
 html_context = {
     "display_github": True,
     "github_user": "YosefLab",
