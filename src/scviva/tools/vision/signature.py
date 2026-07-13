@@ -365,17 +365,27 @@ def _gearysc_for_dataframe(
     """
     cols = numerical_df.columns.tolist()
     num_data = numerical_df.to_numpy(dtype=np.float64)
-    num_ranked_T = np.column_stack(
-        [rankdata(num_data[:, j], method="average") for j in range(len(cols))]
-    )  # (n_cells, n_vars)
-    num_ranked = num_ranked_T.T  # (n_vars, n_cells) for _gearys_c
-    gearys_c = _gearys_c(weights, num_ranked)
-    c_prime = 1.0 - gearys_c
 
-    if compute_pvals:
-        pvals = compute_num_var_pvals(c_prime, weights, num_ranked_T)
-    else:
-        pvals = np.ones(len(cols), dtype=float)
+    # A constant column (e.g. an "in_tissue" flag that's 1 everywhere after
+    # filtering) has zero variance, so its rank-transformed Geary's C would
+    # divide by a zero denominator. It also carries no signal by definition,
+    # so report "no detectable autocorrelation" instead of computing it.
+    is_constant = np.all(num_data == num_data[0, :], axis=0)
+    varying_idx = np.flatnonzero(~is_constant)
+
+    c_prime = np.zeros(len(cols), dtype=float)
+    pvals = np.ones(len(cols), dtype=float)
+
+    if len(varying_idx) > 0:
+        num_ranked_T = np.column_stack(
+            [rankdata(num_data[:, j], method="average") for j in varying_idx]
+        )  # (n_cells, n_varying)
+        num_ranked = num_ranked_T.T  # (n_varying, n_cells) for _gearys_c
+        gearys_c = _gearys_c(weights, num_ranked)
+        c_prime[varying_idx] = 1.0 - gearys_c
+
+        if compute_pvals:
+            pvals[varying_idx] = compute_num_var_pvals(c_prime[varying_idx], weights, num_ranked_T)
 
     fdr = multipletests(pvals, method="fdr_bh")[1]
     return pd.DataFrame({"c_prime": c_prime, "pvals": pvals, "fdr": fdr}, index=cols)

@@ -240,3 +240,16 @@ def test_generate_permutations_null_matches_small_signature_clusters():
 
     for cluster in clusters:
         assert (random_clusters == cluster).any()
+
+
+def test_compute_obs_df_scores_ignores_constant_numeric_column():
+    adata = _make_adata(n_obs=10)
+    adata.obs["in_tissue"] = 1  # constant, e.g. every spot passed a QC flag
+    adata.obs["score"] = np.arange(10, dtype=float)
+    adata.obsp["weights"] = _row_normalized_complete_graph(adata.n_obs)
+
+    result = vision_signature.compute_obs_df_scores(adata)
+
+    assert result.loc["in_tissue", "pvals"] == 1.0
+    assert result.loc["in_tissue", "c_prime"] == 0.0
+    assert np.isfinite(result.loc["score", "c_prime"])

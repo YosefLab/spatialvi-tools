@@ -45,6 +45,10 @@ MANIFEST
 /docs/_build/
 /docs/api/reference/
 
+# Pooch dataset download caches (e.g. load_visium_mouse_colon_dataset())
+/data/
+/docs/tutorials/data/
+
 # OS
 .DS_Store
 Thumbs.db
