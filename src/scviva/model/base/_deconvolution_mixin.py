@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 import pandas as pd
 
 if TYPE_CHECKING:
     from anndata import AnnData
-
-logger = logging.getLogger(__name__)
 
 
 class SpatialDeconvolutionMixin:
@@ -80,26 +77,10 @@ class SpatialDeconvolutionMixin:
         **kwargs
             Forwarded to :func:`scanpy.pl.embedding`.
         """
-        import scanpy as sc
+        from scviva.plotting import plot_cell_type_map as _plot_cell_type_map
 
         if adata is None and hasattr(self, "adata"):
             adata = self.adata
 
         df = self.get_proportions_df(adata)
-        if cell_type is not None:
-            if cell_type not in df.columns:
-                raise ValueError(
-                    f"cell_type '{cell_type}' not found. Available: {list(df.columns)}"
-                )
-            key = f"_scviva_prop_{cell_type}"
-            adata.obs[key] = df[cell_type].values
-            return sc.pl.embedding(adata, basis=basis, color=key, ax=ax, **kwargs)
-
-        # No cell_type specified — plot all as a grid; write each column to obs first
-        logger.info("No cell_type specified; plotting all %d cell types.", len(df.columns))
-        keys = []
-        for ct in df.columns:
-            obs_key = f"_scviva_prop_{ct}"
-            adata.obs[obs_key] = df[ct].values
-            keys.append(obs_key)
-        return sc.pl.embedding(adata, basis=basis, color=keys, **kwargs)
+        return _plot_cell_type_map(adata, df, cell_type=cell_type, basis=basis, ax=ax, **kwargs)

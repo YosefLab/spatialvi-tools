@@ -8,12 +8,15 @@
 
 installation
 user_guide/index
-architecture/index
+tutorials/index
 api/index
 developer/index
-tutorials/index
 faq
+changelog.md
 references
+Discussion <https://discourse.scvi-tools.org>
+GitHub <https://github.com/YosefLab/scviva-tools>
+Model hub <https://huggingface.co/scvi-tools>
 ```
 
 ## Models
@@ -42,18 +45,32 @@ Cell-type deconvolution of spatial transcriptomics spots with sub-cell-type reso
 Niche-aware variational inference for cellular microenvironment modeling.
 :::
 
-::::
-
-## Architecture
-
-::::{grid} 1
-:gutter: 2
-
-:::{grid-item-card} scviva-tools block diagram
-:link: architecture/index
+:::{grid-item-card} Harreman
+:link: user_guide/models/harreman
 :link-type: doc
 
-Visual map of the package layers, inheritance, mixins, model groups, and data-flow rail.
+Metabolic exchange and cell-cell communication inference from spatial transcriptomics data.
+:::
+
+:::{grid-item-card} gimVI
+:link: user_guide/models/gimvi
+:link-type: doc
+
+Joint imputation of missing genes across paired scRNA-seq and spatial transcriptomics datasets.
+:::
+
+:::{grid-item-card} Stereoscope
+:link: user_guide/models/stereoscope
+:link-type: doc
+
+Two-stage deconvolution of cell type proportions in spatial transcriptomics spots.
+:::
+
+:::{grid-item-card} Tangram
+:link: user_guide/models/tangram
+:link-type: doc
+
+Mapping single-cell RNA-seq data onto spatial transcriptomics via optimal transport.
 :::
 
 ::::

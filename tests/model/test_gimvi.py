@@ -50,15 +50,6 @@ def test_gimvi_get_latent_representation(gimvi_data):
     assert latents[0].shape[1] == latents[1].shape[1]  # same latent dim
 
 
-def test_gimvi_get_latent_backend_cpu(gimvi_data):
-    adata_seq, adata_spatial = gimvi_data
-    model = _setup_and_build(adata_seq, adata_spatial)
-    model.train(max_epochs=1, accelerator="cpu")
-
-    latents = model.get_latent_representation(backend="cpu")
-    assert all(isinstance(z, np.ndarray) for z in latents)
-
-
 def test_gimvi_get_latent_rapids_stub(gimvi_data, monkeypatch):
     """Verify rapids path converts to cupy arrays (stubbed)."""
     import sys

@@ -1,6 +1,6 @@
 # scVIVA
 
-**scVIVA** (Python class {class}`~scviva.SCVIVA`) is a generative model of single-cell resolved spatial
+**scVIVA** {cite:p}`Levy25` (Python class {class}`~scviva.SCVIVA`) is a generative model of single-cell resolved spatial
 transcriptomics that can subsequently be used for many common downstream tasks.
 
 The advantages of scVIVA are:
@@ -164,7 +164,3 @@ model.train()
 # Get latent representation
 latent = model.get_latent_representation()
 ```
-
-## Reference
-
-> Levy et al. (2025) — scVIVA: a probabilistic framework for representation of cells and their environments in spatial transcriptomics. *bioRxiv*. doi: 10.1101/2025.06.01.657182

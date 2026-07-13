@@ -43,7 +43,11 @@ MANIFEST
 
 # ReadTheDocs
 /docs/_build/
+/docs/api/reference/
 
 # OS
 .DS_Store
 Thumbs.db
+/docs/architecture/
+/docs/superpowers/
+/.claude/

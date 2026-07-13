@@ -5,89 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- **Tangram** model for mapping single-cell RNA-seq data to spatial transcriptomics
-  (`scviva.external.Tangram`). Torch reimplementation of the Tangram algorithm
-  supporting both "cells" and "constrained" modes for cell-to-spot mapping
-
-### Changed
-
-- **Package renamed** from `spatialvi-tools` to `scviva-tools` on PyPI; the importable
-  module name (`import spatialvi`) is unchanged
-- All documentation, GitHub workflow references, and install-hint strings updated to
-  `scviva-tools` (e.g. `pip install "scviva-tools[spatial]"`)
+## [0.1.6] - 2026-07-08
 
 ### Fixed
 
-- **Tangram**: Fixed tuple bug in `setup_mudata` that prevented var_names validation
-  from raising when sc and spatial modalities have mismatched genes
-- **Tangram**: Fixed `get_mapper_matrix` to correctly apply the learned filter when
-  `constrained=True`, ensuring downstream projection methods respect the target_count
-  constraint
+- **Harreman**: pandas 3.0 always-on copy-on-write broke three in-place mutation sites
+  that relied on `.values` returning a writable view:
+  - `create_modules` raised `ValueError: underlying array is read-only` on
+    `np.fill_diagonal`; now forces a real copy via `to_numpy(copy=True)`
+  - `run_cell_communication_analysis` hit the same `fill_diagonal` failure on the
+    symmetric LC Z-score matrix; now mutates a copy and writes it back via `.loc[:, :]`
+  - `extract_lr_pairs` raised `ValueError: Length of indexer and values mismatch`
+    because pandas 3.0's default Arrow-backed string dtype no longer allows storing
+    variable-length arrays into single-element slots; ligand/receptor columns now use
+    `to_numpy(dtype=object, copy=True)` to restore plain, guaranteed-writable
+    object-array semantics
 
-### Tests
+## [0.1.5] - 2026-07-06
 
-- All `model.train()` calls across the test suite reduced from `max_epochs=2` to
-  `max_epochs=1` to cut unnecessary wall-clock time
-- Removed spurious `accelerator="cpu"` from every test that does not explicitly verify
-  CPU inference; kept only in `test_*_get_latent_*_cpu` tests that exercise the
-  `backend="cpu"` inference path
+### Added
 
-### Notes
+- **Tangram** model for mapping scRNA-seq to spatial transcriptomics
+  (`scviva.external.Tangram`), a PyTorch reimplementation supporting "cells" and
+  "constrained" cell-to-spot mapping modes
+- **Harreman** downstream tool for cell-cell communication and metabolic exchange
+  analysis (`scviva.tl.harreman`, `scviva.pl.harreman`), integrating outputs from
+  DestVI, ResolVI, and SCVIVA
+- **`SpatialPredictiveMixin`**: unified predictive mixin shared by ResolVI and SCVIVA,
+  replacing the ResolVI-only `ResolVIPredictiveMixin`
+- **`scviva.tl`/`scviva.pl`** top-level namespace aliases, mirroring scanpy's
+  `sc.tl`/`sc.pl` convention
+- Dedicated CI job for optional/slow integration tests (real model training)
 
-- Tangram regression tests against scvi-tools upstream are not included because the
-  upstream implementation uses JAX/Flax while scviva-tools uses PyTorch, making
-  direct comparison tests impractical
+### Changed
+
+- **Package renamed** from `spatialvi-tools` to `scviva-tools` on PyPI (import name
+  `scviva` unchanged); docs and install instructions updated accordingly
+
+### Fixed
+
+- **Tangram**: gene-mismatch validation in `setup_mudata`, and `get_mapper_matrix`
+  filtering under `constrained=True`
+- **Harreman**: import/namespace bugs from the initial port that made the package
+  unimportable, plus a broken plotting accessor and a model-recognition constant typo
 
 ## [0.1.3] - 2026-04-13
 
 ### Changed
 
-- **Dead code removal**: dropped MLflow settings (`mlflow_set_tracking_uri`, `mlflow_set_experiment`)
-  and all JAX/XLA environment-variable logic from `SpatialviConfig`; removed the now-unused
-  `import os` from `_settings.py`
-- **Removed** stale in-source development comments (Task 20/21 consolidation notes)
-- **Removed** `train/_config.py` dead re-export of scvi `TrainerConfig`/`TrainingPlanConfig`
-- **Removed** `SpatialBaseModel.plot_spatial_predictions()` trivial alias
-- **Simplified** lazy model map: `spatialvi.__init__` now delegates to `spatialvi.model`
-  instead of duplicating the same four-entry mapping
+- **Cleanup**: dropped dead code (MLflow/JAX settings, a stale config re-export, a
+  trivial method alias, stale in-source dev comments) and simplified the lazy model map
+- **Refactored** `SCVIVA`'s predictive methods to share a common decoder helper, and
+  tidied up several module-level imports; moved a few internal modules under `utils/`
+  for consistency with scvi-tools conventions
 
 ### Fixed
 
-- `scikit-learn>=1.4` added to core dependencies (was incorrectly listed only in test extras
-  despite being required by SCVIVA DE machinery and ResolVI `_prepare_data`)
-- Removed `anndata` and `scanpy` from test extras (both are already core dependencies)
-
-### Refactored
-
-- `SCVIVA.predict_neighborhood` and `predict_niche_activation` now share a private
-  `_run_spatial_decoder` helper, eliminating ~30 lines of duplicated boilerplate
-- `from scipy.sparse import csr_matrix` moved from module-level to a local import inside
-  the one function that uses it (`_pad_and_sort_query_anndata`)
-- `import anndata` replaced with `from anndata import AnnData, concat as anndata_concat`
-  to eliminate the redundant module-level alias
-- `src/spatialvi/module/_nichevae_components.py` moved to
-  `src/spatialvi/module/utils/_nichevae_components.py`
-- `src/spatialvi/model/_scviva_de/` moved to `src/spatialvi/model/utils/_scviva_de/`
-- `src/spatialvi/utils/_gimvi_utils.py` moved to `src/spatialvi/model/utils/_gimvi_utils.py`
-- `src/spatialvi/train/_gimvi_task.py` renamed to `src/spatialvi/train/_gimvi_trainingplans.py`
-  to match scvi-tools naming convention
-
-### Tests
-
-- Added 5 unit tests for `get_niche_indexes` (`tests/model/test_scviva_utils.py`)
+- `scikit-learn>=1.4` moved from test-only to core dependencies (required by SCVIVA/ResolVI
+  at runtime); removed redundant `anndata`/`scanpy` test-extra pins
 
 ### Documentation
 
-- Added `docs/installation.md` and `docs/faq.md`
-- Added `docs/api/` with user and developer API reference stubs
-- Added `docs/developer/` with contributing-code and maintenance guides
-- Added `docs/user_guide/background/` (variational inference, DE, spatial methods)
-- Added `docs/user_guide/use_cases/` (saving/loading, training configuration, downstream analysis)
-- Updated `docs/index.md` and `docs/user_guide/index.md` toctrees
+- Added installation guide, FAQ, API reference stubs, developer/contributing guides, and
+  user-guide background/use-case pages
 
 ## [0.1.2] - 2026-04-12
 

@@ -23,6 +23,36 @@ class SpatialBaseModel(BaseModelClass):
     """
 
     # ------------------------------------------------------------------ #
+    # Backend helpers
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _maybe_rapids(result, backend: str):
+        """Optionally move ``result`` to a cupy array when ``backend == "rapids"``.
+
+        Generic backend cast shared by all scviva models, so the
+        ``backend="rapids"`` dispatch is implemented once.
+
+        Parameters
+        ----------
+        result
+            A numpy array or a tuple of numpy arrays.
+        backend
+            ``"cpu"`` (returns ``result`` unchanged) or ``"rapids"`` (casts to cupy).
+        """
+        if backend != "rapids":
+            return result
+        try:
+            import cupy as cp
+        except ImportError as e:
+            raise ImportError(
+                "backend='rapids' requires cupy. Install with: pip install 'scviva-tools[rapids]'"
+            ) from e
+        if isinstance(result, tuple):
+            return tuple(cp.asarray(r) for r in result)
+        return cp.asarray(result)
+
+    # ------------------------------------------------------------------ #
     # SpatialData integration
     # ------------------------------------------------------------------ #
 
@@ -150,17 +180,7 @@ class SpatialBaseModel(BaseModelClass):
             batch_size=batch_size,
             **kwargs,
         )
-        if backend == "rapids":
-            try:
-                import cupy as cp
-
-                return cp.asarray(latent)
-            except ImportError as e:
-                raise ImportError(
-                    "backend='rapids' requires cupy. "
-                    "Install with: pip install 'scviva-tools[rapids]'"
-                ) from e
-        return latent
+        return self._maybe_rapids(latent, backend)
 
     # ------------------------------------------------------------------ #
     # Spatial visualisation

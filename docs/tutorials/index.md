@@ -14,4 +14,6 @@ amici_tutorial
 starfysh_slideseq_tutorial
 starfysh_tutorial_simulation
 starfysh_tutorial_integration
+preprocessing
+Visium_colon_Harreman_pipeline
 ```

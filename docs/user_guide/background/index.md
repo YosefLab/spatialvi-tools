@@ -7,5 +7,6 @@ Conceptual guides explaining the statistical and algorithmic foundations of scvi
 
 variational_inference
 differential_expression
+differential_abundance
 spatial_methods
 ```

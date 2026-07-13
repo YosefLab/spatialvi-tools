@@ -175,12 +175,6 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
             self.register_buffer("mean_vprior", mean_vprior)
             self.register_buffer("var_vprior", var_vprior)
             self.register_buffer("mp_vprior", mp_vprior)
-            cats = Categorical(probs=self.mp_vprior)
-            normal_dists = Independent(
-                Normal(self.mean_vprior, torch.sqrt(self.var_vprior) + 1e-4),
-                reinterpreted_batch_ndims=1,
-            )
-            self.qz_prior = MixtureSameFamily(cats, normal_dists)
         else:
             self.mean_vprior = None
             self.var_vprior = None
@@ -262,7 +256,14 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
         px_r = torch.exp(self.px_r)
         if self.augmentation and self.training:
             with torch.no_grad():
-                prior_sampled = self.qz_prior.sample([n_samples, m]).reshape(
+                qz_prior = MixtureSameFamily(
+                    Categorical(probs=self.mp_vprior),
+                    Independent(
+                        Normal(self.mean_vprior, torch.sqrt(self.var_vprior) + 1e-4),
+                        reinterpreted_batch_ndims=1,
+                    ),
+                )
+                prior_sampled = qz_prior.sample([n_samples, m]).reshape(
                     n_samples, -1, self.n_latent
                 )
                 enum_label = (
@@ -519,7 +520,10 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
             n_samples = self.n_samples_augmentation + 1
         m = x_augmented.shape[1]
 
-        if self.augmentation:
+        # Augmentation tensors (prior_sampled, ratio_augmentation, ratios_ct_augmentation) are
+        # only produced during training (see `_get_inference_input`, gated on `self.training`).
+        # During validation they are `None`, so fall back to the static (non-augmented) prior.
+        if self.augmentation and self.training:
             prior_sampled = inference_outputs["prior_sampled"].reshape(
                 n_samples, 1, x_augmented.shape[1], self.n_labels, self.n_latent
             )
@@ -563,7 +567,7 @@ class MRDeconv(EmbeddingModuleMixin, BaseModuleClass):
         # beta loss
         glo_neg_log_likelihood_prior = -beta_reg * Normal(mean, scale).log_prob(self.beta).sum()
         loss_augmentation = torch.tensor(0.0, device=x_augmented.device)
-        if self.augmentation:
+        if self.augmentation and self.training:
             expected_proportions = torch.cat(
                 [
                     ratios_ct_augmentation,
