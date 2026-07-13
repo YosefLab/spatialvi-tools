@@ -33,9 +33,11 @@ class AMICI(SpatialBaseModel):
     def __init__(self, adata: AnnData, **model_kwargs) -> None:
         super().__init__(adata)
         x = _as_numpy(self.adata_manager.get_from_registry(REGISTRY_KEYS.X_KEY)).astype(np.float32)
-        labels = np.asarray(
-            self.adata_manager.get_from_registry(REGISTRY_KEYS.LABELS_KEY)
-        ).reshape(-1).astype(int)
+        labels = (
+            np.asarray(self.adata_manager.get_from_registry(REGISTRY_KEYS.LABELS_KEY))
+            .reshape(-1)
+            .astype(int)
+        )
         n_labels = int(labels.max()) + 1
 
         empirical_ct_means = []
@@ -152,9 +154,11 @@ class AMICI(SpatialBaseModel):
 
     def _tensor_dataset(self) -> TensorDataset:
         x = _as_numpy(self.adata_manager.get_from_registry(REGISTRY_KEYS.X_KEY)).astype(np.float32)
-        labels = np.asarray(
-            self.adata_manager.get_from_registry(REGISTRY_KEYS.LABELS_KEY)
-        ).reshape(-1).astype(np.int64)
+        labels = (
+            np.asarray(self.adata_manager.get_from_registry(REGISTRY_KEYS.LABELS_KEY))
+            .reshape(-1)
+            .astype(np.int64)
+        )
         nn_idx = np.asarray(
             self.adata_manager.get_from_registry(AMICI_REGISTRY_KEYS.NN_IDX_KEY)
         ).astype(np.int64)
