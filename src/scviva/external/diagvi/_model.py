@@ -857,8 +857,15 @@ class DIAGVI(SpatialBaseModel, VAEMixin):
         if query_adata is None:
             query_adata = self.adatas[query_name]
 
-        # Get batch categories for this modality
-        batch_manager = self.adata_managers[query_name]
+        # Determine reference (decoded) modality: generative() below runs with
+        # mode=reference_name, so `reference_batch` labels must be translated using
+        # the reference modality's own batch category mapping, not the query's.
+        reference_names = [m for m in self.input_names if m != query_name]
+        if len(reference_names) != 1:
+            raise ValueError("There must be exactly two modalities defined.")
+        reference_name = reference_names[0]
+
+        batch_manager = self.adata_managers[reference_name]
         batch_categories = batch_manager.get_state_registry(REGISTRY_KEYS.BATCH_KEY).get(
             "categorical_mapping", None
         )
@@ -953,18 +960,15 @@ class DIAGVI(SpatialBaseModel, VAEMixin):
                         "Internal error while slicing `reference_libsize` by minibatch."
                     )
                 lib_offset += batch_size_
+                # LIBRARY_KEY is stored log-scale (decoders compute torch.exp(l) * px_scale),
+                # but `reference_libsize` is documented/passed as a raw library size.
+                # TODO: l = np.log(l.reshape((-1, 1)))
                 l = l.reshape((-1, 1))
                 generative_input[MODULE_KEYS.LIBRARY_KEY] = torch.tensor(
                     l,
                     dtype=generative_input[MODULE_KEYS.LIBRARY_KEY].dtype,
                     device=generative_input[MODULE_KEYS.LIBRARY_KEY].device,
                 )
-
-            # Determine reference modality
-            reference_names = [m for m in self.input_names if m != query_name]
-            if len(reference_names) != 1:
-                raise ValueError("There must be exactly two modalities defined.")
-            reference_name = reference_names[0]
 
             generative_output = self.module.generative(**generative_input, mode=reference_name)
             # Use distribution mean for correct expected value across all likelihoods

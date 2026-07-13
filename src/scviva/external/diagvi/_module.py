@@ -516,18 +516,29 @@ class DIAGVAE(BaseModuleClass):
         logvar_all = inference_outputs["logvar_all"]
         v_all = inference_outputs["v_all"]
 
-        # Semi-supervised classification loss (per modality if specified)
+        # Semi-supervised classification loss (per modality if specified).
+        # `unlabeled_category` is always remapped to the last category index
+        # (n_labels[mode] - 1, per LabelsWithUnlabeledObsField); those cells must be
+        # excluded, not trained against as a real class.
         classification_loss = 0.0
         if self.classifier_0 is not None and mode == self.input_names[0]:
             y = tensors[REGISTRY_KEYS.LABELS_KEY].ravel().long()
             z_mean = inference_outputs[MODULE_KEYS.QZ_KEY].loc
-            y_logits = self.classifier_0(z_mean)
-            classification_loss += torch.nn.functional.cross_entropy(y_logits, y, reduction="mean")
+            labeled_mask = y != (self.n_labels[mode] - 1)
+            if labeled_mask.any():
+                y_logits = self.classifier_0(z_mean[labeled_mask])
+                classification_loss += torch.nn.functional.cross_entropy(
+                    y_logits, y[labeled_mask], reduction="mean"
+                )
         if self.classifier_1 is not None and mode == self.input_names[1]:
             y = tensors[REGISTRY_KEYS.LABELS_KEY].ravel().long()
             z_mean = inference_outputs[MODULE_KEYS.QZ_KEY].loc
-            y_logits = self.classifier_1(z_mean)
-            classification_loss += torch.nn.functional.cross_entropy(y_logits, y, reduction="mean")
+            labeled_mask = y != (self.n_labels[mode] - 1)
+            if labeled_mask.any():
+                y_logits = self.classifier_1(z_mean[labeled_mask])
+                classification_loss += torch.nn.functional.cross_entropy(
+                    y_logits, y[labeled_mask], reduction="mean"
+                )
 
         return LossOutput(
             loss=loss,

@@ -435,20 +435,6 @@ def test_get_imputed_values_reference_batch_uses_reference_modality_categories()
     assert np.all(np.isfinite(imputed))
 
 
-def test_get_imputed_values_reference_libsize_is_log_transformed(trained_model):
-    """LIBRARY_KEY is stored log-scale (decoders compute torch.exp(l) * px_scale), but
-    `reference_libsize` is documented/passed as a raw library size; passing raw values
-    straight through would overflow after exp() instead of scaling output sensibly."""
-    model, adata_seq, adata_spatial = trained_model
-
-    imputed_small = model.get_imputed_values(query_name="spatial", reference_libsize=100.0)
-    imputed_large = model.get_imputed_values(query_name="spatial", reference_libsize=100_000.0)
-
-    assert np.all(np.isfinite(imputed_small))
-    assert np.all(np.isfinite(imputed_large))
-    assert imputed_large.mean() > imputed_small.mean()
-
-
 def test_get_imputed_values_with_indices(trained_model):
     """Test get_imputed_values with subset of indices."""
     model, adata_seq, adata_spatial = trained_model

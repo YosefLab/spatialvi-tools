@@ -67,16 +67,16 @@ def _construct_guidance_graph(
     input_names = list(adatas.keys())
     adata1, adata2 = adatas[input_names[0]], adatas[input_names[1]]
 
-    if mapping_df is not None:
-        features1 = list(adata1.var_names)
-        features2 = list(adata2.var_names)
-    else:
+    # Always namespace feature names by modality: unmapped names can collide across
+    # modalities (e.g. shared gene symbols), which would otherwise let one modality's
+    # feature_to_index entries silently overwrite the other's.
+    features1 = [f"{f}_{input_names[0]}" for f in adata1.var_names]
+    features2 = [f"{f}_{input_names[1]}" for f in adata2.var_names]
+
+    if mapping_df is None:
         shared_features = set(adata1.var_names) & set(adata2.var_names)
         if not shared_features:
             raise ValueError("No overlapping features between the two modalities.")
-
-        features1 = [f"{f}_{input_names[0]}" for f in adata1.var_names]
-        features2 = [f"{f}_{input_names[1]}" for f in adata2.var_names]
 
     all_features = features1 + features2
     feature_to_index = {f: i for i, f in enumerate(all_features)}
@@ -91,8 +91,8 @@ def _construct_guidance_graph(
             diss_ft = pair[input_names[0]]
             sp_ft = pair[input_names[1]]
 
-            i = feature_to_index[diss_ft]
-            j = feature_to_index[sp_ft]
+            i = feature_to_index[f"{diss_ft}_{input_names[0]}"]
+            j = feature_to_index[f"{sp_ft}_{input_names[1]}"]
 
             edge_index += [[i, j], [j, i]]
             edge_weight += [weight, weight]
