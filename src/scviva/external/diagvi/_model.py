@@ -962,8 +962,7 @@ class DIAGVI(SpatialBaseModel, VAEMixin):
                 lib_offset += batch_size_
                 # LIBRARY_KEY is stored log-scale (decoders compute torch.exp(l) * px_scale),
                 # but `reference_libsize` is documented/passed as a raw library size.
-                # TODO: l = np.log(l.reshape((-1, 1)))
-                l = l.reshape((-1, 1))
+                l = np.log(l.reshape((-1, 1)))
                 generative_input[MODULE_KEYS.LIBRARY_KEY] = torch.tensor(
                     l,
                     dtype=generative_input[MODULE_KEYS.LIBRARY_KEY].dtype,
