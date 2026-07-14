@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -78,9 +80,12 @@ def test_diagvi_plot_spatial_embedding_requires_explicit_adata(adata_seq, adata_
         model.plot_spatial_embedding()
 
 
-def test_diagvi_get_latent_representation_rapids_backend_requires_cupy(adata_seq, adata_spatial):
+def test_diagvi_get_latent_representation_rapids_backend_requires_cupy(
+    adata_seq, adata_spatial, monkeypatch
+):
     model = make_model(adata_seq, adata_spatial)
     model.train(max_epochs=1, batch_size=16)
+    monkeypatch.setitem(sys.modules, "cupy", None)
     with pytest.raises(ImportError, match="cupy"):
         model.get_latent_representation(backend="rapids")
 
