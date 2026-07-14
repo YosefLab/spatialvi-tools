@@ -14,6 +14,8 @@ amici_tutorial
 starfysh_slideseq_tutorial
 starfysh_tutorial_simulation
 starfysh_tutorial_integration
+DiagVI_spatial_transcriptomics
+DiagVI_spatial_proteomics
 preprocessing
 Visium_colon_Harreman_pipeline
 ```
