@@ -1,4 +1,5 @@
-from ..vision import integrate_vision_hotspot_results
+from scviva.tools.harreman.vision import integrate_vision_hotspot_results
+
 from .local_autocorrelation import compute_local_autocorrelation, load_metabolic_genes
 from .local_correlation import compute_local_correlation
 from .modules import (
