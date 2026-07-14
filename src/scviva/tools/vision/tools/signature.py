@@ -796,6 +796,7 @@ def split_signed_signatures(
     adata: AnnData,
     varm_key: str = "signatures",
     sig_names: list | None = None,
+    use_raw: bool = False,
 ) -> None:
     """Auto-split bidirectional signatures into ``_UP`` / ``_DOWN`` sub-signatures.
 
@@ -814,25 +815,31 @@ def split_signed_signatures(
     adata
         AnnData object.
     varm_key
-        Key in ``adata.varm`` holding the (n_genes x n_sigs) signature
-        weight matrix to split.
+        Key in ``adata.varm`` (or ``adata.raw.varm`` when ``use_raw=True``)
+        holding the (n_genes x n_sigs) signature weight matrix to split.
     sig_names
-        Column names to use if ``adata.varm[varm_key]`` is not already a
+        Column names to use if the signature matrix is not already a
         :class:`pandas.DataFrame` (i.e. a bare array). Ignored otherwise.
+    use_raw
+        Read/write the signature matrix in ``adata.raw.varm`` instead of
+        ``adata.varm``, matching where :func:`load_signatures` stored it
+        when called with ``use_raw=True``.
 
     Returns
     -------
     None
-        Modifies ``adata.varm[varm_key]`` in-place.
+        Modifies the signature matrix in-place.
     """
-    if varm_key not in adata.varm:
+    store = adata.raw.varm if use_raw else adata.varm
+    var_names = adata.raw.var_names if use_raw else adata.var_names
+    if varm_key not in store:
         return
 
-    sig_mat = adata.varm[varm_key]
+    sig_mat = store[varm_key]
     if not isinstance(sig_mat, pd.DataFrame):
         n = sig_mat.shape[1]
         columns = sig_names if (sig_names is not None and len(sig_names) == n) else None
-        sig_mat = pd.DataFrame(sig_mat, index=adata.var_names, columns=columns)
+        sig_mat = pd.DataFrame(sig_mat, index=var_names, columns=columns)
 
     existing = set(sig_mat.columns)
     extra_cols: dict = {}
@@ -858,7 +865,7 @@ def split_signed_signatures(
 
     if extra_cols:
         extra_df = pd.DataFrame(extra_cols, index=sig_mat.index)
-        adata.varm[varm_key] = pd.concat([sig_mat, extra_df], axis=1)
+        store[varm_key] = pd.concat([sig_mat, extra_df], axis=1)
 
 
 def _read_vision_txt(txt_file: str) -> dict[str, dict[str, list[str]]]:
@@ -1138,8 +1145,14 @@ def compute_signatures_anndata(
         adata.varm[signature_varm_key] if not use_raw else adata.raw.varm[signature_varm_key]
     )
     n_sigs = sig_mat_raw.shape[1]
-    if signature_names_uns_key is not None and len(adata.uns[signature_names_uns_key]) == n_sigs:
-        cols = adata.uns[signature_names_uns_key]
+    if signature_names_uns_key is not None:
+        names = adata.uns[signature_names_uns_key]
+        if len(names) != n_sigs:
+            raise ValueError(
+                f"adata.uns['{signature_names_uns_key}'] has {len(names)} names but "
+                f"the signature matrix has {n_sigs} columns."
+            )
+        cols = names
     elif isinstance(sig_mat_raw, pd.DataFrame):
         cols = sig_mat_raw.columns.tolist()
     else:

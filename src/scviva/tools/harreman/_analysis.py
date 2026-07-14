@@ -619,6 +619,16 @@ class _HarremanHsAccessor:
 
         return compute_top_scoring_modules(self._resolve(adata), **kwargs)
 
+    def integrate_vision_hotspot_results(self, adata: AnnData | None = None, **kwargs) -> None:
+        """Deprecated alias for :meth:`_HarremanVsAccessor.integrate_vision_hotspot_results`.
+
+        Kept for backward compatibility with code written against the
+        ``ha.hs.`` accessor before this function moved to ``ha.vs.``.
+        """
+        from scviva.tools.harreman.vision._integration import integrate_vision_hotspot_results
+
+        integrate_vision_hotspot_results(self._resolve(adata), **kwargs)
+
 
 class _HarremanVsAccessor:
     """VISION signature analysis methods accessible as ``ha.vs.<method>``."""
@@ -629,10 +639,20 @@ class _HarremanVsAccessor:
     def _resolve(self, adata: AnnData | None) -> AnnData:
         return adata if adata is not None else self._ha._adata
 
-    def load_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.vision.tools.signature import load_signatures
+    def load_signatures(
+        self,
+        adata: AnnData | None = None,
+        split_signed: bool = True,
+        varm_key: str = "signatures",
+        use_raw: bool = False,
+        **kwargs,
+    ) -> None:
+        from scviva.tools.vision.tools.signature import load_signatures, split_signed_signatures
 
-        load_signatures(self._resolve(adata), **kwargs)
+        resolved = self._resolve(adata)
+        load_signatures(resolved, varm_key=varm_key, use_raw=use_raw, **kwargs)
+        if split_signed:
+            split_signed_signatures(resolved, varm_key=varm_key, use_raw=use_raw)
 
     def signatures_from_file(self, adata: AnnData | None = None, **kwargs) -> None:
         """Alias for :meth:`load_signatures`."""

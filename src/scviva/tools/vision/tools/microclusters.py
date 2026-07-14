@@ -25,12 +25,11 @@ import pandas as pd
 from scipy import sparse
 from scipy.sparse import csr_matrix
 from sklearn.cluster import KMeans
-from sklearn.utils.extmath import randomized_svd
 
+from scviva.tools.vision._utils import gene_centered_svd, log2p1
 from scviva.tools.vision.preprocessing.filters import apply_filters, filter_genes_threshold
 
 from .knn import find_knn
-from .projections import log2p1
 
 if TYPE_CHECKING:
     from anndata import AnnData
@@ -212,10 +211,8 @@ def _internal_pca(
     n_cells, n_genes = X_sub.shape
     k = min(ncomp, n_cells - 1, n_genes - 1)
 
-    mu = X_sub.mean(axis=0)  # per-gene means — mirrors R's rowMeans(fexpr)
-    X_c = X_sub - mu
-
-    U, S, _ = randomized_svd(X_c, n_components=k, random_state=0)
+    # Per-gene-mean centering (mirrors R's rowMeans(fexpr)) + randomized SVD.
+    U, S, _ = gene_centered_svd(X_sub, k)
     return U * S  # (n_cells, k) — cell scores
 
 

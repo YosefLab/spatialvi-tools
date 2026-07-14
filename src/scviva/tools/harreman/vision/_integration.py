@@ -8,6 +8,7 @@ enrichment and score correlation.
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import TYPE_CHECKING, Literal
 
@@ -18,6 +19,8 @@ from statsmodels.stats.multitest import multipletests
 
 if TYPE_CHECKING:
     from anndata import AnnData
+
+logger = logging.getLogger(__name__)
 
 
 def _compute_sig_mod_enrichment(
@@ -75,10 +78,14 @@ def _compute_sig_mod_enrichment(
             pvals_df.loc[signature, module] = pval
             stats_df.loc[signature, module] = stat
 
-    fdr_values = multipletests(pvals_df.unstack().values, method="fdr_bh")[1]
-    fdr_df = pd.Series(fdr_values, index=pvals_df.stack().index).unstack()
+    stacked_pvals = pvals_df.stack()
+    fdr_values = multipletests(stacked_pvals.values, method="fdr_bh")[1]
+    fdr_df = pd.Series(fdr_values, index=stacked_pvals.index).unstack()
 
-    adata.varm["signatures_overlap"] = sig_mod_df
+    if use_raw:
+        adata.raw.varm["signatures_overlap"] = sig_mod_df
+    else:
+        adata.varm["signatures_overlap"] = sig_mod_df
 
     return pvals_df, stats_df, fdr_df
 
@@ -108,8 +115,9 @@ def _compute_sig_mod_correlation(adata: AnnData, method: str, use_super_modules:
         cor_coef_df[signature] = correlation_values
         cor_pval_df[signature] = pvals
 
-    fdr_values = multipletests(cor_pval_df.unstack().values, method="fdr_bh")[1]
-    cor_fdr_df = pd.Series(fdr_values, index=cor_pval_df.stack().index).unstack()
+    stacked_cor_pvals = cor_pval_df.stack()
+    fdr_values = multipletests(stacked_cor_pvals.values, method="fdr_bh")[1]
+    cor_fdr_df = pd.Series(fdr_values, index=stacked_cor_pvals.index).unstack()
 
     return cor_coef_df, cor_pval_df, cor_fdr_df
 
@@ -209,7 +217,7 @@ def integrate_vision_hotspot_results(
     signature_varm_key = adata.uns["signature_varm_key"]
 
     start = time.time()
-    print("Integrating VISION and Hotspot results...")
+    logger.info("Integrating VISION and Hotspot results...")
 
     pvals_df, stats_df, fdr_df = _compute_sig_mod_enrichment(
         adata, norm_data_key, signature_varm_key, use_super_modules
@@ -242,6 +250,6 @@ def integrate_vision_hotspot_results(
     adata.uns["norm_data_key"] = norm_data_key
     adata.uns["signature_varm_key"] = signature_varm_key
 
-    print(
-        "Finished integrating VISION and Hotspot results in %.3f seconds" % (time.time() - start)
+    logger.info(
+        "Finished integrating VISION and Hotspot results in %.3f seconds", time.time() - start
     )

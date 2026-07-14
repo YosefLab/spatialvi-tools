@@ -80,6 +80,7 @@ def filter_genes_fano(
     num_mad: float = 2.0,
     n_bins: int = 30,
     max_cells: int = 50_000,
+    random_state: int | np.random.Generator | None = 0,
 ) -> np.ndarray:
     """Select overdispersed genes via within-bin Fano factor filtering.
 
@@ -100,6 +101,9 @@ def filter_genes_fano(
     max_cells : int, optional
         If the dataset exceeds this many cells, subsample *max_cells* rows for
         computing gene statistics, by default 50,000.
+    random_state : int, np.random.Generator, or None, optional
+        Seed (or generator) for the subsampling above ``max_cells``, for
+        reproducible gene selection. Defaults to ``0``.
 
     Returns
     -------
@@ -115,7 +119,8 @@ def filter_genes_fano(
     n_cells, n_genes = X.shape
 
     if n_cells > max_cells:
-        idx = np.random.choice(n_cells, max_cells, replace=False)
+        rng = np.random.default_rng(random_state)
+        idx = rng.choice(n_cells, max_cells, replace=False)
         X = X[idx]
         logger.info("Fano filter: subsampled to %d cells for statistics.", max_cells)
 

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy import sparse
+from sklearn.utils.extmath import randomized_svd
 
 
 def log2p1(
@@ -61,9 +62,44 @@ def _get_mean_var(X: np.ndarray | sparse.spmatrix, axis: int = 0) -> tuple[np.nd
         Variance along *axis*.
     """
     if sparse.issparse(X):
+        n = X.shape[axis]
         mean = np.array(X.mean(axis=axis)).ravel()
+        # Population variance (E[X^2] - mean^2), Bessel-corrected to sample
+        # variance (ddof=1) to match the dense path below.
         var = np.array(X.power(2).mean(axis=axis)).ravel() - mean**2
+        if n > 1:
+            var *= n / (n - 1)
     else:
         mean = np.mean(X, axis=axis)
         var = np.var(X, axis=axis, ddof=1)
     return mean, var
+
+
+def gene_centered_svd(
+    X: np.ndarray, n_components: int, random_state: int = 0
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Gene-mean-center a dense (cells x genes) matrix and run randomized SVD.
+
+    Shared core of :func:`~scviva.tools.vision.tools.projections.apply_pca`
+    and micro-clustering's internal PCA — both center by per-gene means
+    before a truncated randomized SVD.
+
+    Parameters
+    ----------
+    X : ndarray of shape (n_cells, n_genes)
+        Dense expression matrix.
+    n_components : int
+        Number of singular components to compute.
+    random_state : int, optional
+        Seed for :func:`sklearn.utils.extmath.randomized_svd`, by default 0.
+
+    Returns
+    -------
+    U : ndarray of shape (n_cells, n_components)
+    S : ndarray of shape (n_components,)
+    Vt : ndarray of shape (n_components, n_genes)
+    """
+    mu = X.mean(axis=0)
+    X_c = X - mu
+    U, S, Vt = randomized_svd(X_c, n_components=n_components, random_state=random_state)
+    return U, S, Vt

@@ -65,10 +65,22 @@ def find_knn(
         try:
             from pynndescent import NNDescent
 
-            # pynndescent never includes the query point itself in the results
-            index = NNDescent(data, n_neighbors=K, random_state=0, verbose=False)
+            # `.neighbor_graph` on the training data includes each point as its
+            # own (distance-0) neighbor, so query K+1 and drop the self-hit,
+            # mirroring the exact sklearn path below.
+            index = NNDescent(data, n_neighbors=K + 1, random_state=0, verbose=False)
             indices, distances = index.neighbor_graph
-            return indices.astype(np.intp), distances.astype(np.float64)
+
+            n = data.shape[0]
+            not_self = indices != np.arange(n)[:, None]
+            # Rows missing a self-hit (e.g. duplicate points ranked closer)
+            # keep their first K+1 neighbors as-is rather than dropping one.
+            has_self = not_self.sum(axis=1) == K
+            out_indices = indices[:, :K].copy()
+            out_distances = distances[:, :K].copy()
+            out_indices[has_self] = indices[has_self][not_self[has_self]].reshape(-1, K)
+            out_distances[has_self] = distances[has_self][not_self[has_self]].reshape(-1, K)
+            return out_indices.astype(np.intp), out_distances.astype(np.float64)
         except ImportError:
             pass
 

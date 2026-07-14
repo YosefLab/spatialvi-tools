@@ -124,7 +124,7 @@ def _tiecorrect(ranks: np.ndarray) -> np.ndarray:
     """
     size = np.float64(ranks.shape[0])
     if size < 2:
-        return np.repeat(ranks.shape[1], 1.0)
+        return np.repeat(1.0, ranks.shape[1])
 
     arr = np.sort(ranks, axis=0)
     tf = np.insert(arr[1:] != arr[:-1], (0, arr.shape[0] - 1), True, axis=0)
@@ -396,7 +396,7 @@ class _RankGenes:
                 z_scores[group_index, :] = (
                     scores[group_index, :] - (n_active * (n_cells + 1) / 2.0)
                 ) / std_dev
-                z_scores[np.isnan(scores)] = 0
+                z_scores[group_index, np.isnan(z_scores[group_index, :])] = 0
                 pvals = 2 * stats.distributions.norm.sf(np.abs(z_scores[group_index, :]))
                 # auc
                 auc = scores[group_index, :] / (n_active * (n_cells - n_active))

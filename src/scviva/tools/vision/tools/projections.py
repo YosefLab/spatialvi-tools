@@ -23,9 +23,8 @@ import numpy as np
 from joblib import Parallel, delayed
 from scipy import sparse
 from scipy.stats import norm
-from sklearn.utils.extmath import randomized_svd
 
-from scviva.tools.vision._utils import log2p1
+from scviva.tools.vision._utils import gene_centered_svd, log2p1
 from scviva.tools.vision.preprocessing.filters import apply_filters
 
 if TYPE_CHECKING:
@@ -113,15 +112,13 @@ def apply_pca(
     n_cells, n_genes = X.shape
     n_components = min(max_components, n_cells - 1, n_genes - 1)
 
-    # Center by gene means (mirrors R's center=rowMeans(exprData) in irlba)
-    mu = X.mean(axis=0)  # shape (n_genes,)
-    X_c = X - mu  # shape (n_cells, n_genes)
-
-    # Randomized SVD — equivalent to IRLBA for large matrices
-    U, S, Vt = randomized_svd(X_c, n_components=n_components, random_state=0)
+    # Center by gene means (mirrors R's center=rowMeans(exprData) in irlba) and
+    # run randomized SVD (equivalent to IRLBA for large matrices).
+    U, S, Vt = gene_centered_svd(X, n_components)
 
     pca_coords = U * S  # (n_cells, n_components)
-    total_var = np.sum(X_c**2)  # variance of centered data
+    mu = X.mean(axis=0)
+    total_var = np.sum(X**2) - n_cells * np.sum(mu**2)  # sum((X - mu)**2)
     variance_explained = S**2 / total_var  # proportion per PC
     gene_loadings = Vt.T  # (n_genes, n_components)
 

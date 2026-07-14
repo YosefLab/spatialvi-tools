@@ -474,7 +474,7 @@ class VisionAnalysis:
         )
         self._signature_varm_key = varm_key
         if split_signed:
-            split_signed_signatures(self._adata, varm_key=varm_key)
+            split_signed_signatures(self._adata, varm_key=varm_key, use_raw=use_raw)
 
     def attach_signatures(self, varm_key: str = "signatures") -> None:
         """Point this session at signatures already loaded into ``adata.varm``.
