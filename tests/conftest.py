@@ -14,13 +14,27 @@ from scviva.model.base._spatial_base import SpatialBaseModel
 
 
 def pytest_addoption(parser):
-    """Add the --optional command line option."""
+    """Add the --optional and --seed command line options."""
     parser.addoption(
         "--optional",
         action="store_true",
         default=False,
         help="Run tests marked as optional (e.g. requiring real model training).",
     )
+    parser.addoption(
+        "--seed",
+        action="store",
+        default=0,
+        help="Option to specify which scvi-tools seed to use for tests.",
+    )
+
+
+@pytest.fixture(autouse=True)
+def set_seed(request):
+    """Sets the scvi-tools seed for each test, matching upstream scvi-tools' conftest."""
+    from scvi import settings
+
+    settings.seed = int(request.config.getoption("--seed"))
 
 
 def pytest_collection_modifyitems(config, items):

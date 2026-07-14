@@ -1,0 +1,47 @@
+name: run notebook
+
+on:
+  workflow_call:
+    inputs:
+      notebook:
+        description: "Path to the notebook to run"
+        required: true
+        type: string
+      version:
+        description: "latest/stable/semver/branch"
+        required: true
+        type: string
+
+jobs:
+  notebook:
+    runs-on: [self-hosted, Linux, X64, CUDA]
+
+    timeout-minutes: 600 # lenient timeout for slow tutorials
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: "**/pyproject.toml"
+
+      - name: Install Python kernel
+        run: |
+          python -m pip install --upgrade pip wheel
+          python -m ipykernel install --user
+          python -m pip install -e ".[tutorials,spatial,rapids-cuda13]"
+          export CUDACXX=/usr/local/cuda/bin/nvcc
+          export CUDA_PATH=/usr/local/cuda
+
+      - name: Run notebook
+        working-directory: docs/tutorials
+        run: |
+          python -m jupyter nbconvert --execute --inplace ${{ inputs.notebook }}
+
+      - uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: run ${{ inputs.notebook }}
+          title: automated update for ${{ inputs.notebook }}
+          branch: update-${{ inputs.notebook }}

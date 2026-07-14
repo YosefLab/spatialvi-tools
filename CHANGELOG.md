@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **DiagVI** model (`scviva.external.diagvi.DIAGVI`), migrated from scvi-tools, for
+  cross-modality alignment of paired spatial transcriptomics/proteomics data via a
+  shared latent space with graph-guided and optimal-transport (Sinkhorn) losses;
+  ships with two new tutorials (`DiagVI_spatial_transcriptomics`,
+  `DiagVI_spatial_proteomics`). Its optional `geomloss`/`torch-geometric` dependencies
+  are covered by the existing `scviva-tools[spatial]` extra.
+- Shared `CyclicMultiDataLoader` (`scviva.model.utils._dataloaders`), consolidating
+  the near-identical cyclic-batch dataloader previously duplicated between GIMVI and
+  DiagVI.
+
 ## [0.1.6] - 2026-07-08
 
 ### Fixed

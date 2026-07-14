@@ -9,6 +9,7 @@ scviva
 gimvi
 stereoscope
 tangram
+diagvi
 harreman
 vision
 ```
