@@ -1,0 +1,33 @@
+name: run notebook (individual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      notebook:
+        description: "Path to the notebook to run"
+        required: true
+        type: choice
+        options:
+          - DestVI_tutorial.ipynb
+          - DiagVI_spatial_proteomics.ipynb
+          - DiagVI_spatial_transcriptomics.ipynb
+          - Visium_colon_Harreman_pipeline.ipynb
+          - cell2location_lymph_node_spatial_tutorial.ipynb
+          - gimvi_tutorial.ipynb
+          - preprocessing.ipynb
+          - resolVI_tutorial.ipynb
+          - scVIVA_tutorial.ipynb
+          - stereoscope_heart_LV_tutorial.ipynb
+          - tangram_scvi_tools.ipynb
+
+      version:
+        description: "latest/stable/semver/branch"
+        required: true
+        type: string
+
+jobs:
+  notebook:
+    uses: ./.github/workflows/run_notebook.yaml
+    with:
+      notebook: ${{ inputs.notebook }}
+      version: ${{ inputs.version }}
