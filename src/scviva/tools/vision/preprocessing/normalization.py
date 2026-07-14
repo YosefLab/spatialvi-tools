@@ -34,8 +34,7 @@ import numpy as np
 from scipy import sparse
 from scipy.stats import rankdata
 
-from ._utils import _get_mean_var
-from .projections import log2p1
+from scviva.tools.vision._utils import _get_mean_var, log2p1
 
 logger = logging.getLogger(__name__)
 

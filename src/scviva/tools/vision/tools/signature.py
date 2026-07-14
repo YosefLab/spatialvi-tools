@@ -24,16 +24,17 @@ from scipy.stats import chi2_contingency, rankdata
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
 
+from scviva.tools.vision._utils import _get_mean_var
+from scviva.tools.vision.preprocessing.normalization import get_normalized_copy_sparse
+
 from ._gearys_c import _gearys_c
-from ._normalization import get_normalized_copy_sparse
-from ._utils import _get_mean_var
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from anndata import AnnData
 
-    from ._normalization import NormData
+    from scviva.tools.vision.preprocessing.normalization import NormData
 
 logger = logging.getLogger(__name__)
 

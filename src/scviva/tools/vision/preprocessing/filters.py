@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 from scipy import sparse
 
-from ._utils import _get_mean_var
+from scviva.tools.vision._utils import _get_mean_var
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

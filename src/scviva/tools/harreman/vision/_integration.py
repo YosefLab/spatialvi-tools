@@ -148,7 +148,7 @@ def integrate_vision_hotspot_results(
         Annotated data object. Must contain:
 
         - ``obsm['vision_signatures']``: per-cell signature scores produced by
-          :func:`scviva.tools.vision.signature.compute_signatures_anndata`.
+          :func:`scviva.tools.vision.tools.signature.compute_signatures_anndata`.
         - ``uns['norm_data_key']``: expression layer key used for signature
           scoring (``None``, ``"use_raw"``, or a layer name).
         - ``uns['signature_varm_key']``: key in ``adata.varm`` for the
@@ -187,7 +187,7 @@ def integrate_vision_hotspot_results(
         - ``obsm['signature_modules_overlap']``: per-cell scores for each
           significant signature-module overlap.
     """
-    from scviva.tools.vision.signature import compute_signatures_anndata
+    from scviva.tools.vision.tools.signature import compute_signatures_anndata
 
     gene_modules_key = "gene_modules_sm" if use_super_modules else "gene_modules"
 

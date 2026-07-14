@@ -15,7 +15,6 @@ from scipy.sparse import csr_matrix
 os.environ.setdefault("NUMBA_CACHE_DIR", os.path.join(tempfile.gettempdir(), "numba_cache"))
 
 from scviva.tools.harreman._analysis import HarremanAnalysis
-from scviva.tools.vision import signature as vision_signature
 from scviva.tools.vision._analysis import VisionAnalysis
 from scviva.tools.vision._constants import (
     CLUSTERS_OBS_KEY,
@@ -23,6 +22,7 @@ from scviva.tools.vision._constants import (
     SIGNATURE_SCORES_UNS_KEY,
     STEP_SETUP,
 )
+from scviva.tools.vision.tools import signature as vision_signature
 
 
 def _make_adata(n_obs: int = 8, n_vars: int = 6, *, obs: pd.DataFrame | None = None) -> AnnData:
@@ -65,7 +65,7 @@ import scviva  # noqa: F401
 
 print(json.dumps({
     "scanpy": "scanpy" in sys.modules,
-    "vision_diffexp": "scviva.tools.vision.diffexp" in sys.modules,
+    "vision_diffexp": "scviva.tools.vision.tools.diffexp" in sys.modules,
 }))
 """
     proc = subprocess.run(

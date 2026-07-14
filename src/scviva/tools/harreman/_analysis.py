@@ -630,7 +630,7 @@ class _HarremanVsAccessor:
         return adata if adata is not None else self._ha._adata
 
     def load_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.vision.signature import load_signatures
+        from scviva.tools.vision.tools.signature import load_signatures
 
         load_signatures(self._resolve(adata), **kwargs)
 
@@ -719,14 +719,14 @@ class _HarremanVsAccessor:
             ``obsp`` key).
         **kwargs
             When ``scores_only=True``, forwarded to
-            :func:`~scviva.tools.vision.signature.compute_signatures_anndata`
+            :func:`~scviva.tools.vision.tools.signature.compute_signatures_anndata`
             (e.g. ``device``, ``batch_size``, ``sig_norm_method``). Ignored
             when ``scores_only=False`` — pass ``setup_kwargs`` instead.
         """
         resolved = self._resolve(adata)
 
         if scores_only:
-            from scviva.tools.vision.signature import compute_signatures_anndata
+            from scviva.tools.vision.tools.signature import compute_signatures_anndata
 
             compute_signatures_anndata(
                 resolved,

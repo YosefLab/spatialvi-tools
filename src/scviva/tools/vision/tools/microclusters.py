@@ -27,7 +27,8 @@ from scipy.sparse import csr_matrix
 from sklearn.cluster import KMeans
 from sklearn.utils.extmath import randomized_svd
 
-from .filters import apply_filters, filter_genes_threshold
+from scviva.tools.vision.preprocessing.filters import apply_filters, filter_genes_threshold
+
 from .knn import find_knn
 from .projections import log2p1
 
@@ -50,7 +51,7 @@ def _louvain_cluster(data: np.ndarray, K: int = 30) -> list[list[int]]:
 
     Mirrors R VISION's ``louvainCluster``.  The per-cell bandwidth σ_i equals
     the **median** K-NN distance (R: ``quantile(d_i, 0.5)``), in contrast to
-    :func:`~scviva.tools.vision.knn.compute_knn_weights` which uses the max
+    :func:`~scviva.tools.vision.tools.knn.compute_knn_weights` which uses the max
     distance.
 
     Parameters

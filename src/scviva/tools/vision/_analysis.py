@@ -257,12 +257,12 @@ class VisionAnalysis:
         lca_min_size
             Minimum clade size for the LCA-based tree KNN weights.
         """
-        from scviva.tools.vision.knn import (
+        from scviva.tools.vision.phylo import cluster_cells_tree
+        from scviva.tools.vision.tools.knn import (
             compute_knn_weights_anndata,
             compute_knn_weights_from_tree_anndata,
             compute_knn_weights_from_tree_lca_anndata,
         )
-        from scviva.tools.vision.phylo import cluster_cells_tree
 
         adata = self._adata
         params = adata.uns.setdefault(VISION_UNS_KEY, {}).setdefault(VISION_PARAMS_KEY, {})
@@ -345,7 +345,7 @@ class VisionAnalysis:
         """
         import igraph as ig
 
-        from scviva.tools.vision.knn import find_knn
+        from scviva.tools.vision.tools.knn import find_knn
 
         adata = self._adata
         if obsm_key is not None and obsm_key in adata.obsm:
@@ -378,9 +378,9 @@ class VisionAnalysis:
         filters
             Names of filters to apply in sequence, e.g. ``"novar"``,
             ``"threshold"``, ``"fano"``. See
-            :func:`~scviva.tools.vision.filters.apply_filters`.
+            :func:`~scviva.tools.vision.preprocessing.filters.apply_filters`.
         **kwargs
-            Forwarded to :func:`~scviva.tools.vision.filters.apply_filters`
+            Forwarded to :func:`~scviva.tools.vision.preprocessing.filters.apply_filters`
             (e.g. ``threshold``, ``num_mad``).
 
         Returns
@@ -389,7 +389,7 @@ class VisionAnalysis:
             Boolean mask of shape ``(n_vars,)``. Apply with
             ``adata[:, mask].copy()``.
         """
-        from scviva.tools.vision.filters import apply_filters
+        from scviva.tools.vision.preprocessing.filters import apply_filters
 
         return apply_filters(self._adata.X, self._adata.var_names, filters=filters, **kwargs)
 
@@ -397,7 +397,7 @@ class VisionAnalysis:
         self, max_components: int = 30, use_permutation_wpca: bool = False, **kwargs
     ) -> None:
         """Compute a PCA latent space, stored as ``adata.obsm["X_pca"]``."""
-        from scviva.tools.vision.projections import compute_latent_space
+        from scviva.tools.vision.tools.projections import compute_latent_space
 
         compute_latent_space(
             self._adata,
@@ -410,7 +410,10 @@ class VisionAnalysis:
 
     def generate_projections(self, methods: list[str] | None = None, **kwargs) -> None:
         """Generate 2-D visualisation projections (tSNE, UMAP, ISOMap, …)."""
-        from scviva.tools.vision.projections import _ALL_PROJECTION_METHODS, generate_projections
+        from scviva.tools.vision.tools.projections import (
+            _ALL_PROJECTION_METHODS,
+            generate_projections,
+        )
 
         generate_projections(
             self._adata,
@@ -420,7 +423,7 @@ class VisionAnalysis:
 
     def pool_cells(self, cells_per_partition: int = 10, **kwargs) -> None:
         """Micro-cluster ("pool") cells into supercells for scalable analysis."""
-        from scviva.tools.vision.microclusters import apply_micro_clustering
+        from scviva.tools.vision.tools.microclusters import apply_micro_clustering
 
         apply_micro_clustering(self._adata, cells_per_partition=cells_per_partition, **kwargs)
 
@@ -444,7 +447,7 @@ class VisionAnalysis:
             Paths to one or more GMT signature files.
         dicts
             Signature definitions as Python dicts (see
-            :func:`~scviva.tools.vision.signature.load_signatures`).
+            :func:`~scviva.tools.vision.tools.signature.load_signatures`).
         use_raw
             Use ``adata.raw`` gene names/expression for gene-presence filtering.
         min_signature_genes
@@ -458,7 +461,7 @@ class VisionAnalysis:
             Auto-expand bidirectional (+/-) signatures into ``_UP``/``_DOWN``
             sub-columns after loading, matching R VISION's signature handling.
         """
-        from scviva.tools.vision.signature import load_signatures, split_signed_signatures
+        from scviva.tools.vision.tools.signature import load_signatures, split_signed_signatures
 
         load_signatures(
             self._adata,
@@ -479,7 +482,7 @@ class VisionAnalysis:
         Use this instead of :meth:`load_signatures` when signatures were
         already loaded by another call on the same ``adata`` (e.g. a prior
         ``VisionAnalysis`` session, or
-        :func:`~scviva.tools.vision.signature.load_signatures` called
+        :func:`~scviva.tools.vision.tools.signature.load_signatures` called
         directly) and re-parsing the source GMT/dict would be redundant.
 
         Parameters
@@ -515,7 +518,7 @@ class VisionAnalysis:
             Key in ``adata.uns`` holding custom signature names, if any.
         sig_norm_method
             Normalisation method for the sparse scoring path. See
-            :func:`~scviva.tools.vision.signature.compute_signatures_anndata`.
+            :func:`~scviva.tools.vision.tools.signature.compute_signatures_anndata`.
         device
             Compute device: ``"auto"``, ``"cuda"``, ``"mps"``, or ``"cpu"``.
         batch_size
@@ -525,7 +528,7 @@ class VisionAnalysis:
         if self._signature_varm_key is None:
             raise RuntimeError("No signatures loaded. Call va.load_signatures() first.")
 
-        from scviva.tools.vision.signature import (
+        from scviva.tools.vision.tools.signature import (
             compute_signature_scores,
             compute_signatures_anndata,
         )
@@ -555,7 +558,7 @@ class VisionAnalysis:
         and signature clusters — mirroring R VISION's ``ClusterComparisons``.
         """
         self._require(STEP_DE)
-        from scviva.tools.vision.signature import compute_obs_df_scores
+        from scviva.tools.vision.tools.signature import compute_obs_df_scores
 
         adata = self._adata
         # Re-infer categorical/numeric obs columns now, not just at __init__
@@ -588,7 +591,7 @@ class VisionAnalysis:
 
     def compute_one_vs_one_de(self, key: str, group1: str, group2: str) -> pd.DataFrame:
         """Wilcoxon one-vs-one differential expression between two groups of ``adata.obs[key]``."""
-        from scviva.tools.vision.diffexp import rank_genes_groups
+        from scviva.tools.vision.tools.diffexp import rank_genes_groups
 
         rank_genes_groups(
             self._adata,
@@ -648,7 +651,7 @@ class VisionAnalysis:
 
     def _compute_protein_autocorrelation(self) -> None:
         """Geary's C for CITE-seq protein data, mirroring R VISION's ``fbConsistencyScores``."""
-        from scviva.tools.vision.signature import _gearysc_for_dataframe
+        from scviva.tools.vision.tools.signature import _gearysc_for_dataframe
 
         adata = self._adata
         mat = adata.obsm[self._protein_obsm_key]
@@ -672,7 +675,7 @@ class VisionAnalysis:
         """One-vs-all Wilcoxon differential for proteins across cluster levels."""
         import anndata as ad
 
-        from scviva.tools.vision.diffexp import rank_genes_groups
+        from scviva.tools.vision.tools.diffexp import rank_genes_groups
 
         adata = self._adata
         mat = adata.obsm[self._protein_obsm_key]
@@ -697,7 +700,7 @@ class VisionAnalysis:
     def _compute_one_vs_all_signatures(self) -> None:
         import anndata as ad
 
-        from scviva.tools.vision.diffexp import rank_genes_groups
+        from scviva.tools.vision.tools.diffexp import rank_genes_groups
 
         adata = self._adata
         sig_adata = ad.AnnData(adata.obsm[SIGNATURES_OBSM_KEY])
@@ -712,7 +715,7 @@ class VisionAnalysis:
         import anndata as ad
         from scipy.stats import chi2_contingency
 
-        from scviva.tools.vision.diffexp import rank_genes_groups
+        from scviva.tools.vision.tools.diffexp import rank_genes_groups
 
         adata = self._adata
         numeric_data = adata.obs._get_numeric_data().copy()
@@ -985,7 +988,7 @@ class _VisionTlAccessor:
         return adata if adata is not None else self._va._adata
 
     def compute_knn_weights(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.vision.knn import compute_knn_weights_anndata
+        from scviva.tools.vision.tools.knn import compute_knn_weights_anndata
 
         compute_knn_weights_anndata(self._resolve(adata), **kwargs)
 
@@ -994,17 +997,32 @@ class _VisionTlAccessor:
 
         compute_plasticity_scores(self._resolve(adata), **kwargs)
 
+    def cluster_cells_tree(self, adata: AnnData | None = None, **kwargs) -> None:
+        from scviva.tools.vision.phylo import cluster_cells_tree
+
+        cluster_cells_tree(self._resolve(adata), **kwargs)
+
     def apply_micro_clustering(self, adata: AnnData | None = None, **kwargs):
-        from scviva.tools.vision.microclusters import apply_micro_clustering
+        from scviva.tools.vision.tools.microclusters import apply_micro_clustering
 
         return apply_micro_clustering(self._resolve(adata), **kwargs)
 
+    def pool_matrix(self, adata: AnnData | None = None, **kwargs):
+        from scviva.tools.vision.tools.microclusters import pool_matrix_anndata
+
+        return pool_matrix_anndata(self._resolve(adata), **kwargs)
+
+    def pool_metadata(self, adata: AnnData | None = None, **kwargs):
+        from scviva.tools.vision.tools.microclusters import pool_metadata_anndata
+
+        return pool_metadata_anndata(self._resolve(adata), **kwargs)
+
     def generate_projections(self, adata: AnnData | None = None, **kwargs):
-        from scviva.tools.vision.projections import generate_projections
+        from scviva.tools.vision.tools.projections import generate_projections
 
         return generate_projections(self._resolve(adata), **kwargs)
 
     def rank_genes_groups(self, adata: AnnData | None = None, **kwargs):
-        from scviva.tools.vision.diffexp import rank_genes_groups
+        from scviva.tools.vision.tools.diffexp import rank_genes_groups
 
         return rank_genes_groups(self._resolve(adata), **kwargs)

@@ -25,7 +25,8 @@ from scipy import sparse
 from scipy.stats import norm
 from sklearn.utils.extmath import randomized_svd
 
-from .filters import apply_filters
+from scviva.tools.vision._utils import log2p1
+from scviva.tools.vision.preprocessing.filters import apply_filters
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -63,38 +64,6 @@ def _single_permutation(seed: int, X: np.ndarray, n_components: int) -> np.ndarr
     X_perm = X[perm_idx, np.arange(n_genes)]
     _, eval_perm, _ = apply_pca(X_perm, n_components)
     return eval_perm
-
-
-# ---------------------------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------------------------
-
-
-def log2p1(
-    X: np.ndarray | sparse.spmatrix,
-) -> np.ndarray | sparse.spmatrix:
-    """Sparse-preserving log2(x + 1) transform.
-
-    For sparse matrices only the stored (non-zero) values are transformed,
-    keeping the sparsity pattern intact.  This is valid because
-    ``log2(0 + 1) == 0``.
-
-    Parameters
-    ----------
-    X : array-like of shape (n_cells, n_genes)
-        Expression matrix, cells × genes.  Not modified in-place.
-
-    Returns
-    -------
-    array-like of shape (n_cells, n_genes)
-        Log-transformed matrix in the same format as the input.
-    """
-    if sparse.issparse(X):
-        X = X.copy()
-        X.data = np.log2(X.data + 1)
-    else:
-        X = np.log2(np.asarray(X, dtype=float) + 1)
-    return X
 
 
 # ---------------------------------------------------------------------------
