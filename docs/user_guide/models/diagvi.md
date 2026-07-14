@@ -21,8 +21,8 @@ The limitations of DiagVI include:
 
 ```{topic} Tutorials:
 
--   {doc}`/tutorials/notebooks/multimodal/DiagVI_spatial_transcriptomics`
--   {doc}`/tutorials/notebooks/multimodal/DiagVI_spatial_proteomics`
+-   {doc}`/tutorials/DiagVI_spatial_transcriptomics`
+-   {doc}`/tutorials/DiagVI_spatial_proteomics`
 ```
 
 :::{note}
