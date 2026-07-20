@@ -251,6 +251,7 @@ class ResolVI(
         )
         return self._maybe_rapids(result, backend)
 
+    @de_dsp.dedent
     @torch.inference_mode()
     def get_normalized_expression_importance(
         self,
@@ -406,6 +407,7 @@ class ResolVI(
         else:
             return exprs
 
+    @de_dsp.dedent
     @torch.inference_mode()
     def get_normalized_expression(
         self,

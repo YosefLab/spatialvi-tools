@@ -46,7 +46,7 @@ class RNAStereoscope(UnsupervisedTrainingMixin, SpatialBaseModel):
 
     Examples
     --------
-    >>> scvi.external.RNAStereoscope.setup_anndata(sc_adata, labels_key="labels")
+    >>> scviva.external.RNAStereoscope.setup_anndata(sc_adata, labels_key="labels")
     >>> sc_model = RNAStereoscope(sc_adata)
     >>> sc_model.train()
 
