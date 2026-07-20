@@ -1,6 +1,6 @@
 # Stereoscope
 
-**Stereoscope** {cite:p}`Andersson20` (Python classes {class}`~scvi.external.RNAStereoscope` and {class}`~scvi.external.SpatialStereoscope`) posits a probabilistic model of spatial transcriptomics and an associated
+**Stereoscope** {cite:p}`Andersson20` (Python classes {class}`~scviva.external.RNAStereoscope` and {class}`~scviva.external.SpatialStereoscope`) posits a probabilistic model of spatial transcriptomics and an associated
 method for the deconvoluton of cell type profiles using a single-cell RNA sequencing reference dataset.
 
 The advantages of Stereoscope are:

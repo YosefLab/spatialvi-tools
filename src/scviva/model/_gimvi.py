@@ -11,6 +11,7 @@ import numpy as np
 import torch
 from scvi import REGISTRY_KEYS, settings
 from scvi.data import AnnDataManager
+from scvi.data._compat import registry_from_setup_dict
 from scvi.data._constants import _MODEL_NAME_KEY, _SETUP_ARGS_KEY
 from scvi.data.fields import CategoricalObsField, LayerField
 from scvi.dataloaders import DataSplitter
@@ -22,7 +23,10 @@ from scvi.utils._docstrings import devices_dsp
 
 from scviva.model.base._spatial_base import SpatialBaseModel
 from scviva.model.utils._dataloaders import CyclicMultiDataLoader as TrainDL
-from scviva.model.utils._gimvi_utils import _load_saved_gimvi_files
+from scviva.model.utils._gimvi_utils import (
+    _load_legacy_saved_gimvi_files,
+    _load_saved_gimvi_files,
+)
 from scviva.module._jvae import JVAE
 from scviva.train._gimvi_trainingplans import GIMVITrainingPlan
 
@@ -487,6 +491,71 @@ class GIMVI(SpatialBaseModel):
                 "attr_dict": user_attributes,
             },
             os.path.join(dir_path, f"{file_name_prefix}model.pt"),
+            **save_kwargs,
+        )
+
+    @classmethod
+    def convert_legacy_save(
+        cls,
+        dir_path: str,
+        output_dir_path: str,
+        overwrite: bool = False,
+        prefix: str | None = None,
+        **save_kwargs,
+    ) -> None:
+        """Convert a legacy saved GIMVI model (<v0.15.0) to the updated save format.
+
+        Parameters
+        ----------
+        dir_path
+            Path to directory where legacy model is saved.
+        output_dir_path
+            Path to save converted save files.
+        overwrite
+            Overwrite existing data or not. If ``False`` and directory
+            already exists at ``output_dir_path``, error will be raised.
+        prefix
+            Prefix of saved file names.
+        **save_kwargs
+            Keyword arguments passed into :func:`~torch.save`.
+        """
+        if not os.path.exists(output_dir_path) or overwrite:
+            os.makedirs(output_dir_path, exist_ok=overwrite)
+        else:
+            raise ValueError(
+                f"{output_dir_path} already exists. Provide a non-existing directory for saving."
+            )
+
+        file_name_prefix = prefix or ""
+        (
+            model_state_dict,
+            seq_var_names,
+            spatial_var_names,
+            attr_dict,
+            _,
+            _2,
+        ) = _load_legacy_saved_gimvi_files(
+            dir_path,
+            file_name_prefix,
+            load_seq_adata=False,
+            load_spatial_adata=False,
+        )
+        if "scvi_setup_dicts_" in attr_dict:
+            scvi_setup_dicts = attr_dict.pop("scvi_setup_dicts_")
+            registries = []
+            for scvi_setup_dict in scvi_setup_dicts:
+                registries.append(registry_from_setup_dict(cls, scvi_setup_dict))
+            attr_dict["registries_"] = registries
+
+        model_save_path = os.path.join(output_dir_path, f"{file_name_prefix}model.pt")
+        torch.save(
+            {
+                "model_state_dict": model_state_dict,
+                "seq_var_names": seq_var_names,
+                "spatial_var_names": spatial_var_names,
+                "attr_dict": attr_dict,
+            },
+            model_save_path,
             **save_kwargs,
         )
 
