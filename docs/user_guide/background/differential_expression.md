@@ -2,7 +2,7 @@
 
 ## Overview
 
-scviva-tools inherits scvi-tools' Bayes-factor differential expression framework and extends
+scVIVA-Tools inherits scvi-tools' Bayes-factor differential expression framework and extends
 it with **niche-aware DE** (scVIVA) and **niche abundance DE** (ResolVI).
 
 ## Standard DE (vanilla / change mode)

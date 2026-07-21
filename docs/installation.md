@@ -2,7 +2,7 @@
 
 ## Quick install
 
-scviva-tools requires Python ≥ 3.12. Install into a fresh virtual environment:
+scVIVA-Tools requires Python ≥ 3.12. Install into a fresh virtual environment:
 
 ```bash
 pip install scviva-tools
