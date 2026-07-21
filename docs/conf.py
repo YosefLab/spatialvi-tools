@@ -51,6 +51,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "superpowers"]
 
 # -- HTML output -------------------------------------------------------------
 
+html_logo = "_static/logo.png"
+
 html_theme = "sphinx_book_theme"
 html_title = "scviva-tools"
 html_context = {
@@ -65,9 +67,15 @@ html_theme_options = {
     "use_repository_button": True,
     "use_issues_button": True,
     "use_edit_page_button": True,
+    "logo_only": True,
+    "navbar_persistent": [],
     "repository_branch": "main",
     "path_to_docs": "docs",
 }
+
+html_static_path = ["_static"]
+html_css_files = ["css/override.css"]
+html_js_files = ["js/custom.js"]
 
 # -- Intersphinx mapping -----------------------------------------------------
 
