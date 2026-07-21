@@ -49,6 +49,9 @@ MANIFEST
 /data/
 /docs/tutorials/data/
 
+# gseapy/EnrichR default output dir (e.g. destvi_utils.explore_gamma_space())
+/docs/tutorials/test/
+
 # OS
 .DS_Store
 Thumbs.db
