@@ -94,7 +94,6 @@ optional-dependencies.test = [
 optional-dependencies.tpu = [ "torch-xla[tpu]" ]
 optional-dependencies.tutorials = [
   "cell2location",
-  "igraph",
   "jupyter",
   "leidenalg",
   "matplotlib",
