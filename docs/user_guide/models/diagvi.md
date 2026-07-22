@@ -1,6 +1,6 @@
 # DiagVI
 
-**DiagVI** (Diagonal multi-modal integration Variational Inference; Python class {class}`~scvi.external.DIAGVI`) is a deep generative model for diagonal integration of unpaired multi-modal single-cell data using prior knowledge about cross-modal feature correspondences. These relationships (such as associative or repressive interactions) are encoded in a guidance graph, where edge weights can represent both positive and negative covariation between features across modalities.
+**DiagVI** (Diagonal multi-modal integration Variational Inference; Python class {class}`~scviva.external.DIAGVI`) is a deep generative model for diagonal integration of unpaired multi-modal single-cell data using prior knowledge about cross-modal feature correspondences. These relationships (such as associative or repressive interactions) are encoded in a guidance graph, where edge weights can represent both positive and negative covariation between features across modalities.
 
 DiagVI is inspired by the GLUE[^ref1] architecture, which uses modality-specific variational autoencoders (VAEs) to project heterogeneous data types into a shared latent space. In contrast to GLUE’s adversarial alignment strategy, DiagVI aligns modalities using Unbalanced Optimal Transport (UOT) via the Sinkhorn divergence[^ref2], explicitly accounting for differences in cell-type composition across modalities.
 
@@ -87,7 +87,7 @@ To ensure robust alignment of cells from different modalities within the shared 
 
 #### Classifier
 
-Inspired by {class}`~scvi.external.RESOLVI` {cite:p}`Ergen25`, a simple cell type classifier predicting labels $c_n$ and $c_m$ from cell latent vectors $\mathbf{z}_n$ and $\mathbf{z}_m$, respectively, is integrated into the model in the semi-supervised setting. This classifier is trained jointly with the generative model.
+Inspired by {class}`~scviva.ResolVI` {cite:p}`Ergen25`, a simple cell type classifier predicting labels $c_n$ and $c_m$ from cell latent vectors $\mathbf{z}_n$ and $\mathbf{z}_m$, respectively, is integrated into the model in the semi-supervised setting. This classifier is trained jointly with the generative model.
 
 
 ## Descriptive model
@@ -302,11 +302,11 @@ The `lam_*` parameters control the relative importance of within-modality recons
 
 ### Guidance graph creation
 
-When initializing {class}`~scvi.external.DIAGVI`, three ways to specify the guidance graph are supported:
+When initializing {class}`~scviva.external.DIAGVI`, three ways to specify the guidance graph are supported:
 
 1.   **Automatic construction**: If neither `guidance_graph` nor `mapping_df` are provided, DiagVI constructs a graph from overlapping feature names across modalities (e.g., shared gene symbols).
 
-2.   **Custom mapping via DataFrame**: Pass a `pandas.DataFrame` to `mapping_df` in which each column corresponds to a modality name (matching the keys in `input_dict`) and each row specifies a feature pair. This is useful when feature naming conventions differ between modalities (e.g., genes vs. proteins). You can also use {func}`~scvi.external.DIAGVI.construct_custom_guidance_graph` to create a graph with custom edge weights and signs.
+2.   **Custom mapping via DataFrame**: Pass a `pandas.DataFrame` to `mapping_df` in which each column corresponds to a modality name (matching the keys in `input_dict`) and each row specifies a feature pair. This is useful when feature naming conventions differ between modalities (e.g., genes vs. proteins). You can also use {func}`~scviva.external.DIAGVI.construct_custom_guidance_graph` to create a graph with custom edge weights and signs.
 
 3.   **Explicit graph specification**: For full control, pass a pre-constructed `torch_geometric.data.Data` object directly to `guidance_graph`. The graph must include node features, edge indices, edge weights, edge signs, and modality-specific feature index tensors..
 
@@ -360,7 +360,7 @@ This adaptive strategy makes the Sinkhorn loss scale-aware and robust across dat
 
 ## Tasks
 
-Here we provide an overview of some of the tasks that DiagVI can perform. Please see {class}`~scvi.external.DIAGVI` for the full API reference.
+Here we provide an overview of some of the tasks that DiagVI can perform. Please see {class}`~scviva.external.DIAGVI` for the full API reference.
 
 ### Dimensionality reduction
 
@@ -400,7 +400,7 @@ For joint analysis across modalities:
 
 ### Cross-modal feature imputation
 
-DiagVI can impute features from one modality into another using {func}`~scvi.external.DIAGVI.get_imputed_values`.
+DiagVI can impute features from one modality into another using {func}`~scviva.external.DIAGVI.get_imputed_values`.
 
 For example, to impute protein expression for RNA cells:
 
@@ -456,7 +456,7 @@ Because DiagVI produces a shared latent space, any downstream method that operat
 
 ### Data simulation
 
-Data can be generated from the model using the posterior predictive distribution in {func}`~scvi.external.DIAGVI.posterior_predictive_sample`. This is equivalent to feeding a cell through the model, sampling from the posterior distributions of the latent variables, retrieving the likelihood parameters, and finally, sampling from this distribution.
+Data can be generated from the model using the posterior predictive distribution in {func}`~scviva.external.DIAGVI.posterior_predictive_sample`. This is equivalent to feeding a cell through the model, sampling from the posterior distributions of the latent variables, retrieving the likelihood parameters, and finally, sampling from this distribution.
 
 
 ## References

@@ -4,9 +4,9 @@
 
 ### Which Python versions are supported?
 
-scviva-tools requires Python 3.12 or later.
+scVIVA-Tools requires Python 3.12 or later.
 
-### Can I install scviva-tools without GPU support?
+### Can I install scVIVA-Tools without GPU support?
 
 Yes. The base package runs entirely on CPU. GPU acceleration is available via the optional
 `rapids` extra: `pip install "scviva-tools[rapids]"`.

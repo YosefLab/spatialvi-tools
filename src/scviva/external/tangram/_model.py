@@ -30,17 +30,17 @@ class Tangram(SpatialBaseModel):
     Parameters
     ----------
     mdata
-        MuData object that has been registered via :meth:`~scvi.external.Tangram.setup_mudata`.
+        MuData object that has been registered via :meth:`~scviva.external.Tangram.setup_mudata`.
     constrained
         Whether to use the constrained version of Tangram instead of cells mode.
     target_count
         The number of cells to be filtered. Necessary when `constrained` is True.
     **model_kwargs
-        Keyword args for :class:`~scvi.external.tangram.TangramMapper`
+        Keyword args for :class:`~scviva.external.tangram.TangramMapper`
 
     Examples
     --------
-    >>> from scvi.external import Tangram
+    >>> from scviva.external import Tangram
     >>> ad_sc = anndata.read_h5ad(path_to_sc_anndata)
     >>> ad_sp = anndata.read_h5ad(path_to_sp_anndata)
     >>> markers = pd.read_csv(path_to_markers, index_col=0)  # genes to use for mapping
