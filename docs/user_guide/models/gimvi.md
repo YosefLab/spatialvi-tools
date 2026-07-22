@@ -1,8 +1,8 @@
 # gimVI
 
-**gimVI** {cite:p}`Lopez19` (Generative Imputation Model with Variational Inference; Python class {class}`~scvi.external.GIMVI`) is a deep generative model for the joint analysis of an scRNA-seq dataset and a spatial transcriptomics dataset that measures only a subset of the genes. gimVI learns a single shared latent space for the two modalities and uses it to **impute the genes that are missing from the spatial assay** by transferring information from the (genome-wide) sequencing reference.
+**gimVI** {cite:p}`Lopez19` (Generative Imputation Model with Variational Inference; Python class {class}`~scviva.GIMVI`) is a deep generative model for the joint analysis of an scRNA-seq dataset and a spatial transcriptomics dataset that measures only a subset of the genes. gimVI learns a single shared latent space for the two modalities and uses it to **impute the genes that are missing from the spatial assay** by transferring information from the (genome-wide) sequencing reference.
 
-The two datasets are modeled by a single joint variational autoencoder ({class}`~scvi.external.gimvi.JVAE`) with modality-specific encoder and decoder heads but a shared latent representation. Because the spatial panel is a subset of the genes captured by scRNA-seq, the decoder reconstructs into the full sequencing gene space, and each modality's reconstruction loss is masked to only the genes it actually observes. Alignment of the two modalities in the shared latent space is encouraged by an adversarial classifier that is trained to predict the modality of origin from a cell's latent code, while the generative model is trained to fool it.
+The two datasets are modeled by a single joint variational autoencoder ({class}`~scviva.module.JVAE`) with modality-specific encoder and decoder heads but a shared latent representation. Because the spatial panel is a subset of the genes captured by scRNA-seq, the decoder reconstructs into the full sequencing gene space, and each modality's reconstruction loss is masked to only the genes it actually observes. Alignment of the two modalities in the shared latent space is encouraged by an adversarial classifier that is trained to predict the modality of origin from a cell's latent code, while the generative model is trained to fool it.
 
 The advantages of gimVI are:
 
@@ -33,12 +33,12 @@ gimVI takes as input two raw-count gene expression matrices:
 
 where the spatial genes are a subset of the sequencing genes ($\mathcal{G}_1 \subseteq \mathcal{G}_0$). Internally the decoder operates on the full sequencing gene space of size $G = G_0$, and a per-modality index mapping $\mathcal{M}_m$ records where each modality's observed genes live in that space. The spatial reconstruction is therefore evaluated only on the columns corresponding to $\mathcal{G}_1$.
 
-Each dataset can additionally carry a categorical batch covariate $s$ and, optionally, categorical cell-type labels $c$. Both datasets are registered independently with two separate calls to {meth}`~scvi.external.GIMVI.setup_anndata` before the joint model is constructed:
+Each dataset can additionally carry a categorical batch covariate $s$ and, optionally, categorical cell-type labels $c$. Both datasets are registered independently with two separate calls to {meth}`~scviva.GIMVI.setup_anndata` before the joint model is constructed:
 
 ```
->>> scvi.external.GIMVI.setup_anndata(adata_seq, batch_key="batch", labels_key="labels")
->>> scvi.external.GIMVI.setup_anndata(adata_spatial, batch_key="batch", labels_key="labels")
->>> model = scvi.external.GIMVI(adata_seq, adata_spatial)
+>>> scviva.GIMVI.setup_anndata(adata_seq, batch_key="batch", labels_key="labels")
+>>> scviva.GIMVI.setup_anndata(adata_spatial, batch_key="batch", labels_key="labels")
+>>> model = scviva.GIMVI(adata_seq, adata_spatial)
 >>> model.train()
 ```
 
@@ -60,7 +60,7 @@ A single, shared multi-decoder ({class}`~scvi.nn.MultiDecoder`) maps the shared 
 
 #### Adversarial modality classifier
 
-A small classifier ({class}`~scvi.module.Classifier`, 3 layers, 2 output classes) is trained to predict, from a latent code $\mathbf{z}$, which modality it came from. The generative model is trained adversarially to *fool* this classifier, which pushes the sequencing and spatial latent distributions to overlap and yields an integrated, modality-mixed latent space. This is implemented in {class}`~scvi.external.gimvi._task.GIMVITrainingPlan` (a subclass of {class}`~scvi.train.AdversarialTrainingPlan`), and the strength of the adversarial term is set by the `kappa` argument of {meth}`~scvi.external.GIMVI.train`.
+A small classifier ({class}`~scvi.module.Classifier`, 3 layers, 2 output classes) is trained to predict, from a latent code $\mathbf{z}$, which modality it came from. The generative model is trained adversarially to *fool* this classifier, which pushes the sequencing and spatial latent distributions to overlap and yields an integrated, modality-mixed latent space. This is implemented in {class}`~scviva.train.GIMVITrainingPlan` (a subclass of {class}`~scvi.train.AdversarialTrainingPlan`), and the strength of the adversarial term is set by the `kappa` argument of {meth}`~scviva.GIMVI.train`.
 
 
 ## Generative process
@@ -148,18 +148,18 @@ The two objectives (model vs. classifier) are optimized in alternating steps wit
 
 ### Cyclic multi-dataset data loading
 
-The two datasets generally have different numbers of cells, so a custom data loader, {class}`~scvi.external.gimvi._task.CyclicMultiDataLoader`, combines their per-modality dataloaders: it iterates the longest loader once per epoch and **cycles the shorter loader(s)** so that every training step yields one minibatch from each modality. It accepts either a sequence (yielding a tuple of minibatches) or a mapping of modality name → loader (yielding a dict, preserving modality names).
+The two datasets generally have different numbers of cells, so a custom data loader, {class}`~scviva.model.utils._dataloaders.CyclicMultiDataLoader`, combines their per-modality dataloaders: it iterates the longest loader once per epoch and **cycles the shorter loader(s)** so that every training step yields one minibatch from each modality. It accepts either a sequence (yielding a tuple of minibatches) or a mapping of modality name → loader (yielding a dict, preserving modality names).
 
-This loader is shared infrastructure: {class}`~scvi.external.DIAGVI` imports it (`from scvi.external.gimvi._task import CyclicMultiDataLoader as TrainDL`) and uses the mapping form to drive its own multi-modality training, so the same cycling logic backs both gimVI and DiagVI.
+This loader is shared infrastructure: {class}`~scviva.external.DIAGVI` imports it (`from scviva.model.utils._dataloaders import CyclicMultiDataLoader as TrainDL`) and uses the mapping form to drive its own multi-modality training, so the same cycling logic backs both gimVI and DiagVI.
 
 
 ## Tasks
 
-Here we provide an overview of some of the tasks that gimVI can perform. Please see {class}`~scvi.external.GIMVI` for the full API reference.
+Here we provide an overview of some of the tasks that gimVI can perform. Please see {class}`~scviva.GIMVI` for the full API reference.
 
 ### Dimensionality reduction
 
-{meth}`~scvi.external.GIMVI.get_latent_representation` returns the shared latent representation for **each** dataset as a list `[latent_seq, latent_spatial]`. By default the mean of the approximate posterior is returned (`deterministic=True`).
+{meth}`~scviva.GIMVI.get_latent_representation` returns the shared latent representation for **each** dataset as a list `[latent_seq, latent_spatial]`. By default the mean of the approximate posterior is returned (`deterministic=True`).
 
 ```
 >>> latent_seq, latent_spatial = model.get_latent_representation()
@@ -179,7 +179,7 @@ Because the latent space is shared and modality-mixed (via the adversarial class
 
 ### Imputation of missing spatial genes
 
-The central task of gimVI is to impute, for the spatial cells, the genes that were only measured in the scRNA-seq data. {meth}`~scvi.external.GIMVI.get_imputed_values` returns the decoded expression for **all** sequencing genes for each dataset:
+The central task of gimVI is to impute, for the spatial cells, the genes that were only measured in the scRNA-seq data. {meth}`~scviva.GIMVI.get_imputed_values` returns the decoded expression for **all** sequencing genes for each dataset:
 
 ```
 >>> imputed_seq, imputed_spatial = model.get_imputed_values(normalized=True)
@@ -194,4 +194,4 @@ A common evaluation (used in the tutorial) holds out a fraction of genes from th
 
 ### Saving and loading
 
-gimVI uses a custom {meth}`~scvi.external.GIMVI.save` / {meth}`~scvi.external.GIMVI.load` that persists the two registries and both sets of `var_names` (the model stores two AnnData managers). `save_anndata=True` writes both `adata_seq` and `adata_spatial` alongside the model. Legacy saves (pre-v0.15.0) can be upgraded with {meth}`~scvi.external.GIMVI.convert_legacy_save`.
+gimVI uses a custom {meth}`~scviva.GIMVI.save` / {meth}`~scviva.GIMVI.load` that persists the two registries and both sets of `var_names` (the model stores two AnnData managers). `save_anndata=True` writes both `adata_seq` and `adata_spatial` alongside the model. Legacy saves (pre-v0.15.0) can be upgraded with {meth}`~scviva.GIMVI.convert_legacy_save`.

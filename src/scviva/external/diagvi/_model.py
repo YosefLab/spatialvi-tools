@@ -99,19 +99,16 @@ class DIAGVI(SpatialBaseModel, VAEMixin):
         dropout_rate: float = 0.1,
         **model_kwargs,
     ):
-        warnings.warn(
-            "DiagVI is a spatial transcriptomics model that will be moved to the "
-            "scvi-tools spatial companion package `scviva-tools` starting in scvi-tools v1.5 and "
-            "will no longer be supported here. It will be deprecated from scvi-tools in v1.6.",
-            FutureWarning,
-            stacklevel=settings.warnings_stacklevel,
-        )
-        super().__init__()
         # Handle MuData input by extracting modalities as dict
         if isinstance(adatas, MuData):
             self.adatas = {mod_key: adatas.mod[mod_key] for mod_key in adatas.mod.keys()}
         else:
             self.adatas = adatas
+        # Pass one modality's adata through to BaseModelClass.__init__ so construction
+        # doesn't depend on scvi-tools' class-name allowlist for empty-adata models
+        # (that allowlist only exists in scvi-tools while DIAGVI still lives there and
+        # is expected to be removed once the model is fully migrated to scviva-tools).
+        super().__init__(next(iter(self.adatas.values())))
         self.input_names = list(self.adatas.keys())
         self.adata_managers = {
             name: self._get_most_recent_anndata_manager(adata, required=True)

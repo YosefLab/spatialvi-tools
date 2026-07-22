@@ -1,7 +1,7 @@
 # Tangram
 
 
-**Tangram** {cite:p}`Biancalani21` (Python class {class}`~scvi.external.Tangram`) maps single-cell RNA-seq data to spatial data, permitting deconvolution of cell types in spatial data like Visium.
+**Tangram** {cite:p}`Biancalani21` (Python class {class}`~scviva.external.Tangram`) maps single-cell RNA-seq data to spatial data, permitting deconvolution of cell types in spatial data like Visium.
 
 This is a reimplementation of Tangram, which can originally be found [here](https://github.com/broadinstitute/Tangram).
 
@@ -38,7 +38,7 @@ Tangram learns a matrix $M$ with shape ($n_{sc} \times n_{sp}$), in which each r
 
 ## Preliminaries
 
-Tangram is registered with {meth}`~scvi.external.Tangram.setup_mudata`, not
+Tangram is registered with {meth}`~scviva.external.Tangram.setup_mudata`, not
 `setup_anndata`. The input is a MuData object containing a single-cell modality and a
 spatial modality. The two modalities used for training must contain the same genes in the
 same order.
@@ -81,12 +81,12 @@ loss then includes a count term that encourages the selected number of cells to 
 
 ## Tasks
 
-Here we provide an overview of common tasks. Please see {class}`~scvi.external.Tangram`
+Here we provide an overview of common tasks. Please see {class}`~scviva.external.Tangram`
 for the full API reference.
 
 ### Mapping Matrix
 
-After training, {meth}`~scvi.external.Tangram.get_mapper_matrix` returns the mapping
+After training, {meth}`~scviva.external.Tangram.get_mapper_matrix` returns the mapping
 matrix with shape `(n_obs_sc, n_obs_sp)`:
 
 ```
@@ -98,7 +98,7 @@ single-cell observation.
 
 ### Projection of Cell Annotations
 
-{meth}`~scvi.external.Tangram.project_cell_annotations` uses the mapping matrix to
+{meth}`~scviva.external.Tangram.project_cell_annotations` uses the mapping matrix to
 project categorical single-cell labels, such as cell types, onto spatial observations:
 
 ```
@@ -111,6 +111,6 @@ The returned DataFrame has spatial observations as rows and label categories as 
 
 ### Projection of Genes
 
-{meth}`~scvi.external.Tangram.project_genes` multiplies the mapping matrix by the
+{meth}`~scviva.external.Tangram.project_genes` multiplies the mapping matrix by the
 single-cell expression matrix and returns an AnnData object containing projected gene
 expression in spatial coordinates.

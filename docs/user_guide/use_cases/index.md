@@ -1,6 +1,6 @@
 # Use Cases
 
-Practical guides for common analysis workflows with scviva-tools.
+Practical guides for common analysis workflows with scVIVA-Tools.
 
 ```{toctree}
 :maxdepth: 2
