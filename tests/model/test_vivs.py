@@ -113,3 +113,36 @@ def test_vivs_get_latent_representation(vivs_adata):
     model.train(max_epochs=1)
     z = model.get_latent_representation()
     assert z.shape == (vivs_adata.n_obs, 4)
+
+
+def test_vivs_pretrained_x_model(vivs_adata):
+    from scvi.model import SCVI
+
+    from scviva.model._vivs import VIVS
+
+    SCVI.setup_anndata(vivs_adata, batch_key="batch")
+    scvi_model = SCVI(vivs_adata, n_hidden=8, n_latent=4)
+    scvi_model.train(max_epochs=1)
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, x_model=scvi_model)
+    assert model.module.x_module_is_pretrained
+    assert model.module.x_module is scvi_model.module
+
+    model.train(max_epochs=1)
+    assert model.is_trained
+    # phase-1 training must have been skipped: x_module's optimizer never ran under VIVS
+    assert model.module._phase == "xy"
+
+
+def test_vivs_untrained_x_model_raises(vivs_adata):
+    from scvi.model import SCVI
+
+    from scviva.model._vivs import VIVS
+
+    SCVI.setup_anndata(vivs_adata, batch_key="batch")
+    scvi_model = SCVI(vivs_adata)  # not trained
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    with pytest.raises(ValueError, match="must already be trained"):
+        VIVS(vivs_adata, x_model=scvi_model)
