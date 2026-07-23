@@ -1,6 +1,7 @@
 import torch
 
 from ._intercept_model import InterceptPPIModel
+from ._linear_predictor import per_class_linear_predictor
 
 
 def _nb_log_prob(x: torch.Tensor, mean: torch.Tensor, concentration: torch.Tensor) -> torch.Tensor:
@@ -29,11 +30,7 @@ class NBInterceptModule(torch.nn.Module):
         self.rho = torch.nn.Parameter(torch.zeros(n_features))
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, w: torch.Tensor | None = None):
-        mu_placeholder = torch.zeros_like(self.mu0)
-        mu = torch.cat([mu_placeholder[None], self.mu], dim=0)
-        class_ids = torch.arange(self.n_classes, device=x.device)
-        y_oh = (class_ids == y.unsqueeze(-1)).to(mu.dtype)
-        mus_ = y_oh @ mu + self.mu0
+        mus_ = per_class_linear_predictor(self.mu0, self.mu, y)
         rates = torch.exp(mus_)
         concentrations = torch.exp(self.rho)
 

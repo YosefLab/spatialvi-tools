@@ -1,6 +1,7 @@
 import torch
 
 from ._intercept_model import InterceptPPIModel
+from ._linear_predictor import per_class_linear_predictor
 
 
 class PoissonInterceptModule(torch.nn.Module):
@@ -19,11 +20,7 @@ class PoissonInterceptModule(torch.nn.Module):
         self.mu = torch.nn.Parameter(torch.zeros(n_classes - 1, n_features))
 
     def forward(self, x: torch.Tensor, y: torch.Tensor, w: torch.Tensor | None = None):
-        mu_placeholder = torch.zeros_like(self.mu0)
-        mu = torch.cat([mu_placeholder[None], self.mu], dim=0)  # (n_classes, n_features)
-        class_ids = torch.arange(self.n_classes, device=x.device)
-        y_oh = (class_ids == y.unsqueeze(-1)).to(mu.dtype)  # (n_obs, n_classes)
-        mus_ = y_oh @ mu + self.mu0  # (n_obs, n_features)
+        mus_ = per_class_linear_predictor(self.mu0, self.mu, y)
 
         if w is None:
             w = torch.ones_like(y, dtype=x.dtype)
