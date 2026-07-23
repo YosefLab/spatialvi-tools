@@ -92,3 +92,14 @@ def test_vivs_setup_anndata_and_init(vivs_adata):
     n_proteins = vivs_adata.obsm["protein_expression"].shape[1]
     assert model.module.xy_module.dense_out.out_features == n_proteins
     assert not model.module.x_module_is_pretrained
+
+
+def test_vivs_train_fresh_vae(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+    assert model.is_trained
+    assert model.module._phase == "xy"
+    assert not any(p.requires_grad for p in model.module.x_module.parameters())

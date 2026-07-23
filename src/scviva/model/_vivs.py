@@ -118,8 +118,51 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         anndata_fields = [
             LayerField(REGISTRY_KEYS.X_KEY, layer, is_count_data=True),
             CategoricalObsField(REGISTRY_KEYS.BATCH_KEY, batch_key),
+            CategoricalObsField(REGISTRY_KEYS.LABELS_KEY, None),
             ObsmField(VIVS_REGISTRY_KEYS.Y_KEY, y_obsm_key),
         ]
         adata_manager = AnnDataManager(fields=anndata_fields, setup_method_args=setup_method_args)
         adata_manager.register_fields(adata, **kwargs)
         cls.register_manager(adata_manager)
+
+    def train(
+        self,
+        max_epochs: int | None = None,
+        x_max_epochs: int | None = None,
+        xy_max_epochs: int | None = None,
+        train_size: float = 0.9,
+        validation_size: float | None = None,
+        batch_size: int = 128,
+        early_stopping: bool = False,
+        **kwargs,
+    ):
+        """Train VIVS in two sequential phases.
+
+        Phase 1 fits the generative VAE over ``X`` (skipped entirely if a pretrained
+        ``x_model`` was supplied at construction). Phase 2 freezes it and fits the
+        importance-score net for ``Y|X``. This order is required for CRT validity: the
+        knockoff sampler must not be contaminated by information about ``Y``.
+        """
+        if not self.module.x_module_is_pretrained:
+            self.module._phase = "x"
+            super().train(
+                max_epochs=x_max_epochs or max_epochs,
+                train_size=train_size,
+                validation_size=validation_size,
+                batch_size=batch_size,
+                early_stopping=early_stopping,
+                **kwargs,
+            )
+            self.module.x_module.requires_grad_(False)
+            self.module.x_module.eval()
+
+        self.module._phase = "xy"
+        super().train(
+            max_epochs=xy_max_epochs or max_epochs,
+            train_size=train_size,
+            validation_size=validation_size,
+            batch_size=batch_size,
+            early_stopping=early_stopping,
+            **kwargs,
+        )
+        self.is_trained_ = True
