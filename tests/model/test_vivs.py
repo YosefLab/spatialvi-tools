@@ -103,3 +103,13 @@ def test_vivs_train_fresh_vae(vivs_adata):
     assert model.is_trained
     assert model.module._phase == "xy"
     assert not any(p.requires_grad for p in model.module.x_module.parameters())
+
+
+def test_vivs_get_latent_representation(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+    z = model.get_latent_representation()
+    assert z.shape == (vivs_adata.n_obs, 4)
