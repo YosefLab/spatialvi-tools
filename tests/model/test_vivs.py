@@ -219,3 +219,11 @@ def test_vivs_get_cell_scores(vivs_adata):
     res = model.get_cell_scores(gene_ids=[0, 1, 2], n_mc_samples=3)
     assert res["tilde_t_mean"].shape[0] == vivs_adata.n_obs
     assert res["obs_t"].shape == (vivs_adata.n_obs, 1)
+
+
+def test_select_genes():
+    from scviva.model.utils._vivs_utils import select_genes
+
+    adata = synthetic_iid(n_genes=100)
+    adata_sub = select_genes(adata, n_top_genes=20)
+    assert adata_sub.shape == (adata.n_obs, 20)
