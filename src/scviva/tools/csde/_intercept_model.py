@@ -12,6 +12,7 @@ from ._base import PPIAbstractClass
 from ._optimization import _zstat_generic2, optimize_ppi_gd, optimize_ppi_lbfgs
 
 _HESSIAN_VMAP_RESIZE_WARNING = ".*was resized since it had shape.*"
+_HESSIAN_VMAP_JIT_DEPRECATION_WARNING = ".*torch\\.jit\\.script.*is deprecated"
 
 ParamSpec = list[tuple[str, tuple[int, ...]]]
 
@@ -265,10 +266,16 @@ class InterceptPPIModel(PPIAbstractClass):
                 w_batch = torch.ones(n_obs_batch, 1, device=self.device)
 
             with warnings.catch_warnings():
-                # Benign: torch.func.vmap(hessian(...)) triggers a spurious autograd resize
-                # warning on this shape combination; verified against a naive per-observation
-                # loop (max abs diff ~1e-7, float32 noise) during the JAX->torch port.
+                # Benign: torch.func.vmap(hessian(...)) triggers spurious internal PyTorch
+                # warnings on this torch version (2.12.1): a UserWarning about autograd tensor
+                # resize, and a DeprecationWarning about torch.jit.script. Both verified against
+                # a naive per-observation loop (max abs diff ~1e-7, float32 noise) during planning.
                 warnings.filterwarnings("ignore", message=_HESSIAN_VMAP_RESIZE_WARNING)
+                warnings.filterwarnings(
+                    "ignore",
+                    message=_HESSIAN_VMAP_JIT_DEPRECATION_WARNING,
+                    category=DeprecationWarning,
+                )
                 hess = hess_fn(self.model_params, x_batch, y_batch, w_batch)
 
             blocks = [
