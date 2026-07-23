@@ -110,3 +110,29 @@ def test_run_csde_unknown_noise_model_raises(csde_synthetic_adata):
             gt_key="is_correct",
             noise_model="bogus",
         )
+
+
+def test_run_csde_unknown_cell_pop_a_raises(csde_synthetic_adata):
+    adata_pred, adata_gt = csde_synthetic_adata
+    with pytest.raises(ValueError):
+        run_csde(
+            adata_pred=adata_pred,
+            adata_gt=adata_gt,
+            pred_cell_pop_key="cell_type",
+            cell_pop_a="NonexistentType",
+            cell_pop_b="TypeB",
+            gt_key="is_correct",
+        )
+
+
+def test_run_csde_unknown_cell_pop_b_raises(csde_synthetic_adata):
+    adata_pred, adata_gt = csde_synthetic_adata
+    with pytest.raises(ValueError):
+        run_csde(
+            adata_pred=adata_pred,
+            adata_gt=adata_gt,
+            pred_cell_pop_key="cell_type",
+            cell_pop_a="TypeA",
+            cell_pop_b="NonexistentType",
+            gt_key="is_correct",
+        )
