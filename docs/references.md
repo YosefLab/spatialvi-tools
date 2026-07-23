@@ -48,6 +48,18 @@ Pyro-based probabilistic model with neighbor-aware decoders.
 Harreman infers spatially-resolved metabolic gene programs and cell-cell metabolic/ligand-receptor
 communication from spatial transcriptomics data using local autocorrelation and spatial proximity graphs.
 
+### CSDE
+
+> **Boyeau et al. (2026)**
+> *Corrected spatial differential expression via prediction-powered inference*
+> bioRxiv. doi: [10.64898/2026.01.15.699786](https://doi.org/10.64898/2026.01.15.699786)
+> {cite:p}`Boyeau26`
+
+CSDE corrects for cell mis-segmentation and mislabeling errors from automated spatial
+transcriptomics pipelines before they propagate into false discoveries, by combining a large
+automated-annotation set with a small manually-validated subset via prediction-powered
+inference to recover unbiased differential-expression estimates with valid confidence intervals.
+
 ---
 
 ## Foundation: scvi-tools
