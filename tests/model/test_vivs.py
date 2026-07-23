@@ -158,3 +158,23 @@ def test_vivs_predict_t(vivs_adata):
     t = model.predict_t()
     assert t.shape == (vivs_adata.n_obs, vivs_adata.obsm["protein_expression"].shape[1])
     assert np.isfinite(t).all()
+
+
+def test_vivs_get_importance_shapes_and_bounds(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+    res = model.get_importance(n_mc_samples=10, use_vmap=False)
+
+    n_genes = vivs_adata.n_vars
+    n_responses = vivs_adata.obsm["protein_expression"].shape[1]
+    assert res["obs_ts"].shape == (n_responses,)
+    assert res["null_ts"].shape == (10, n_genes, n_responses)
+    assert res["pvalues"].shape == (n_genes, n_responses)
+    assert res["padj"].shape == (n_genes, n_responses)
+    assert np.all(res["pvalues"] >= 0)
+    assert np.all(res["pvalues"] <= 1)
+    assert np.all(res["padj"] >= 0)
+    assert np.all(res["padj"] <= 1)

@@ -10,6 +10,7 @@ from scvi.data import AnnDataManager
 from scvi.data.fields import CategoricalObsField, LayerField, ObsmField
 from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, VAEMixin
 from scvi.utils import setup_anndata_dsp
+from statsmodels.stats.multitest import multipletests
 
 from scviva._constants import VIVS_REGISTRY_KEYS
 from scviva.model.base import SpatialBaseModel
@@ -188,3 +189,126 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             out = self.module.xy_module(xy_input, y)
             results.append(out["all_loss"].cpu().numpy())
         return np.concatenate(results, axis=0)
+
+    @torch.inference_mode()
+    def _sample_knockoffs(self, x: torch.Tensor, batch_index: torch.Tensor) -> torch.Tensor:
+        """Sample one conditional replacement of X from the frozen generative VAE."""
+        inference_out = self.module.inference(x=x, batch_index=batch_index)
+        generative_out = self.module.generative(
+            z=inference_out["z"], library=inference_out["library"], batch_index=batch_index
+        )
+        return generative_out["px"].sample()
+
+    @staticmethod
+    def _crt_pvalue(
+        obs_t: np.ndarray, tilde_t: np.ndarray, n_mc_samples: int
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """One-sided CRT p-value with BH correction, shared by every hypothesis-testing method.
+
+        Parameters
+        ----------
+        obs_t
+            Observed statistic, shape ``(..., n_responses)``.
+        tilde_t
+            Null statistics, shape ``(n_mc_samples, ..., n_responses)``.
+        """
+        pval = (1.0 + (obs_t >= tilde_t).sum(0)) / (1.0 + n_mc_samples)
+        padj = np.stack(
+            [multipletests(pval[..., r], method="fdr_bh")[1] for r in range(pval.shape[-1])],
+            axis=-1,
+        )
+        return pval, padj
+
+    @torch.inference_mode()
+    def get_importance(
+        self,
+        adata: AnnData | None = None,
+        indices=None,
+        batch_size: int = 128,
+        n_mc_samples: int = 500,
+        use_vmap: Literal["auto", True, False] = "auto",
+    ) -> dict:
+        """Conditional-randomization-test importance of each gene for each response.
+
+        Parameters
+        ----------
+        use_vmap
+            Whether to vectorize the per-gene resampling loop with :func:`torch.vmap`.
+            ``"auto"`` enables it when the number of genes is below 2000 (mirrors the
+            original's own recommended gene-filtering ceiling). Disable if you hit an
+            out-of-memory error.
+        """
+        adata = self._validate_anndata(adata)
+        dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+        n_genes = self.summary_stats.n_vars
+        n_responses = self.summary_stats.n_Y
+        use_vmap = use_vmap if use_vmap != "auto" else n_genes < 2000
+
+        obs_t_total = torch.zeros(n_responses)
+        tilde_t_total = torch.zeros(n_mc_samples, n_genes, n_responses)
+        n_obs = 0
+
+        for tensors in dataloader:
+            x = tensors[REGISTRY_KEYS.X_KEY]
+            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY]
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            batch_n = x.shape[0]
+            n_obs += batch_n
+
+            obs_all_loss = self.module.xy_module(self.module.xy_input(x, batch_index), y)[
+                "all_loss"
+            ]
+            obs_t_total += obs_all_loss.sum(0)
+
+            px_sample = self._sample_knockoffs(x, batch_index)  # (batch_n, n_genes)
+
+            if use_vmap:
+                try:
+                    tilde_t_batch = self._get_importance_vmap(x, px_sample, batch_index, y)
+                except RuntimeError as e:
+                    raise RuntimeError(
+                        "Out of memory while vmapping over genes. Try setting use_vmap=False."
+                    ) from e
+            else:
+                tilde_t_batch = torch.stack(
+                    [
+                        self._compute_gene_statistic(x, px_sample[:, g], g, batch_index, y)
+                        for g in range(n_genes)
+                    ],
+                    dim=0,
+                )  # (n_genes, n_responses)
+            # Only one MC sample per batch pass in this minimal loop-based version; repeat
+            # `n_mc_samples` times by resampling. This mirrors `n_mc_per_pass=1` in the original.
+            tilde_t_total[0] += tilde_t_batch
+            for k in range(1, n_mc_samples):
+                px_sample_k = self._sample_knockoffs(x, batch_index)
+                if use_vmap:
+                    tilde_t_k = self._get_importance_vmap(x, px_sample_k, batch_index, y)
+                else:
+                    tilde_t_k = torch.stack(
+                        [
+                            self._compute_gene_statistic(x, px_sample_k[:, g], g, batch_index, y)
+                            for g in range(n_genes)
+                        ],
+                        dim=0,
+                    )
+                tilde_t_total[k] += tilde_t_k
+
+        obs_t = (obs_t_total / n_obs).numpy()
+        null_t = (tilde_t_total / n_obs).numpy()
+        pval, padj = self._crt_pvalue(obs_t, null_t, n_mc_samples)
+        return {"obs_ts": obs_t, "null_ts": null_t, "pvalues": pval, "padj": padj}
+
+    def _compute_gene_statistic(
+        self,
+        x: torch.Tensor,
+        x_tilde_gene: torch.Tensor,
+        gene_id: int,
+        batch_index: torch.Tensor,
+        y: torch.Tensor,
+    ) -> torch.Tensor:
+        """Substitute one gene with its knockoff, recompute xy statistic (summed over cells)."""
+        x_perturbed = x.clone()
+        x_perturbed[..., gene_id] = x_tilde_gene
+        xy_input = self.module.xy_input(x_perturbed, batch_index)
+        return self.module.xy_module(xy_input, y)["all_loss"].sum(0)
