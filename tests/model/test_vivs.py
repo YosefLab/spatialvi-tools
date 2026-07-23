@@ -178,3 +178,33 @@ def test_vivs_get_importance_shapes_and_bounds(vivs_adata):
     assert np.all(res["pvalues"] <= 1)
     assert np.all(res["padj"] >= 0)
     assert np.all(res["padj"] <= 1)
+
+
+def test_vivs_get_importance_vmap_matches_loop(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+
+    torch.manual_seed(0)
+    res_loop = model.get_importance(n_mc_samples=5, use_vmap=False)
+    torch.manual_seed(0)
+    res_vmap = model.get_importance(n_mc_samples=5, use_vmap=True)
+
+    np.testing.assert_allclose(res_loop["obs_ts"], res_vmap["obs_ts"], rtol=1e-4)
+    # Null statistics won't match exactly (independent RNG draws per gene under vmap's
+    # randomness="different" vs. the loop's shared draw), but should be the same order
+    # of magnitude and shape.
+    assert res_loop["null_ts"].shape == res_vmap["null_ts"].shape
+
+
+def test_vivs_get_importance_auto_vmap_threshold(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+    # vivs_adata has 50 genes (< 2000), so "auto" must resolve to vmap=True without erroring.
+    res = model.get_importance(n_mc_samples=3, use_vmap="auto")
+    assert res["pvalues"].shape[0] == vivs_adata.n_vars

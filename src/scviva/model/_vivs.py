@@ -323,6 +323,37 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         pval, padj = self._crt_pvalue(obs_t, null_t, n_mc_samples)
         return {"obs_ts": obs_t, "null_ts": null_t, "pvalues": pval, "padj": padj}
 
+    def _get_importance_vmap(
+        self,
+        x: torch.Tensor,
+        x_tilde: torch.Tensor,
+        batch_index: torch.Tensor,
+        y: torch.Tensor,
+    ) -> torch.Tensor:
+        """Vectorized version of `_compute_gene_statistic`, mapped over the gene axis.
+
+        Mirrors `scvi.external.mrvi.MRVI`'s vmap usage pattern: `torch.vmap` over one
+        axis, `randomness="different"` since downstream computation involves stochastic
+        submodules (dropout in the importance-score net). Uses a non-mutating
+        `torch.where` substitution rather than in-place indexed assignment
+        (`x_perturbed[..., gene_id] = ...`) — verified empirically that the in-place
+        form raises `RuntimeError: vmap: index_put_(...)` as soon as a dropout/BatchNorm
+        submodule is called downstream inside the vmapped function; `torch.where` does not.
+        """
+        n_genes = x.shape[-1]
+
+        def _statistic_for_gene(gene_id: torch.Tensor, x_tilde_gene: torch.Tensor) -> torch.Tensor:
+            mask = torch.nn.functional.one_hot(gene_id, n_genes).bool()
+            x_tilde_expanded = x_tilde_gene.unsqueeze(-1).expand(-1, n_genes)
+            x_perturbed = torch.where(mask, x_tilde_expanded, x)
+            xy_input = self.module.xy_input(x_perturbed, batch_index)
+            return self.module.xy_module(xy_input, y)["all_loss"].sum(0)
+
+        gene_ids = torch.arange(n_genes)
+        return torch.vmap(_statistic_for_gene, in_dims=(0, 1), randomness="different")(
+            gene_ids, x_tilde
+        )
+
     def _compute_gene_statistic(
         self,
         x: torch.Tensor,
