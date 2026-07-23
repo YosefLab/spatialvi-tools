@@ -328,6 +328,55 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         pval, padj = self._crt_pvalue(obs_t, null_t, n_mc_samples)
         return {"obs_ts": obs_t, "null_ts": null_t, "pvalues": pval, "padj": padj}
 
+    @torch.inference_mode()
+    def get_cell_scores(
+        self,
+        gene_ids: list[int],
+        response_ids: list[int] | None = None,
+        adata: AnnData | None = None,
+        indices=None,
+        batch_size: int | None = None,
+        n_mc_samples: int | None = None,
+    ) -> dict:
+        """Per-cell (unsummed) importance scores for a specific set of genes."""
+        adata = self._validate_anndata(adata)
+        batch_size = batch_size or 128
+        n_mc_samples = n_mc_samples or 500
+        response_ids = (
+            response_ids if response_ids is not None else list(range(self.summary_stats.n_Y))
+        )
+        dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+
+        tilde_t_mean_chunks, obs_t_chunks = [], []
+        for tensors in dataloader:
+            x = tensors[REGISTRY_KEYS.X_KEY]
+            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY]
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+
+            obs_all_loss = self.module.xy_module(self.module.xy_input(x, batch_index), y)[
+                "all_loss"
+            ][:, response_ids]
+            obs_t = obs_all_loss.mean(-1, keepdim=True)  # (batch_n, 1)
+
+            z, library = self._encode_for_knockoffs(x, batch_index)  # once per batch
+            tilde_t_sum = torch.zeros(x.shape[0], len(response_ids))
+            for _ in range(n_mc_samples):
+                px_sample = self._sample_knockoffs(
+                    z, library, batch_index
+                )  # fresh px draw, same z
+                x_perturbed = x.clone()
+                x_perturbed[..., gene_ids] = px_sample[..., gene_ids]
+                xy_input = self.module.xy_input(x_perturbed, batch_index)
+                all_loss = self.module.xy_module(xy_input, y)["all_loss"][:, response_ids]
+                tilde_t_sum += all_loss
+            tilde_t_mean_chunks.append((tilde_t_sum / n_mc_samples).numpy())
+            obs_t_chunks.append(obs_t.numpy())
+
+        return {
+            "tilde_t_mean": np.concatenate(tilde_t_mean_chunks, axis=0),
+            "obs_t": np.concatenate(obs_t_chunks, axis=0),
+        }
+
     def _get_importance_vmap(
         self,
         x: torch.Tensor,

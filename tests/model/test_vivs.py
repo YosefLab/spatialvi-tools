@@ -208,3 +208,14 @@ def test_vivs_get_importance_auto_vmap_threshold(vivs_adata):
     # vivs_adata has 50 genes (< 2000), so "auto" must resolve to vmap=True without erroring.
     res = model.get_importance(n_mc_samples=3, use_vmap="auto")
     assert res["pvalues"].shape[0] == vivs_adata.n_vars
+
+
+def test_vivs_get_cell_scores(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+    res = model.get_cell_scores(gene_ids=[0, 1, 2], n_mc_samples=3)
+    assert res["tilde_t_mean"].shape[0] == vivs_adata.n_obs
+    assert res["obs_t"].shape == (vivs_adata.n_obs, 1)
