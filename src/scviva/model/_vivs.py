@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Literal
 import fastcluster
 import numpy as np
 import torch
+import xarray as xr
 from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 from scvi import REGISTRY_KEYS
@@ -508,3 +509,138 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         if return_z:
             return gene_groupings, Z, gene_order
         return gene_groupings
+
+    @torch.inference_mode()
+    def get_hier_importance(
+        self,
+        n_clusters_list: list[int],
+        adata: AnnData | None = None,
+        indices=None,
+        batch_size: int = 128,
+        gene_groupings: list[np.ndarray] | None = None,
+        gene_order=None,
+        clustering_method: str = "complete",
+        use_vmap: Literal["auto", True, False] = "auto",
+        n_mc_samples: int = 500,
+    ) -> xr.Dataset:
+        """Hierarchical CRT: gene importance at multiple gene-group resolutions.
+
+        First clusters genes by decoder-scale correlation at several resolutions (unless
+        pre-computed groupings are given), then re-runs the CRT with group-level knockoff
+        substitution at each resolution. See ``docs/user_guide/models/vivs.md`` for the
+        full statistical description.
+        """
+        adata = self._validate_anndata(adata)
+        n_genes = self.summary_stats.n_vars
+        n_responses = self.summary_stats.n_Y
+        use_vmap = use_vmap if use_vmap != "auto" else n_genes < 2000
+
+        if gene_groupings is None:
+            gene_groupings, _, gene_order = self.get_gene_groupings(
+                adata=adata,
+                n_clusters_list=n_clusters_list,
+                return_z=True,
+                method=clustering_method,
+            )
+        elif gene_order is None:
+            gene_order = adata.var_names.values
+        gene_groupings = [*gene_groupings, np.arange(n_genes).astype(np.int32)]
+        gene_groups_oh = [
+            torch.nn.functional.one_hot(torch.as_tensor(g).long()).float() for g in gene_groupings
+        ]
+        group_sizes = [oh.shape[1] for oh in gene_groups_oh]
+
+        dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+        obs_t_total = torch.zeros(n_responses)
+        tilde_t_totals = [torch.zeros(n_mc_samples, sz, n_responses) for sz in group_sizes]
+        n_obs = 0
+
+        for tensors in dataloader:
+            x = tensors[REGISTRY_KEYS.X_KEY]
+            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY]
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            n_obs += x.shape[0]
+
+            obs_t_total += self.module.xy_module(self.module.xy_input(x, batch_index), y)[
+                "all_loss"
+            ].sum(0)
+
+            z, library = self._encode_for_knockoffs(x, batch_index)  # once per batch
+            for k in range(n_mc_samples):
+                x_tilde = self._sample_knockoffs(z, library, batch_index)  # fresh px draw, same z
+                for res_idx, group_oh in enumerate(gene_groups_oh):
+                    stat = self._compute_group_statistics(
+                        x, x_tilde, group_oh, batch_index, y, use_vmap
+                    )
+                    tilde_t_totals[res_idx][k] += stat
+
+        obs_t = (obs_t_total / n_obs).numpy()
+        tilde_t = [(t / n_obs).numpy() for t in tilde_t_totals]
+        return self._construct_hier_results(
+            obs_t, tilde_t, gene_groupings, group_sizes, gene_order, adata
+        )
+
+    def _compute_group_statistics(
+        self,
+        x: torch.Tensor,
+        x_tilde: torch.Tensor,
+        group_oh: torch.Tensor,
+        batch_index: torch.Tensor,
+        y: torch.Tensor,
+        use_vmap: bool,
+    ) -> torch.Tensor:
+        """Substitute each gene-group with its knockoff (soft mask) and recompute the statistic."""
+
+        def _statistic_for_group(group_mask: torch.Tensor) -> torch.Tensor:
+            x_perturbed = x * (1.0 - group_mask) + x_tilde * group_mask
+            xy_input = self.module.xy_input(x_perturbed, batch_index)
+            return self.module.xy_module(xy_input, y)["all_loss"].sum(0)
+
+        if use_vmap:
+            try:
+                return torch.vmap(_statistic_for_group, in_dims=1, randomness="different")(
+                    group_oh
+                )
+            except RuntimeError as e:
+                raise RuntimeError(
+                    "Out of memory while vmapping over gene groups. Try setting use_vmap=False."
+                ) from e
+        return torch.stack(
+            [_statistic_for_group(group_oh[:, i]) for i in range(group_oh.shape[1])]
+        )
+
+    def _construct_hier_results(
+        self,
+        obs_t: np.ndarray,
+        tilde_t: list[np.ndarray],
+        gene_groupings: list[np.ndarray],
+        group_sizes: list[int],
+        gene_order,
+        adata: AnnData,
+    ) -> xr.Dataset:
+        """Assemble the multi-resolution p-value/padj cube, reusing `_crt_pvalue`."""
+        n_mc_samples = tilde_t[0].shape[0]
+        response_names = np.arange(obs_t.shape[-1])
+        datasets = []
+        for res_idx, resolution in enumerate(group_sizes):
+            pvals, padjs = self._crt_pvalue(obs_t, tilde_t[res_idx], n_mc_samples)
+            gene_clusters = gene_groupings[res_idx]
+            pvals_gene = pvals[gene_clusters]
+            padjs_gene = padjs[gene_clusters]
+            coords = {
+                "gene_name": adata.var_names.values,
+                "feature": response_names,
+                "resolution": resolution,
+                "resolution_idx": res_idx,
+            }
+            datasets.append(
+                xr.Dataset(
+                    {
+                        "pval": (["gene_name", "feature"], pvals_gene),
+                        "padj": (["gene_name", "feature"], padjs_gene),
+                        "cluster_assignment": (["gene_name"], gene_clusters),
+                    },
+                    coords=coords,
+                )
+            )
+        return xr.concat(datasets, dim="resolution").reindex(gene_name=gene_order)

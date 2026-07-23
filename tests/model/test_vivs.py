@@ -259,3 +259,19 @@ def test_vivs_gene_correlations_and_groupings(vivs_adata):
     assert groupings[0].shape == (n_genes,)
     assert len(np.unique(groupings[0])) <= 5
     assert len(gene_order) == n_genes
+
+
+def test_vivs_get_hier_importance(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+
+    res = model.get_hier_importance(n_clusters_list=[5, 10], batch_size=64)
+    assert "pval" in res.data_vars
+    assert "padj" in res.data_vars
+    assert "cluster_assignment" in res.data_vars
+    # 5, 10, plus the always-appended "all genes" (n_genes) resolution
+    assert res.sizes["resolution"] == 3
+    assert res.sizes["gene_name"] == vivs_adata.n_vars
