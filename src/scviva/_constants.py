@@ -28,6 +28,13 @@ class _SCVIVA_REGISTRY_KEYS_NT(NamedTuple):
 SCVIVA_REGISTRY_KEYS = _SCVIVA_REGISTRY_KEYS_NT()
 
 
+class _VIVS_REGISTRY_KEYS_NT(NamedTuple):
+    Y_KEY: str = "Y"
+
+
+VIVS_REGISTRY_KEYS = _VIVS_REGISTRY_KEYS_NT()
+
+
 class _SCVIVA_MODULE_KEYS(NamedTuple):
     # generative model
     NICHE_MEAN: str = "niche_mean"
