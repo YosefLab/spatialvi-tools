@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Literal
+
+from scvi import REGISTRY_KEYS
+from scvi.data import AnnDataManager
+from scvi.data.fields import CategoricalObsField, LayerField, ObsmField
+from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, VAEMixin
+from scvi.utils import setup_anndata_dsp
+
+from scviva._constants import VIVS_REGISTRY_KEYS
+from scviva.model.base import SpatialBaseModel
+from scviva.module._vivs import VIVSModule
+
+if TYPE_CHECKING:
+    from anndata import AnnData
+
+logger = logging.getLogger(__name__)
+
+
+class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
+    """VIVS: calibrated identification of feature dependencies in multiomics :cite:p:`Boyeau24`.
+
+    Identifies which genes in ``X`` are conditionally dependent on an external response
+    ``Y`` (e.g. protein expression, niche composition) using a conditional randomization
+    test (CRT), with a deep generative model of ``X`` as the knockoff sampler.
+
+    Parameters
+    ----------
+    adata
+        AnnData object registered via :meth:`~scviva.model.VIVS.setup_anndata`.
+    n_hidden
+        Number of hidden units in the generative VAE (ignored if ``x_model`` is given).
+    n_latent
+        Latent dimensionality of the generative VAE (ignored if ``x_model`` is given).
+    x_likelihood
+        Gene-expression likelihood for the generative VAE: ``"nb"``, ``"zinb"``, or ``"poisson"``
+        (ignored if ``x_model`` is given).
+    xy_linear
+        If ``True``, the importance-score net is a linear model instead of an MLP.
+    xy_include_batch_in_input
+        Whether to concatenate one-hot batch to the importance-score net's input.
+    x_model
+        An already-trained scviva-tools spatial model (e.g. :class:`~scviva.model.SCVIVA`,
+        :class:`~scviva.model.DestVI`, :class:`~scviva.model.ResolVI`,
+        :class:`~scviva.model.GIMVI`) or :class:`~scvi.model.SCVI`, registered on data
+        compatible with ``adata``. When given, its trained module is reused (frozen) as
+        the knockoff sampler, and VIVS's own generative training phase is skipped entirely.
+    **module_kwargs
+        Additional keyword arguments passed to :class:`~scviva.module.VIVSModule`.
+    """
+
+    _module_cls = VIVSModule
+
+    def __init__(
+        self,
+        adata: AnnData,
+        n_hidden: int = 128,
+        n_latent: int = 10,
+        x_likelihood: Literal["nb", "zinb", "poisson"] = "nb",
+        xy_linear: bool = False,
+        xy_include_batch_in_input: bool = False,
+        x_model: BaseModelClass | None = None,
+        **module_kwargs,
+    ):
+        super().__init__(adata)
+        summary_stats = self.summary_stats
+
+        x_module = None
+        if x_model is not None:
+            if not x_model.is_trained:
+                raise ValueError(
+                    "`x_model` must already be trained (call `.train()` on it) before "
+                    "being passed to VIVS."
+                )
+            x_module = x_model.module
+
+        self.module = self._module_cls(
+            n_input=summary_stats.n_vars,
+            n_responses=summary_stats.n_Y,
+            n_batch=summary_stats.n_batch,
+            x_model_kwargs={
+                "n_hidden": n_hidden,
+                "n_latent": n_latent,
+                "gene_likelihood": x_likelihood,
+            },
+            xy_linear=xy_linear,
+            xy_include_batch_in_input=xy_include_batch_in_input,
+            x_module=x_module,
+            **module_kwargs,
+        )
+        self._model_summary_string = "VIVS model"
+        self.init_params_ = self._get_init_params(locals())
+
+    @classmethod
+    @setup_anndata_dsp.dedent
+    def setup_anndata(
+        cls,
+        adata: AnnData,
+        y_obsm_key: str,
+        layer: str | None = None,
+        batch_key: str | None = None,
+        **kwargs,
+    ):
+        """%(summary)s.
+
+        Parameters
+        ----------
+        %(param_adata)s
+        y_obsm_key
+            Key in ``adata.obsm`` for the response(s) ``Y`` whose conditional dependence on
+            gene expression ``X`` is being tested (e.g. protein expression, niche composition).
+        %(param_layer)s
+        %(param_batch_key)s
+        """
+        setup_method_args = cls._get_setup_method_args(**locals())
+        anndata_fields = [
+            LayerField(REGISTRY_KEYS.X_KEY, layer, is_count_data=True),
+            CategoricalObsField(REGISTRY_KEYS.BATCH_KEY, batch_key),
+            ObsmField(VIVS_REGISTRY_KEYS.Y_KEY, y_obsm_key),
+        ]
+        adata_manager = AnnDataManager(fields=anndata_fields, setup_method_args=setup_method_args)
+        adata_manager.register_fields(adata, **kwargs)
+        cls.register_manager(adata_manager)

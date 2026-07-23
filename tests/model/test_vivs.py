@@ -1,6 +1,8 @@
 """Tests for VIVS model."""
 
+import pytest
 import torch
+from scvi.data import synthetic_iid
 
 from scviva._constants import VIVS_REGISTRY_KEYS
 
@@ -74,3 +76,19 @@ def test_vivs_module_phase_xy_loss():
         assert p.grad is None
     for p in module.xy_module.parameters():
         assert p.grad is not None
+
+
+@pytest.fixture
+def vivs_adata():
+    adata = synthetic_iid(n_genes=50)
+    return adata
+
+
+def test_vivs_setup_anndata_and_init(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    n_proteins = vivs_adata.obsm["protein_expression"].shape[1]
+    assert model.module.xy_module.dense_out.out_features == n_proteins
+    assert not model.module.x_module_is_pretrained
