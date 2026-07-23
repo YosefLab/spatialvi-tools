@@ -3,8 +3,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Literal
 
+import fastcluster
 import numpy as np
 import torch
+from scipy.cluster import hierarchy
+from scipy.spatial.distance import squareform
 from scvi import REGISTRY_KEYS
 from scvi.data import AnnDataManager
 from scvi.data.fields import CategoricalObsField, LayerField, ObsmField
@@ -421,3 +424,87 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         x_perturbed[..., gene_id] = x_tilde_gene
         xy_input = self.module.xy_input(x_perturbed, batch_index)
         return self.module.xy_module(xy_input, y)["all_loss"].sum(0)
+
+    @torch.inference_mode()
+    def get_gene_correlations(
+        self,
+        adata: AnnData | None = None,
+        indices=None,
+        batch_size: int = 128,
+    ) -> np.ndarray:
+        """Gene-by-gene correlation matrix of the decoder's normalized expression scale."""
+        adata = self._validate_anndata(adata)
+        dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+        n_genes = self.summary_stats.n_vars
+
+        x_sum = torch.zeros(n_genes)
+        xx_sum = torch.zeros(n_genes, n_genes)
+        n_obs = 0
+        for tensors in dataloader:
+            x = tensors[REGISTRY_KEYS.X_KEY]
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            inference_out = self.module.inference(x=x, batch_index=batch_index)
+            generative_out = self.module.generative(
+                z=inference_out["z"], library=inference_out["library"], batch_index=batch_index
+            )
+            scale = (
+                generative_out["px"].mu
+                if hasattr(generative_out["px"], "mu")
+                else generative_out["px"].rate
+            )
+            x_sum += scale.sum(0)
+            xx_sum += torch.bmm(scale.unsqueeze(-1), scale.unsqueeze(1)).sum(0)
+            n_obs += x.shape[0]
+
+        x_mean = (x_sum / n_obs).unsqueeze(0)
+        cov = xx_sum / n_obs - x_mean.T @ x_mean
+        inv_std = 1.0 / torch.sqrt(torch.diag(cov))
+        d = torch.diag(inv_std)
+        corr = d @ cov @ d
+        return corr.numpy()
+
+    def get_gene_groupings(
+        self,
+        adata: AnnData | None = None,
+        method: str = "complete",
+        return_z=False,
+        n_clusters_list: list[int] | None = None,
+    ):
+        """Hierarchically cluster genes by their decoder-scale correlation.
+
+        Parameters
+        ----------
+        method
+            Linkage method for hierarchical clustering.
+        return_z
+            Whether to also return the linkage matrix and computed gene order.
+        n_clusters_list
+            Cluster-count resolutions to compute a partition for.
+        """
+        assert n_clusters_list is not None
+        adata = self._validate_anndata(adata)
+        corr = self.get_gene_correlations(adata=adata)
+        pseudo_dist = 1 - corr
+        pseudo_dist = (pseudo_dist + pseudo_dist.T) / 2
+        pseudo_dist = np.clip(pseudo_dist, a_min=0.0, a_max=100.0)
+        pseudo_dist = pseudo_dist - np.diag(np.diag(pseudo_dist))
+        dist_vec = squareform(pseudo_dist, checks=False)
+
+        Z = fastcluster.linkage(dist_vec, method=method)
+        Z = hierarchy.optimal_leaf_ordering(Z, dist_vec)
+        gene_order = hierarchy.leaves_list(Z)
+        gene_order = adata.var_names[gene_order].values
+
+        n_genes = self.summary_stats.n_vars
+        if not isinstance(n_clusters_list, list):
+            n_clusters_list = [n_clusters_list]
+        gene_groupings = []
+        for n_cluster in n_clusters_list:
+            if n_cluster >= n_genes:
+                continue
+            cluster_assignments = hierarchy.fcluster(Z, n_cluster, criterion="maxclust") - 1
+            gene_groupings.append(cluster_assignments)
+
+        if return_z:
+            return gene_groupings, Z, gene_order
+        return gene_groupings

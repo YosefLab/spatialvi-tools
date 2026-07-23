@@ -240,3 +240,22 @@ def test_select_architecture(vivs_adata):
         max_epochs=1,
     )
     assert best["n_hidden"] in (4, 8)
+
+
+def test_vivs_gene_correlations_and_groupings(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+
+    corr = model.get_gene_correlations()
+    n_genes = vivs_adata.n_vars
+    assert corr.shape == (n_genes, n_genes)
+    assert np.allclose(np.diag(corr), 1.0, atol=1e-2)
+
+    groupings, Z, gene_order = model.get_gene_groupings(n_clusters_list=[5, 10], return_z=True)
+    assert len(groupings) == 2
+    assert groupings[0].shape == (n_genes,)
+    assert len(np.unique(groupings[0])) <= 5
+    assert len(gene_order) == n_genes
