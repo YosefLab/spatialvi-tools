@@ -43,6 +43,11 @@ def optimize_ppi_gd(
     Torch port of upstream's `optax`-based `optimize_ppi_gd`: minimizes `lambd_ *
     loss_unl - lambd_ * loss_hat + loss_gt`.
     """
+    # NOTE: tol=None -> atol=inf, which makes np.isclose(...) trivially True on the very
+    # first iteration, so the loop stops after 1 step rather than disabling early stopping.
+    # This is inherited verbatim from upstream JAX CSDE's own optimize_ppi_gd (same quirk
+    # there) -- kept deliberately for a faithful 1:1 port. No call site in this codebase
+    # passes tol=None (default is 1e-3 everywhere), so this is currently inert.
     tol_ = np.inf if tol is None else tol
 
     if params0 is not None:
