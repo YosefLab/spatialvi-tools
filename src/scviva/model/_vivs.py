@@ -191,12 +191,33 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         return np.concatenate(results, axis=0)
 
     @torch.inference_mode()
-    def _sample_knockoffs(self, x: torch.Tensor, batch_index: torch.Tensor) -> torch.Tensor:
-        """Sample one conditional replacement of X from the frozen generative VAE."""
+    def _encode_for_knockoffs(
+        self, x: torch.Tensor, batch_index: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Run the frozen generative VAE's encoder once per batch.
+
+        The original JAX implementation samples ``z`` a single time per batch and only
+        resamples the decoder's noise across MC knockoff draws (`vivs/_vivs.py:227-228,302`
+        on VIVS `main`: ``z_rng`` is split once, ``randomize(...)`` is called once per batch,
+        outside the MC loop). Re-drawing ``z`` fresh on every MC sample (as an earlier draft
+        of this helper did) folds extra encoder-uncertainty variance into every null draw and
+        is NOT what the reference algorithm does — call this once per batch, then call
+        `_sample_knockoffs` many times with the same `z`/`library`.
+        """
         inference_out = self.module.inference(x=x, batch_index=batch_index)
-        generative_out = self.module.generative(
-            z=inference_out["z"], library=inference_out["library"], batch_index=batch_index
-        )
+        return inference_out["z"], inference_out["library"]
+
+    @torch.inference_mode()
+    def _sample_knockoffs(
+        self, z: torch.Tensor, library: torch.Tensor, batch_index: torch.Tensor
+    ) -> torch.Tensor:
+        """Sample one conditional replacement of X from the frozen generative VAE's decoder.
+
+        `z`/`library` must come from `_encode_for_knockoffs`, called ONCE per batch outside
+        the MC loop — only the decoder's `px.sample()` varies across MC knockoff draws,
+        matching the reference algorithm exactly (see `_encode_for_knockoffs`'s docstring).
+        """
+        generative_out = self.module.generative(z=z, library=library, batch_index=batch_index)
         return generative_out["px"].sample()
 
     @staticmethod
@@ -260,7 +281,8 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             ]
             obs_t_total += obs_all_loss.sum(0)
 
-            px_sample = self._sample_knockoffs(x, batch_index)  # (batch_n, n_genes)
+            z, library = self._encode_for_knockoffs(x, batch_index)  # once per batch
+            px_sample = self._sample_knockoffs(z, library, batch_index)  # (batch_n, n_genes)
 
             if use_vmap:
                 try:
@@ -281,7 +303,9 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             # `n_mc_samples` times by resampling. This mirrors `n_mc_per_pass=1` in the original.
             tilde_t_total[0] += tilde_t_batch
             for k in range(1, n_mc_samples):
-                px_sample_k = self._sample_knockoffs(x, batch_index)
+                px_sample_k = self._sample_knockoffs(
+                    z, library, batch_index
+                )  # same z/library, fresh px draw
                 if use_vmap:
                     tilde_t_k = self._get_importance_vmap(x, px_sample_k, batch_index, y)
                 else:
