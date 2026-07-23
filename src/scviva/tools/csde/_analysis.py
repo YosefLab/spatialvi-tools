@@ -84,7 +84,7 @@ class CSDEAnalysis:
         )
 
     def fit(
-        self, noise_model: str = "poisson", optimizer: str = "adam", **model_kwargs
+        self, noise_model: str = "poisson", optimizer: str = "gd", **model_kwargs
     ) -> CSDEAnalysis:
         self._model = _build_and_fit(
             self.adata_pred,

@@ -86,6 +86,23 @@ def test_fit_then_test_differential_expression(annotation_dir_and_sdata):
     assert not res.isnull().values.any()
 
 
+def test_fit_with_default_optimizer_does_not_raise(annotation_dir_and_sdata):
+    """Regression test: CSDEAnalysis.fit()'s default optimizer value must be a value
+    InterceptPPIModel actually accepts ("gd" or "lbfgs"), not "adam" (a different,
+    inner-level parameter). A prior version defaulted to "adam" and crashed with
+    ValueError: Unknown optimizer: adam on any call to .fit() with no arguments.
+    """
+    annotation_dir, sdata = annotation_dir_and_sdata
+    analysis = CSDEAnalysis.from_spatialdata(
+        sdata, annotation_dir=annotation_dir, n_cells_expressed_threshold=0
+    )
+    # Deliberately call fit() with NO optimizer override, to exercise the real default.
+    # Keep iteration count low via optimizer_kwargs so the test runs fast.
+    analysis.fit(optimizer_kwargs={"n_iter": 20})
+    res = analysis.test_differential_expression()
+    assert not res.isnull().values.any()
+
+
 def test_test_differential_expression_before_fit_raises(annotation_dir_and_sdata):
     annotation_dir, sdata = annotation_dir_and_sdata
     analysis = CSDEAnalysis.from_spatialdata(
