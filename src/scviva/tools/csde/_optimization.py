@@ -93,6 +93,7 @@ def optimize_ppi_lbfgs(
     y_hat: torch.Tensor,
     x_unl: torch.Tensor,
     y_unl: torch.Tensor,
+    w: torch.Tensor | None = None,
     params0: dict[str, torch.Tensor] | None = None,
     lambd_: float = 1.0,
     max_iter: int = 100,
@@ -112,8 +113,8 @@ def optimize_ppi_lbfgs(
     )
 
     def loss_fn():
-        loss_gt = functional_call(model, params, (x_gt, y_gt))["loss"].mean()
-        loss_hat = functional_call(model, params, (x_hat, y_hat))["loss"].mean()
+        loss_gt = functional_call(model, params, (x_gt, y_gt, w))["loss"].mean()
+        loss_hat = functional_call(model, params, (x_hat, y_hat, w))["loss"].mean()
         loss_unl = functional_call(model, params, (x_unl, y_unl))["loss"].mean()
         return (lambd_ * loss_unl) - (lambd_ * loss_hat) + loss_gt
 

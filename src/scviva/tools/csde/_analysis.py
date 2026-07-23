@@ -86,6 +86,7 @@ class CSDEAnalysis:
     def fit(
         self, noise_model: str = "poisson", optimizer: str = "gd", **model_kwargs
     ) -> CSDEAnalysis:
+        """Fit the PPI model. `noise_model`: `"poisson"`/`"nb"`. `optimizer`: `"gd"`/`"lbfgs"`."""
         self._model = _build_and_fit(
             self.adata_pred,
             self.adata_gt,
@@ -103,6 +104,7 @@ class CSDEAnalysis:
         return self
 
     def test_differential_expression(self, cond_thresh: float = np.inf) -> pd.DataFrame:
+        """Test DE between `cell_pop_a`/`cell_pop_b`; `cond_thresh` caps ill-conditioned p-vals."""
         if self._model is None:
             raise RuntimeError("Call `.fit()` before `.test_differential_expression()`.")
         res = self._model.test_differential_expression(

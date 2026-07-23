@@ -72,6 +72,38 @@ def test_poisson_intercept_pvalues_separate_null_from_effect(synthetic_poisson_d
     assert res["pval"].iloc[largest_effect_gene] < res["pval"].iloc[smallest_effect_gene]
 
 
+def test_poisson_intercept_lbfgs_uses_importance_weights(synthetic_poisson_data):
+    x_gt, y_gt, x_unl, y_unl, true_mu, n_features = synthetic_poisson_data
+
+    model_unweighted = PoissonIntercept(
+        inputs_gt=(x_gt, y_gt),
+        inputs_hat=(x_gt, y_gt),
+        inputs_unl=(x_unl, y_unl),
+        optimizer="lbfgs",
+        importance_weights=None,
+    )
+    model_unweighted.fit(lambd_=1.0)
+    assert np.isfinite(model_unweighted.theta).all()
+
+    # strongly skewed, non-uniform weights so an unweighted vs. weighted fit must differ
+    rng = np.random.default_rng(0)
+    skewed_weights = np.where(y_gt == 0, 10.0, 0.1)
+    skewed_weights = skewed_weights * rng.uniform(0.9, 1.1, size=skewed_weights.shape)
+
+    model_weighted = PoissonIntercept(
+        inputs_gt=(x_gt, y_gt),
+        inputs_hat=(x_gt, y_gt),
+        inputs_unl=(x_unl, y_unl),
+        optimizer="lbfgs",
+        importance_weights=skewed_weights,
+    )
+    model_weighted.fit(lambd_=1.0)
+    assert np.isfinite(model_weighted.theta).all()
+
+    # before the fix, lbfgs silently ignored importance_weights, so these two would be identical
+    assert not np.allclose(model_unweighted.theta, model_weighted.theta)
+
+
 def test_poisson_intercept_bad_importance_weights_shape_raises():
     x_gt = np.random.poisson(2.0, size=(10, 3)).astype(float)
     y_gt = np.zeros(10, dtype=int)

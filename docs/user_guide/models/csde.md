@@ -45,14 +45,14 @@ Upstream CSDE runs as three sequential steps. **Only step 3 is implemented in sc
 2. **Manual validation** (upstream `scripts/annotate.py`, a Streamlit UI, not in scviva-tools) —
    a human annotator marks each exported cell as correctly or incorrectly
    segmented/labeled, producing `annotations.json`.
-3. **Differential expression** ({func}`~scviva.tools.csde.tl.run_csde` /
-   {class}`~scviva.tools.csde.CSDEAnalysis`, **implemented in scviva-tools, ported from JAX to
+3. **Differential expression** (`scviva.tools.csde.tl.run_csde` /
+   {class}`~scviva.tl.CSDEAnalysis`, **implemented in scviva-tools, ported from JAX to
    PyTorch**) — fits a per-class-intercept Poisson or negative-binomial model via
    prediction-powered inference, combining the validated subset with the full automated
    population to produce corrected log-fold-change estimates, p-values, and BH-adjusted
    q-values.
 
-{meth}`~scviva.tools.csde.CSDEAnalysis.from_spatialdata` reads a SpatialData object's `"table"`
+{meth}`~scviva.tl.CSDEAnalysis.from_spatialdata` reads a SpatialData object's `"table"`
 AnnData together with an upstream annotation directory (`config.json`, `metadata.csv`,
 `annotations.json`) to build the two population's inputs directly. `CSDEAnalysis`'s base
 constructor only needs plain `AnnData` objects and column names, so it also composes directly

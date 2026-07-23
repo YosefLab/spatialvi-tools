@@ -74,6 +74,13 @@ class InterceptPPIModel(PPIAbstractClass):
 
     def _finalize_init(self):
         """Call at the end of subclass `__init__`, once `self.model`/`self.param_spec` are set."""
+        assert self.param_spec[0][0] == "mu", (
+            "param_spec[0] must be the 'mu' (per-class contrast) entry"
+        )
+        assert self.param_spec[0][1] == (self.n_classes - 1, self.n_features), (
+            f"'mu' entry must have shape (n_classes-1, n_features) = "
+            f"({self.n_classes - 1}, {self.n_features}), got {self.param_spec[0][1]}"
+        )
         sizes = [int(np.prod(shape)) for _, shape in self.param_spec]
         self.n_params = int(sum(sizes))
         self._param_sizes = dict(zip((name for name, _ in self.param_spec), sizes, strict=True))
@@ -183,6 +190,7 @@ class InterceptPPIModel(PPIAbstractClass):
                 y_hat=y_hat_t,
                 x_unl=x_unl_t,
                 y_unl=y_unl_t,
+                w=w_t,
                 params0=self.model_params,
                 lambd_=lambd_,
                 **self.optimizer_kwargs,
