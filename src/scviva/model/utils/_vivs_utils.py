@@ -6,6 +6,7 @@ import numpy as np
 import scanpy as sc
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
+from sklearn.model_selection import ParameterGrid
 
 if TYPE_CHECKING:
     from anndata import AnnData
@@ -55,3 +56,39 @@ def select_genes(
     )
     union_genes = np.union1d(selected_genes, preselected_genes)
     return adata_[:, adata_.var.index.isin(union_genes)].copy()
+
+
+def select_architecture(
+    adata: AnnData,
+    y_obsm_key: str,
+    xy_model_kwargs_grid: dict,
+    batch_key: str | None = None,
+    max_epochs: int = 1,
+    **vivs_kwargs,
+) -> dict:
+    """Grid search over the importance-score net's architecture, by validation loss.
+
+    Trains only the ``xy`` phase for each candidate (each candidate gets its own fresh
+    generative VAE, since VIVS's constructor always builds one unless an ``x_model`` is
+    passed) and picks the combination with the lowest final training-loss.
+    """
+    from scviva.model._vivs import VIVS
+
+    parameter_grid = list(ParameterGrid(xy_model_kwargs_grid))
+    results = []
+    for grid_params in parameter_grid:
+        VIVS.setup_anndata(adata, y_obsm_key=y_obsm_key, batch_key=batch_key)
+        model = VIVS(adata, **grid_params, **vivs_kwargs)
+        # check_val_every_n_epoch=1 is required: scvi-tools' Trainer does not validate every
+        # epoch by default (confirmed empirically — with max_epochs=1 and no override,
+        # model.history_ contains no "elbo_validation" key at all), so a small max_epochs
+        # grid search would silently have no validation loss to compare without this.
+        model.train(max_epochs=max_epochs, check_val_every_n_epoch=1)
+        # "elbo_validation" is the key TrainingPlan.compute_and_log_metrics always logs
+        # (mode="validation"), regardless of what a module's loss() actually optimizes —
+        # confirmed via scvi.train.TrainingPlan.compute_and_log_metrics source.
+        final_val_loss = model.history_["elbo_validation"].iloc[-1, 0]
+        results.append({**grid_params, "val_loss": final_val_loss})
+
+    best = min(results, key=lambda r: r["val_loss"])
+    return {k: v for k, v in best.items() if k != "val_loss"}

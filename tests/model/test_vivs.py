@@ -227,3 +227,16 @@ def test_select_genes():
     adata = synthetic_iid(n_genes=100)
     adata_sub = select_genes(adata, n_top_genes=20)
     assert adata_sub.shape == (adata.n_obs, 20)
+
+
+def test_select_architecture(vivs_adata):
+    from scviva.model.utils._vivs_utils import select_architecture
+
+    best = select_architecture(
+        vivs_adata,
+        y_obsm_key="protein_expression",
+        batch_key="batch",
+        xy_model_kwargs_grid={"n_hidden": [4, 8]},
+        max_epochs=1,
+    )
+    assert best["n_hidden"] in (4, 8)
