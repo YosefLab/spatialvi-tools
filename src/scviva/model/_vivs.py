@@ -307,7 +307,12 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
                     z, library, batch_index
                 )  # same z/library, fresh px draw
                 if use_vmap:
-                    tilde_t_k = self._get_importance_vmap(x, px_sample_k, batch_index, y)
+                    try:
+                        tilde_t_k = self._get_importance_vmap(x, px_sample_k, batch_index, y)
+                    except RuntimeError as e:
+                        raise RuntimeError(
+                            "Out of memory while vmapping over genes. Try setting use_vmap=False."
+                        ) from e
                 else:
                     tilde_t_k = torch.stack(
                         [
@@ -349,7 +354,7 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             xy_input = self.module.xy_input(x_perturbed, batch_index)
             return self.module.xy_module(xy_input, y)["all_loss"].sum(0)
 
-        gene_ids = torch.arange(n_genes)
+        gene_ids = torch.arange(n_genes, device=x.device)
         return torch.vmap(_statistic_for_gene, in_dims=(0, 1), randomness="different")(
             gene_ids, x_tilde
         )
