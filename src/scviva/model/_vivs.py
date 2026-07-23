@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
+import torch
 from scvi import REGISTRY_KEYS
 from scvi.data import AnnDataManager
 from scvi.data.fields import CategoricalObsField, LayerField, ObsmField
@@ -166,3 +168,23 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             **kwargs,
         )
         self.is_trained_ = True
+
+    @torch.inference_mode()
+    def predict_t(
+        self,
+        adata: AnnData | None = None,
+        indices=None,
+        batch_size: int = 128,
+    ) -> np.ndarray:
+        """Raw per-cell importance-score-net predictions (no CRT knockoff perturbation)."""
+        adata = self._validate_anndata(adata)
+        dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+        results = []
+        for tensors in dataloader:
+            x = tensors[REGISTRY_KEYS.X_KEY]
+            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY]
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            xy_input = self.module.xy_input(x, batch_index)
+            out = self.module.xy_module(xy_input, y)
+            results.append(out["all_loss"].cpu().numpy())
+        return np.concatenate(results, axis=0)

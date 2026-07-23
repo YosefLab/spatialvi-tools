@@ -1,5 +1,6 @@
 """Tests for VIVS model."""
 
+import numpy as np
 import pytest
 import torch
 from scvi.data import synthetic_iid
@@ -146,3 +147,14 @@ def test_vivs_untrained_x_model_raises(vivs_adata):
     VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
     with pytest.raises(ValueError, match="must already be trained"):
         VIVS(vivs_adata, x_model=scvi_model)
+
+
+def test_vivs_predict_t(vivs_adata):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+    t = model.predict_t()
+    assert t.shape == (vivs_adata.n_obs, vivs_adata.obsm["protein_expression"].shape[1])
+    assert np.isfinite(t).all()
