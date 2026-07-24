@@ -292,3 +292,11 @@ def test_plot_hier_importance_runs(vivs_adata):
     plot_df, labels, breaks = plot_hier_importance(res, plot_fig=False)
     assert isinstance(labels, list)
     assert isinstance(breaks, list)
+
+
+def test_vivs_import_surface():
+    from scviva.model import VIVS
+    from scviva.module import VIVSModule
+
+    assert VIVS.__name__ == "VIVS"
+    assert VIVSModule.__name__ == "VIVSModule"
