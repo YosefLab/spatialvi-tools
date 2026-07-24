@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 def plot_hier_importance(
     gene_results: xr.Dataset,
+    feature: int | str = 0,
     base_resolution: int | None = None,
     significance_threshold: float = 0.1,
     color_by: str | None = None,
@@ -24,6 +25,10 @@ def plot_hier_importance(
     ----------
     gene_results
         Output of :meth:`~scviva.model.VIVS.get_hier_importance`.
+    feature
+        Which response/feature to plot (index into ``gene_results.feature``, or one of
+        its values). Required because significance is inherently per-response; call this
+        once per feature of interest rather than aggregating across responses.
     base_resolution
         Resolution used to pick which genes to plot (defaults to the coarsest resolution).
     significance_threshold
@@ -36,12 +41,14 @@ def plot_hier_importance(
     theme_kwargs
         Extra kwargs forwarded to ``plotnine.theme()``.
     """
+    if isinstance(feature, int):
+        gene_results = gene_results.isel(feature=feature)
+    else:
+        gene_results = gene_results.sel(feature=feature)
+
     if base_resolution is None:
         base_resolution = gene_results.resolution.values.min()
     padjs = gene_results.loc[{"resolution": base_resolution}]["padj"].to_pandas()
-    # If padj has multiple columns (features), take the minimum across them
-    if isinstance(padjs, pd.DataFrame):
-        padjs = padjs.min(axis=1)
     genes_to_plot = padjs.loc[lambda x: x < significance_threshold].index.tolist()
     res_subset = gene_results.loc[{"gene_name": genes_to_plot}].assign(
         gene_index=("gene_name", np.arange(len(genes_to_plot)))
