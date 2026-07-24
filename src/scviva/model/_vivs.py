@@ -360,7 +360,7 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             obs_all_loss = self.module.xy_module(self.module.xy_input(x, batch_index), y)[
                 "all_loss"
             ][:, response_ids]
-            obs_t = obs_all_loss.mean(-1, keepdim=True)  # (batch_n, 1)
+            obs_t = obs_all_loss  # (batch_n, n_responses_selected)
 
             z, library = self._encode_for_knockoffs(x, batch_index)  # once per batch
             tilde_t_sum = torch.zeros(x.shape[0], len(response_ids))

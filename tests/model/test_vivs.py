@@ -217,8 +217,26 @@ def test_vivs_get_cell_scores(vivs_adata):
     model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
     model.train(max_epochs=1)
     res = model.get_cell_scores(gene_ids=[0, 1, 2], n_mc_samples=3)
+    n_responses = vivs_adata.obsm["protein_expression"].shape[1]
     assert res["tilde_t_mean"].shape[0] == vivs_adata.n_obs
-    assert res["obs_t"].shape == (vivs_adata.n_obs, 1)
+    assert res["obs_t"].shape == (vivs_adata.n_obs, n_responses)
+    assert res["obs_t"].shape == res["tilde_t_mean"].shape
+
+
+def test_vivs_save_load_round_trip(vivs_adata, tmp_path):
+    from scviva.model._vivs import VIVS
+
+    VIVS.setup_anndata(vivs_adata, y_obsm_key="protein_expression", batch_key="batch")
+    model = VIVS(vivs_adata, n_hidden=8, n_latent=4)
+    model.train(max_epochs=1)
+    preds_before = model.predict_t()
+
+    save_path = str(tmp_path / "vivs_model")
+    model.save(save_path, save_anndata=True, overwrite=True)
+    loaded_model = VIVS.load(save_path)
+
+    preds_after = loaded_model.predict_t()
+    np.testing.assert_allclose(preds_before, preds_after, rtol=1e-4)
 
 
 def test_select_genes():
