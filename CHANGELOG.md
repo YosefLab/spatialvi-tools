@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ships with two new tutorials (`DiagVI_spatial_transcriptomics`,
   `DiagVI_spatial_proteomics`). Its optional `geomloss`/`torch-geometric` dependencies
   are covered by the existing `scviva-tools[spatial]` extra.
+- **VIVS** model (`scviva.model.VIVS`), ported from its original JAX/Flax implementation
+  (Boyeau et al. 2024, *Genome Biology*) to a native torch scvi-tools-style model: a
+  conditional randomization test for gene/response dependence, reusing scvi-tools' `VAE`
+  module (or an already-trained scviva-tools spatial model) as the knockoff sampler.
+  Ships with `select_genes`/`select_architecture` utilities, `plot_hier_importance`
+  plotting, and a new tutorial (`VIVS_niche_gene_selection`).
 - Shared `CyclicMultiDataLoader` (`scviva.model.utils._dataloaders`), consolidating
   the near-identical cyclic-batch dataloader previously duplicated between GIMVI and
   DiagVI.

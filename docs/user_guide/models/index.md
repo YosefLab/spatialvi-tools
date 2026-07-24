@@ -6,6 +6,7 @@
 resolvi
 destvi
 scviva
+vivs
 gimvi
 stereoscope
 tangram

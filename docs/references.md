@@ -48,6 +48,17 @@ Pyro-based probabilistic model with neighbor-aware decoders.
 Harreman infers spatially-resolved metabolic gene programs and cell-cell metabolic/ligand-receptor
 communication from spatial transcriptomics data using local autocorrelation and spatial proximity graphs.
 
+### VIVS
+
+> **Boyeau et al. (2024)**
+> *VI-VS: calibrated identification of feature dependencies in single-cell multiomics*
+> *Genome Biology*. doi: [10.1186/s13059-024-03419-z](https://doi.org/10.1186/s13059-024-03419-z)
+> {cite:p}`Boyeau24`
+
+VIVS identifies genes conditionally dependent on an external response using a
+conditional randomization test, with a deep generative model of gene expression as the
+knockoff sampler.
+
 ---
 
 ## Foundation: scvi-tools
@@ -104,7 +115,7 @@ communication from spatial transcriptomics data using local autocorrelation and 
 | Tangram | Biancalani et al. (2021), *Nature Methods* | {cite:p}`Biancalani21` |
 | Cell2location | Kleshchevnikov et al. (2022), *Nature Biotechnology* | {cite:p}`Kleshchevnikov22` |
 | starfysh | Chang et al. (2023) — BibTeX entry TBD | — |
-| VIVS / SPARL / others | References TBD | — |
+| SPARL | References TBD | — |
 
 ---
 
