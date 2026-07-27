@@ -25,6 +25,7 @@ class SpatialPredictiveMixin:
     Applied to: SCVIVA, ResolVI.
 
     Provides:
+
     - ``get_neighbor_abundance``: cell-type composition of spatial neighborhoods.
       Two intentionally different contracts depending on the model:
 

@@ -49,7 +49,7 @@ and $p_g$ is the latent variable representing the success probability for gene $
 
 :::{note}
 We are using the standard rate-shape parametrization of the negative binomial here, rather than the mean-dispersion
-parametrization used in {doc}`/user_guide/models/scvi`. This is to take advantage of the additive property of
+parametrization used in [scvi-tools: scVI](https://docs.scvi-tools.org/en/stable/user_guide/models/scvi.html). This is to take advantage of the additive property of
 negative binomial distributions sharing the same shape parameter. In this case, the rate parameter for the
 negative binomial modeling the expression counts for a given gene and spot is equivalent to the sum of the rate
 parameters for each contributing cell.
