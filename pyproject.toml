@@ -40,22 +40,8 @@ dependencies = [
   "torch>=2",
   "tqdm>=4.60",
 ]
-optional-dependencies.all = [ "scviva-tools[dev,doc,rapids,spatial,test,tutorials]" ]
+optional-dependencies.all = [ "scviva-tools[rapids,spatial,tutorials]" ]
 optional-dependencies.cuda = [ "mlx[cuda]", "torchaudio", "torchvision" ]
-optional-dependencies.dev = [ "pre-commit", "twine>=4.0.2" ]
-optional-dependencies.doc = [
-  "ipykernel",
-  "ipython",
-  "myst-nb",
-  "myst-parser",
-  "pooch",
-  "sphinx<9",
-  "sphinx-autodoc-typehints",
-  "sphinx-book-theme>=1.0.1",
-  "sphinx-copybutton",
-  "sphinx-design",
-  "sphinxcontrib-bibtex",
-]
 optional-dependencies.file-sharing = [ "fcswrite", "gdown", "pooch", "readfcs" ]
 optional-dependencies.hub = [ "boto3", "dvc[s3]", "huggingface-hub" ]
 optional-dependencies.metal = [ "mlx-metal", "torchaudio", "torchvision" ]
@@ -83,12 +69,6 @@ optional-dependencies.spatial = [
   "statsmodels",
   "torch-geometric",
 ]
-optional-dependencies.test = [
-  "coverage",
-  "pytest>=7",
-  "pytest-cov",
-  "pytest-pretty",
-]
 optional-dependencies.tpu = [ "torch-xla[tpu]" ]
 optional-dependencies.tutorials = [
   "cell2location",
@@ -106,8 +86,37 @@ urls."Bug Tracker" = "https://github.com/YosefLab/scviva-tools/issues"
 urls.Documentation = "https://github.com/YosefLab/scviva-tools"
 urls.Source = "https://github.com/YosefLab/scviva-tools"
 
+[dependency-groups]
+dev = [ "pre-commit", "twine>=4.0.2" ]
+test = [ "coverage", "pytest>=7", "pytest-cov", "pytest-pretty" ]
+doc = [
+  "ipykernel",
+  "ipython",
+  "myst-nb",
+  "myst-parser",
+  "pooch",
+  "sphinx<9",
+  "sphinx-autodoc-typehints",
+  "sphinx-book-theme>=1.0.1",
+  "sphinx-copybutton",
+  "sphinx-design",
+  "sphinxcontrib-bibtex",
+]
+
 [tool.hatch]
 build.targets.wheel.packages = [ "src/scviva" ]
+envs.default.installer = "uv"
+envs.default.dependency-groups = [ "dev" ]
+envs.docs.scripts.build = "sphinx-build -M html docs docs/_build -W --keep-going {args}"
+envs.docs.scripts.clean = "git clean -fdX -- {args:docs}"
+envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
+envs.docs.dependency-groups = [ "doc" ]
+envs.hatch-test.installer = "uv"
+envs.hatch-test.features = [ "spatial" ]
+envs.hatch-test.matrix = [ { python = [ "3.12", "3.13", "3.14" ] } ]
+envs.hatch-test.dependency-groups = [ "dev", "test" ]
+envs.test-cuda.template = "hatch-test"
+envs.test-cuda.features = [ "cuda", "rapids-cuda13", "spatial" ]
 
 [tool.ruff]
 target-version = "py313"

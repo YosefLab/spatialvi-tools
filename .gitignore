@@ -19,14 +19,13 @@ env/
 ENV/
 
 # Testing
-.pytest_cache/
-.coverage
+.*cache/
+.coverage*
 coverage.xml
 htmlcov/
 
 # IDE
 .idea/
-.vscode/
 *.swp
 *.swo
 
@@ -38,11 +37,9 @@ htmlcov/
 *.whl
 MANIFEST
 
-# Ruff cache
-.ruff_cache/
-
 # ReadTheDocs
 /docs/_build/
+/docs/jupyter_execute/
 /docs/api/reference/
 
 # OS
