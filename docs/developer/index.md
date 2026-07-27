@@ -12,5 +12,4 @@ Contributions are welcome and greatly appreciated. You can contribute by:
 
 code
 maintenance
-../architecture/index
 ```

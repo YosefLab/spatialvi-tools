@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import sys
 import warnings
 from datetime import datetime
@@ -56,6 +57,27 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "superpowers"]
 warnings.filterwarnings(
     "ignore", category=FutureWarning, message="`torch.distributed.reduce_op` is deprecated"
 )
+
+# scvi-tools 1.5.0 has two invalid TYPE_CHECKING imports in PyroSampleMixin:
+# PyroBaseModuleClass is imported from pyro instead of scvi.module.base, and
+# AnnDataLoader is left unresolved as a result. These warnings are emitted while
+# autodoc documents ResolVI's inherited sample_posterior method.
+
+
+class _ScviPyroTypeHintFilter(logging.Filter):
+    _messages = (
+        "Failed guarded type import with ImportError("
+        "\"cannot import name 'PyroBaseModuleClass' from 'pyro'",
+        "Cannot resolve forward reference in type annotations of "
+        "\"scviva.model.ResolVI.sample_posterior\": name 'AnnDataLoader' is not defined",
+    )
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not record.getMessage().startswith(self._messages)
+
+
+_scvi_pyro_type_hint_filter = _ScviPyroTypeHintFilter()
+logging.getLogger("sphinx.sphinx_autodoc_typehints").addFilter(_scvi_pyro_type_hint_filter)
 
 # -- HTML output -------------------------------------------------------------
 
