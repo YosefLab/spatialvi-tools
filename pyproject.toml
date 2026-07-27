@@ -189,7 +189,7 @@ lint.pydocstyle.convention = "numpy"
 
 [tool.pytest]
 ini_options.testpaths = [ "tests" ]
-ini_options.addopts = "-v --tb=short"
+ini_options.addopts = "-v --tb=short -p no:randomly"
 ini_options.markers = [
   "cuda: mark tests that require CUDA GPU",
   "optional: mark optional tests (usually slower or requiring external resources)",
