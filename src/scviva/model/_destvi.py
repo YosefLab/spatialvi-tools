@@ -77,8 +77,7 @@ class DestVI(
     -----
     See further usage examples in the following tutorials:
 
-    1. :doc:`/tutorials/notebooks/spatial/DestVI_tutorial`
-    2. :doc:`/tutorials/notebooks/r/DestVI_in_R`
+    1. :doc:`/tutorials/DestVI_tutorial`
     """
 
     _module_cls = MRDeconv
