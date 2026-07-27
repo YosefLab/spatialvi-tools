@@ -67,7 +67,7 @@ class Tangram(SpatialBaseModel):
     Notes
     -----
     See further usage examples in the following tutorials:
-    1. :doc:`/tutorials/notebooks/spatial/tangram_scvi_tools`
+    1. :doc:`/tutorials/tangram_scvi_tools`
     """
 
     def __init__(
