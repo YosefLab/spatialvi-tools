@@ -19,6 +19,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the near-identical cyclic-batch dataloader previously duplicated between GIMVI and
   DiagVI.
 
+### Changed
+
+- **Docs builds now treat warnings as errors** (`sphinx-build -W`), enforced both on
+  Read the Docs (`sphinx.fail_on_warning`) and in a new CI `docs` job, mirroring
+  scvi-tools' own doc-build hardening. `myst_heading_anchors` enabled so in-page
+  `[text](#anchor)` links resolve; deprecated `logo_only` theme option removed;
+  PyTorch's intersphinx inventory URL updated to `docs.pytorch.org`.
+
+### Fixed
+
+- 31 pre-existing Sphinx warnings uncovered by the new `-W` build, all docs/type-hint
+  only with no runtime behavior change:
+  - Stale `:doc:` tutorial cross-refs in `DestVI`/`GIMVI`/`SCVIVA`/`RNAStereoscope`/
+    `SpatialStereoscope`/`Tangram` docstrings pointed at a scvi-tools-style
+    `tutorials/notebooks/...` path that doesn't match this repo's flat
+    `docs/tutorials/` layout; also dropped a reference to an R tutorial that was
+    never ported here
+  - Malformed numpydoc bullet lists (missing blank line before/after) in
+    `nicheVAE`'s and `SpatialPredictiveMixin`'s docstrings
+  - `np.array`/`Union[np.array, None]` type annotations corrected to `np.ndarray`/
+    `np.ndarray | None` in `_de_utils.py`/`_results_dataclass.py`; stray quote
+    removed from a docstring summary line
+  - Missing `Ingelfinger25` (CytoVI) BibTeX entry, copied from upstream scvi-tools'
+    `references.bib`
+  - `RESOLVAE`/`MRDeconv` removed from the `docs/api/developer.md` autosummary
+    listing — these classes don't exist yet (tracked as future work), so
+    autosummary failed to import them
+  - `docs/architecture/index.md` added to the developer-docs toctree (was orphaned)
+  - Cross-project refs to scvi-tools' own MrVI/CytoVI/scVI docs converted from
+    broken local `{doc}` roles to plain external links
+  - Three graphical-model SVGs referenced by `diagvi.md`/`stereoscope.md` were
+    missing from this repo; imported from upstream scvi-tools'
+    `docs/user_guide/models/figures/` into the same path here. One broken ref to a
+    never-written `counterfactual_prediction` background page dropped
+
 ## [0.1.6] - 2026-07-08
 
 ### Fixed

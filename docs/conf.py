@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import warnings
 from datetime import datetime
 from importlib.metadata import metadata
 from pathlib import Path
@@ -44,10 +45,17 @@ napoleon_use_param = True
 napoleon_custom_sections = [("Params", "Parameters")]
 todo_include_todos = False
 myst_enable_extensions = ["colon_fence", "dollarmath", "html_image"]
+myst_heading_anchors = 3
 nb_execution_mode = "off"
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "superpowers"]
+
+# sphinx-autodoc-typehints inspects torch.distributed.reduce_op, which torch itself
+# deprecated in favor of ReduceOp; this is upstream noise, not actionable here.
+warnings.filterwarnings(
+    "ignore", category=FutureWarning, message="`torch.distributed.reduce_op` is deprecated"
+)
 
 # -- HTML output -------------------------------------------------------------
 
@@ -67,7 +75,6 @@ html_theme_options = {
     "use_repository_button": True,
     "use_issues_button": True,
     "use_edit_page_button": True,
-    "logo_only": True,
     "navbar_persistent": [],
     "repository_branch": "main",
     "path_to_docs": "docs",
@@ -84,7 +91,7 @@ intersphinx_mapping = {
     "anndata": ("https://anndata.readthedocs.io/en/stable/", None),
     "scanpy": ("https://scanpy.readthedocs.io/en/stable/", None),
     "scvi": ("https://docs.scvi-tools.org/en/stable/", None),
-    "torch": ("https://pytorch.org/docs/stable/", None),
+    "torch": ("https://docs.pytorch.org/docs/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
 }

@@ -19,8 +19,8 @@ class DifferentialExpressionResults:
     g1_n1: pd.DataFrame
     n1_g2: pd.DataFrame
     n1_n2: Union[pd.DataFrame, None] = field(default=None)  # noqa: UP007
-    n1_index: Union[np.array, None] = field(default=None)  # noqa: UP007
-    n2_index: Union[np.array, None] = field(default=None)  # noqa: UP007
+    n1_index: np.ndarray | None = field(default=None)
+    n2_index: np.ndarray | None = field(default=None)
 
     def gpc_info(self):
         """Print the log marginal likelihood value and the kernel

@@ -54,7 +54,7 @@ class RNAStereoscope(UnsupervisedTrainingMixin, SpatialBaseModel):
     -----
     See further usage examples in the following tutorial:
 
-    1. :doc:`/tutorials/notebooks/spatial/stereoscope_heart_LV_tutorial`
+    1. :doc:`/tutorials/stereoscope_heart_LV_tutorial`
     """
 
     def __init__(self, sc_adata: AnnData, **model_kwargs):
@@ -193,7 +193,7 @@ class SpatialStereoscope(SpatialDeconvolutionMixin, UnsupervisedTrainingMixin, S
     -----
     See further usage examples in the following tutorial:
 
-    1. :doc:`/tutorials/notebooks/spatial/stereoscope_heart_LV_tutorial`
+    1. :doc:`/tutorials/stereoscope_heart_LV_tutorial`
     """
 
     def __init__(

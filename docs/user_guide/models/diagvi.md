@@ -412,7 +412,7 @@ For example, to impute protein expression for RNA cells:
 >>> adata_rna.obsm["imputed_protein"] = imputed_protein
 ```
 
-It is also possible to perform counterfactual predictions by specifying a reference batch or reference library size (see also {doc}`/user_guide/background/counterfactual_prediction`):
+It is also possible to perform counterfactual predictions by specifying a reference batch or reference library size:
 
 ```
 >>> imputed_rna = model.get_imputed_values(
