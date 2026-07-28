@@ -1,0 +1,52 @@
+name: Bug report
+description: Create a report to help us improve scviva-tools
+labels: bug
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior, ideally a minimal reproducible example.
+      render: python
+      placeholder: |
+        import scviva
+        # minimal reproducible example
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Please share the relevant package versions.
+      placeholder: |
+        - scviva-tools version:
+        - Python version:
+        - scvi-tools version:
+        - OS:
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here.
+    validations:
+      required: false

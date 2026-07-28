@@ -12,6 +12,10 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   notebook:
     runs-on: [self-hosted, Linux, X64, CUDA]
@@ -19,9 +23,11 @@ jobs:
     timeout-minutes: 600 # lenient timeout for slow tutorials
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
         with:
           python-version: "3.13"
           cache: "pip"
@@ -37,10 +43,12 @@ jobs:
 
       - name: Run notebook
         working-directory: docs/tutorials
+        env:
+          NOTEBOOK: ${{ inputs.notebook }}
         run: |
-          python -m jupyter nbconvert --execute --inplace ${{ inputs.notebook }}
+          python -m jupyter nbconvert --execute --inplace "$NOTEBOOK"
 
-      - uses: peter-evans/create-pull-request@v5
+      - uses: peter-evans/create-pull-request@4e1beaa7521e8b457b572c090b25bd3db56bf1c5 # v5.0.3
         with:
           commit-message: run ${{ inputs.notebook }}
           title: automated update for ${{ inputs.notebook }}
