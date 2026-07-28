@@ -27,6 +27,9 @@ on:
 
 jobs:
   notebook:
+    permissions:
+      contents: write
+      pull-requests: write
     uses: ./.github/workflows/run_notebook.yaml
     with:
       notebook: ${{ inputs.notebook }}
