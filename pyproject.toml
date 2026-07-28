@@ -43,7 +43,6 @@ dependencies = [
   "torch>=2",
   "tqdm>=4.60",
 ]
-
 optional-dependencies.all = [ "scviva-tools[rapids,spatial,tutorials]" ]
 optional-dependencies.cuda = [ "mlx[cuda]", "torchaudio", "torchvision" ]
 optional-dependencies.file-sharing = [ "fcswrite", "gdown", "pooch", "readfcs" ]
