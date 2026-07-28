@@ -40,7 +40,5 @@ Internal base classes and mixins used to build new scviva models.
    :nosignatures:
 
    nicheVAE
-   RESOLVAE
-   MRDeconv
    JVAE
 ```
