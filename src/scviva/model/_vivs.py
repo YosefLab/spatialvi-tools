@@ -13,6 +13,7 @@ from scvi import REGISTRY_KEYS
 from scvi.data import AnnDataManager
 from scvi.data.fields import CategoricalObsField, LayerField, ObsmField
 from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, VAEMixin
+from scvi.module import VAE
 from scvi.utils import setup_anndata_dsp
 from statsmodels.stats.multitest import multipletests
 
@@ -49,11 +50,13 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
     xy_include_batch_in_input
         Whether to concatenate one-hot batch to the importance-score net's input.
     x_model
-        An already-trained scviva-tools spatial model (e.g. :class:`~scviva.model.SCVIVA`,
-        :class:`~scviva.model.DestVI`, :class:`~scviva.model.ResolVI`,
-        :class:`~scviva.model.GIMVI`) or :class:`~scvi.model.SCVI`, registered on data
-        compatible with ``adata``. When given, its trained module is reused (frozen) as
-        the knockoff sampler, and VIVS's own generative training phase is skipped entirely.
+        An already-trained :class:`~scvi.model.SCVI` or :class:`~scviva.model.SCVIVA`
+        instance (or any model whose ``.module`` is a :class:`~scvi.module.VAE` or
+        subclass), registered on data compatible with ``adata``. When given, its trained
+        module is reused (frozen) as the knockoff sampler, and VIVS's own generative
+        training phase is skipped entirely. Models with a fundamentally different module
+        API (e.g. :class:`~scviva.model.DestVI`, :class:`~scviva.model.ResolVI`,
+        :class:`~scviva.model.GIMVI`) are not supported here.
     **module_kwargs
         Additional keyword arguments passed to :class:`~scviva.module.VIVSModule`.
     """
@@ -80,6 +83,13 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
                 raise ValueError(
                     "`x_model` must already be trained (call `.train()` on it) before "
                     "being passed to VIVS."
+                )
+            if not isinstance(x_model.module, VAE):
+                raise ValueError(
+                    "`x_model.module` must be a `scvi.module.VAE` (or subclass, e.g. "
+                    "SCVIVA's `nicheVAE`) so it can be reused as VIVS's knockoff sampler. "
+                    f"Got `{type(x_model.module).__name__}` (from `{type(x_model).__name__}`), "
+                    "whose inference()/generative() API is not compatible."
                 )
             x_module = x_model.module
 
@@ -184,11 +194,12 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         """Raw per-cell importance-score-net predictions (no CRT knockoff perturbation)."""
         adata = self._validate_anndata(adata)
         dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+        device = self.module.device
         results = []
         for tensors in dataloader:
-            x = tensors[REGISTRY_KEYS.X_KEY]
-            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY]
-            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            x = tensors[REGISTRY_KEYS.X_KEY].to(device)
+            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY].to(device)
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY].to(device)
             xy_input = self.module.xy_input(x, batch_index)
             out = self.module.xy_module(xy_input, y)
             results.append(out["all_loss"].cpu().numpy())
@@ -268,15 +279,16 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         n_genes = self.summary_stats.n_vars
         n_responses = self.summary_stats.n_Y
         use_vmap = use_vmap if use_vmap != "auto" else n_genes < 2000
+        device = self.module.device
 
-        obs_t_total = torch.zeros(n_responses)
-        tilde_t_total = torch.zeros(n_mc_samples, n_genes, n_responses)
+        obs_t_total = torch.zeros(n_responses, device=device)
+        tilde_t_total = torch.zeros(n_mc_samples, n_genes, n_responses, device=device)
         n_obs = 0
 
         for tensors in dataloader:
-            x = tensors[REGISTRY_KEYS.X_KEY]
-            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY]
-            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            x = tensors[REGISTRY_KEYS.X_KEY].to(device)
+            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY].to(device)
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY].to(device)
             batch_n = x.shape[0]
             n_obs += batch_n
 
@@ -327,8 +339,8 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
                     )
                 tilde_t_total[k] += tilde_t_k
 
-        obs_t = (obs_t_total / n_obs).numpy()
-        null_t = (tilde_t_total / n_obs).numpy()
+        obs_t = (obs_t_total / n_obs).cpu().numpy()
+        null_t = (tilde_t_total / n_obs).cpu().numpy()
         pval, padj = self._crt_pvalue(obs_t, null_t, n_mc_samples)
         return {"obs_ts": obs_t, "null_ts": null_t, "pvalues": pval, "padj": padj}
 
@@ -350,12 +362,13 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             response_ids if response_ids is not None else list(range(self.summary_stats.n_Y))
         )
         dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
+        device = self.module.device
 
         tilde_t_mean_chunks, obs_t_chunks = [], []
         for tensors in dataloader:
-            x = tensors[REGISTRY_KEYS.X_KEY]
-            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY]
-            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            x = tensors[REGISTRY_KEYS.X_KEY].to(device)
+            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY].to(device)
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY].to(device)
 
             obs_all_loss = self.module.xy_module(self.module.xy_input(x, batch_index), y)[
                 "all_loss"
@@ -363,7 +376,7 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             obs_t = obs_all_loss  # (batch_n, n_responses_selected)
 
             z, library = self._encode_for_knockoffs(x, batch_index)  # once per batch
-            tilde_t_sum = torch.zeros(x.shape[0], len(response_ids))
+            tilde_t_sum = torch.zeros(x.shape[0], len(response_ids), device=device)
             for _ in range(n_mc_samples):
                 px_sample = self._sample_knockoffs(
                     z, library, batch_index
@@ -373,8 +386,8 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
                 xy_input = self.module.xy_input(x_perturbed, batch_index)
                 all_loss = self.module.xy_module(xy_input, y)["all_loss"][:, response_ids]
                 tilde_t_sum += all_loss
-            tilde_t_mean_chunks.append((tilde_t_sum / n_mc_samples).numpy())
-            obs_t_chunks.append(obs_t.numpy())
+            tilde_t_mean_chunks.append((tilde_t_sum / n_mc_samples).cpu().numpy())
+            obs_t_chunks.append(obs_t.cpu().numpy())
 
         return {
             "tilde_t_mean": np.concatenate(tilde_t_mean_chunks, axis=0),
@@ -437,22 +450,19 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         adata = self._validate_anndata(adata)
         dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
         n_genes = self.summary_stats.n_vars
+        device = self.module.device
 
-        x_sum = torch.zeros(n_genes)
-        xx_sum = torch.zeros(n_genes, n_genes)
+        x_sum = torch.zeros(n_genes, device=device)
+        xx_sum = torch.zeros(n_genes, n_genes, device=device)
         n_obs = 0
         for tensors in dataloader:
-            x = tensors[REGISTRY_KEYS.X_KEY]
-            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            x = tensors[REGISTRY_KEYS.X_KEY].to(device)
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY].to(device)
             inference_out = self.module.inference(x=x, batch_index=batch_index)
             generative_out = self.module.generative(
                 z=inference_out["z"], library=inference_out["library"], batch_index=batch_index
             )
-            scale = (
-                generative_out["px"].mu
-                if hasattr(generative_out["px"], "mu")
-                else generative_out["px"].rate
-            )
+            scale = generative_out["px"].scale
             x_sum += scale.sum(0)
             xx_sum += torch.bmm(scale.unsqueeze(-1), scale.unsqueeze(1)).sum(0)
             n_obs += x.shape[0]
@@ -462,7 +472,7 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         inv_std = 1.0 / torch.sqrt(torch.diag(cov))
         d = torch.diag(inv_std)
         corr = d @ cov @ d
-        return corr.numpy()
+        return corr.cpu().numpy()
 
     def get_gene_groupings(
         self,
@@ -534,6 +544,7 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         n_genes = self.summary_stats.n_vars
         n_responses = self.summary_stats.n_Y
         use_vmap = use_vmap if use_vmap != "auto" else n_genes < 2000
+        device = self.module.device
 
         if gene_groupings is None:
             gene_groupings, _, gene_order = self.get_gene_groupings(
@@ -546,19 +557,22 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
             gene_order = adata.var_names.values
         gene_groupings = [*gene_groupings, np.arange(n_genes).astype(np.int32)]
         gene_groups_oh = [
-            torch.nn.functional.one_hot(torch.as_tensor(g).long()).float() for g in gene_groupings
+            torch.nn.functional.one_hot(torch.as_tensor(g).long()).float().to(device)
+            for g in gene_groupings
         ]
         group_sizes = [oh.shape[1] for oh in gene_groups_oh]
 
         dataloader = self._make_data_loader(adata=adata, indices=indices, batch_size=batch_size)
-        obs_t_total = torch.zeros(n_responses)
-        tilde_t_totals = [torch.zeros(n_mc_samples, sz, n_responses) for sz in group_sizes]
+        obs_t_total = torch.zeros(n_responses, device=device)
+        tilde_t_totals = [
+            torch.zeros(n_mc_samples, sz, n_responses, device=device) for sz in group_sizes
+        ]
         n_obs = 0
 
         for tensors in dataloader:
-            x = tensors[REGISTRY_KEYS.X_KEY]
-            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY]
-            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY]
+            x = tensors[REGISTRY_KEYS.X_KEY].to(device)
+            y = tensors[VIVS_REGISTRY_KEYS.Y_KEY].to(device)
+            batch_index = tensors[REGISTRY_KEYS.BATCH_KEY].to(device)
             n_obs += x.shape[0]
 
             obs_t_total += self.module.xy_module(self.module.xy_input(x, batch_index), y)[
@@ -574,8 +588,8 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
                     )
                     tilde_t_totals[res_idx][k] += stat
 
-        obs_t = (obs_t_total / n_obs).numpy()
-        tilde_t = [(t / n_obs).numpy() for t in tilde_t_totals]
+        obs_t = (obs_t_total / n_obs).cpu().numpy()
+        tilde_t = [(t / n_obs).cpu().numpy() for t in tilde_t_totals]
         return self._construct_hier_results(
             obs_t, tilde_t, gene_groupings, group_sizes, gene_order, adata
         )

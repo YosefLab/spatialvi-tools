@@ -78,7 +78,7 @@ def select_architecture(
     results = []
     for grid_params in parameter_grid:
         VIVS.setup_anndata(adata, y_obsm_key=y_obsm_key, batch_key=batch_key)
-        model = VIVS(adata, **grid_params, **vivs_kwargs)
+        model = VIVS(adata, xy_model_kwargs=grid_params, **vivs_kwargs)
         # check_val_every_n_epoch=1 is required: scvi-tools' Trainer does not validate every
         # epoch by default (confirmed empirically — with max_epochs=1 and no override,
         # model.history_ contains no "elbo_validation" key at all), so a small max_epochs

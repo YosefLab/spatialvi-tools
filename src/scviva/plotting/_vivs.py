@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-import plotnine as p9
 
 if TYPE_CHECKING:
     import xarray as xr
@@ -77,7 +76,9 @@ def plot_hier_importance(
                         "ymax": resolution_idx + 1,
                     }
                 )
-    plot_df = pd.DataFrame(plot_df)
+    plot_df = pd.DataFrame(
+        plot_df, columns=["resolution_idx", "resolution", "xmin", "xmax", "ymin", "ymax"]
+    )
 
     plot_df_color = None
     if color_by is not None:
@@ -101,6 +102,8 @@ def plot_hier_importance(
     breaks = list(res_subset.gene_index.values)
     if not plot_fig:
         return plot_df, labels, breaks
+
+    import plotnine as p9
 
     theme_kwargs = theme_kwargs if theme_kwargs is not None else {"figure_size": (15, 2)}
     fig = (
