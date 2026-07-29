@@ -136,3 +136,40 @@ def test_run_csde_unknown_cell_pop_b_raises(csde_synthetic_adata):
             cell_pop_b="NonexistentType",
             gt_key="is_correct",
         )
+
+
+def test_run_csde_reorders_mismatched_gene_order(csde_synthetic_adata):
+    """A shuffled but identical gene set in adata_pred must not change results."""
+    adata_pred, adata_gt = csde_synthetic_adata
+    shuffled_genes = list(adata_pred.var_names[::-1])
+    adata_pred_shuffled = adata_pred[:, shuffled_genes].copy()
+
+    kwargs = {
+        "pred_cell_pop_key": "cell_type",
+        "cell_pop_a": "TypeA",
+        "cell_pop_b": "TypeB",
+        "gt_key": "is_correct",
+        "optimizer": "gd",
+        "optimizer_kwargs": {"n_iter": 10},
+    }
+    res_aligned = run_csde(adata_pred=adata_pred, adata_gt=adata_gt, **kwargs)
+    res_shuffled = run_csde(adata_pred=adata_pred_shuffled, adata_gt=adata_gt, **kwargs)
+
+    pd.testing.assert_frame_equal(res_aligned, res_shuffled.reindex(res_aligned.index))
+
+
+def test_run_csde_mismatched_gene_sets_raises(csde_synthetic_adata):
+    adata_pred, adata_gt = csde_synthetic_adata
+    renamed_genes = list(adata_pred.var_names[:-1]) + ["Extra_gene"]
+    adata_pred_bad = adata_pred.copy()
+    adata_pred_bad.var_names = renamed_genes
+
+    with pytest.raises(ValueError, match="same genes"):
+        run_csde(
+            adata_pred=adata_pred_bad,
+            adata_gt=adata_gt,
+            pred_cell_pop_key="cell_type",
+            cell_pop_a="TypeA",
+            cell_pop_b="TypeB",
+            gt_key="is_correct",
+        )

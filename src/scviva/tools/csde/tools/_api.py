@@ -25,6 +25,27 @@ def _get_X(adata: anndata.AnnData, layer_name: str | None) -> np.ndarray:
     return X.astype(float)
 
 
+def _align_genes(adata_gt: anndata.AnnData, adata_pred: anndata.AnnData) -> anndata.AnnData:
+    """Reorder `adata_pred` to `adata_gt`'s gene order, requiring an identical gene set.
+
+    `adata_gt.var_names` is the gene order used downstream for `feature_names`, so
+    `adata_pred` must be aligned to it before its matrix is combined with `adata_gt`'s.
+    """
+    if set(adata_gt.var_names) != set(adata_pred.var_names):
+        missing_in_pred = sorted(set(adata_gt.var_names) - set(adata_pred.var_names))
+        missing_in_gt = sorted(set(adata_pred.var_names) - set(adata_gt.var_names))
+        raise ValueError(
+            "adata_gt and adata_pred must contain the same genes. "
+            f"In adata_gt but not adata_pred: {missing_in_pred[:5]}"
+            f"{'...' if len(missing_in_pred) > 5 else ''}. "
+            f"In adata_pred but not adata_gt: {missing_in_gt[:5]}"
+            f"{'...' if len(missing_in_gt) > 5 else ''}."
+        )
+    if not adata_gt.var_names.equals(adata_pred.var_names):
+        adata_pred = adata_pred[:, adata_gt.var_names]
+    return adata_pred
+
+
 def _build_and_fit(
     adata_pred: anndata.AnnData,
     adata_gt: anndata.AnnData,
@@ -52,6 +73,7 @@ def _build_and_fit(
     y_gt[is_pred_a & is_correct] = 0
     y_gt[is_pred_b & is_correct] = 1
 
+    adata_pred = _align_genes(adata_gt, adata_pred)
     X_gt = _get_X(adata_gt, layer_name)
     X_unl = _get_X(adata_pred, layer_name)
     inputs_gt = (X_gt, y_gt)
