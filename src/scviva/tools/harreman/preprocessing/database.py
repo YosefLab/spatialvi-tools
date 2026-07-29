@@ -60,14 +60,14 @@ def extract_interaction_db(
     df_list = []
 
     if database in ["LR", "both"]:
-        extract_lr_pairs(adata, species)
+        extract_lr_pairs(adata, species, var_names=index)
         lr_data = build_LR_matrix(
             index, adata.uns["LR_database"], adata.uns["ligand"], adata.uns["receptor"]
         )
         df_list.append(lr_data)
 
     if database in ["transporter", "both"]:
-        metab_dict = extract_transporter_info(adata, species, extracellular_only)
+        metab_dict = extract_transporter_info(adata, species, extracellular_only, var_names=index)
         metab_data = build_transporter_matrix(index, metab_dict)
         df_list.append(metab_data)
 
@@ -75,7 +75,15 @@ def extract_interaction_db(
 
     adata.uns["database_varm_key"] = "database"
     adata.uns["database"] = database
-    adata.varm["database"] = database_df
+    # `database_df` is aligned to `index` above (`adata.raw.var_names` when
+    # `use_raw=True`), which can differ in length from `adata.var_names` (e.g.
+    # when `adata.raw` retains more genes than an HVG-subset `adata.var`) —
+    # `adata.varm` requires exact alignment to `adata.var_names`, so the
+    # raw-aligned matrix must go in `adata.raw.varm` instead.
+    if use_raw:
+        adata.raw.varm["database"] = database_df
+    else:
+        adata.varm["database"] = database_df
 
     if verbose:
         print("Finished extracting interaction database in %.3f seconds" % (time.time() - start))
@@ -120,8 +128,20 @@ def extract_transporter_info(
     export_suffix: str = "(_exp|_export)",
     import_suffix: str = "(_imp|_import)",
     verbose: bool = False,
+    var_names: pd.Index | None = None,
 ) -> dict[str, dict[str, list[str]]]:
-    """Read csv file to extract the metabolite database."""
+    """Read csv file to extract the metabolite database.
+
+    Parameters
+    ----------
+    var_names
+        Gene names to test membership against. Defaults to
+        ``adata.var_names``; pass ``adata.raw.var_names`` when the caller is
+        operating in ``use_raw`` mode, so genes present only in
+        ``adata.raw`` aren't silently dropped.
+    """
+    if var_names is None:
+        var_names = adata.var_names
     cache = pooch.os_cache("scvi_harreman")
 
     filenames = {
@@ -175,7 +195,7 @@ def extract_transporter_info(
         metab_dict.setdefault(
             name, {IMPORT_METAB_KEY: [], EXPORT_METAB_KEY: [], BOTH_METAB_KEY: []}
         )
-        genes_in_var = pd.Series(genes).isin(adata.var_names)
+        genes_in_var = pd.Series(genes).isin(var_names)
         metab_dict[name][direction] = pd.Series(genes)[genes_in_var].tolist()
 
     adata.uns["metabolite_database"] = df
@@ -195,8 +215,19 @@ def build_metabolite_df(metab_dict, key):
     return df
 
 
-def extract_lr_pairs(adata, species):
-    """Extracting LR pairs from CellChatDB."""
+def extract_lr_pairs(adata, species, var_names=None):
+    """Extracting LR pairs from CellChatDB.
+
+    Parameters
+    ----------
+    var_names
+        Gene names to test membership against. Defaults to
+        ``adata.var_names``; pass ``adata.raw.var_names`` when the caller is
+        operating in ``use_raw`` mode, so genes present only in
+        ``adata.raw`` aren't silently dropped.
+    """
+    if var_names is None:
+        var_names = adata.var_names
     cache = pooch.os_cache("scvi_harreman")
 
     interaction_fname = f"interaction_input_CellChatDB_v2_{species}.csv"
@@ -232,10 +263,10 @@ def extract_lr_pairs(adata, species):
                 n[i] = (
                     complex.loc[l]
                     .dropna()
-                    .values[pd.Series(complex.loc[l].dropna().values).isin(adata.var_names)]
+                    .values[pd.Series(complex.loc[l].dropna().values).isin(var_names)]
                 )
             else:
-                n[i] = pd.Series(l).values[pd.Series(l).isin(adata.var_names)]
+                n[i] = pd.Series(l).values[pd.Series(l).isin(var_names)]
 
     lig_df = pd.DataFrame.from_records(zip_longest(*pd.Series(ligands).values)).transpose()
     rec_df = pd.DataFrame.from_records(zip_longest(*pd.Series(receptors).values)).transpose()

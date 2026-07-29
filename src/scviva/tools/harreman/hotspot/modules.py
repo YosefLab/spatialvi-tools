@@ -11,7 +11,7 @@ from sklearn.decomposition import PCA
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
+from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata_for_genes
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
 from scviva.utils import resolve_device
 
@@ -54,7 +54,6 @@ def calculate_module_scores(
     layer_key = adata.uns["layer_key"]
     model = adata.uns["model"]
 
-    use_raw = layer_key == "use_raw"
     modules = adata.uns["gene_modules_dict"].copy()
 
     umi_counts = adata.uns["umi_counts"]
@@ -74,7 +73,8 @@ def calculate_module_scores(
         module_genes = modules[module]
 
         scores, loadings = compute_scores(
-            adata[:, module_genes],
+            adata,
+            module_genes,
             layer_key,
             model,
             umi_counts,
@@ -88,7 +88,9 @@ def calculate_module_scores(
 
     module_scores = pd.DataFrame(module_scores)
 
-    module_scores.index = adata.obs_names if not use_raw else adata.raw.obs.index
+    # `obs_names` is identical between `adata` and `adata.raw` (only `var` differs);
+    # `Raw` has no `.obs` attribute, so this must not branch on `use_raw`.
+    module_scores.index = adata.obs_names
 
     adata.obsm["module_scores"] = module_scores
     adata.varm["gene_loadings"] = gene_loadings
@@ -100,8 +102,14 @@ def calculate_module_scores(
     return
 
 
-def compute_scores(adata, layer_key, model, num_umi, device, _lambda=0.9):
-    """counts_sub: row-subset of counts matrix with genes in the module"""
+def compute_scores(adata, genes, layer_key, model, num_umi, device, _lambda=0.9):
+    """counts_sub: row-subset of counts matrix with genes in the module.
+
+    ``adata`` must be the *full* (unsliced) object, not a gene-subset view:
+    ``adata[:, genes].raw.X`` silently ignores the gene subset when
+    ``layer_key == "use_raw"`` (an AnnData limitation), so the subset is
+    applied internally via :func:`counts_from_anndata_for_genes` instead.
+    """
     # Get the weights matrix
     weights = make_weights_non_redundant(adata.obsp["weights"]).tocoo()
     weights = torch.sparse_coo_tensor(
@@ -112,7 +120,7 @@ def compute_scores(adata, layer_key, model, num_umi, device, _lambda=0.9):
     )
 
     # Get gene expression counts for the module (dense)
-    counts_sub = counts_from_anndata(adata, layer_key, dense=True)
+    counts_sub = counts_from_anndata_for_genes(adata, genes, layer_key, dense=True)
 
     # Convert to tensors
     num_umi = torch.tensor(num_umi, dtype=torch.float64, device=device)
@@ -143,7 +151,7 @@ def compute_scores(adata, layer_key, model, num_umi, device, _lambda=0.9):
 
     # Perform PCA on cells (transpose to cells x genes)
     pca_data = cc_smooth.T.cpu().numpy()
-    pca = PCA(n_components=1)
+    pca = PCA(n_components=1, random_state=0)
     scores = pca.fit_transform(pca_data)
     loadings = pca.components_.T
 
@@ -610,8 +618,6 @@ def calculate_super_module_scores(
     layer_key = adata.uns["layer_key"]
     model = adata.uns["model"]
 
-    use_raw = layer_key == "use_raw"
-
     umi_counts = adata.uns["umi_counts"]
 
     if verbose:
@@ -635,7 +641,8 @@ def calculate_super_module_scores(
             continue
 
         scores, loadings = compute_scores(
-            adata[:, super_module_genes],
+            adata,
+            super_module_genes,
             layer_key,
             model,
             umi_counts,
@@ -648,7 +655,9 @@ def calculate_super_module_scores(
 
     super_module_scores = pd.DataFrame(super_module_scores)
     if not super_module_scores.empty:
-        super_module_scores.index = adata.obs_names if not use_raw else adata.raw.obs.index
+        # See the analogous fix in calculate_module_scores above: `Raw` has no
+        # `.obs`, and `obs_names` never differs between `adata`/`adata.raw`.
+        super_module_scores.index = adata.obs_names
 
     adata.varm["gene_loadings_sm"] = gene_loadings_sm
     adata.obsm["super_module_scores"] = super_module_scores

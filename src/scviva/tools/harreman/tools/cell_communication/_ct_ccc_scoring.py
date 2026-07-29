@@ -13,7 +13,9 @@ from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
 from scviva.tools.harreman.hotspot import models
-from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
+from scviva.tools.harreman.preprocessing.anndata import (
+    counts_from_anndata_for_genes,
+)
 from scviva.utils import resolve_device
 
 from ._metabolite_scoring import compute_metabolite_cs_ct
@@ -197,11 +199,10 @@ def run_ct_cell_communication_analysis(
     verbose: bool | None,
 ) -> None:
     """Run the cell type-aware CCC score and significance workflow."""
-    use_raw = (layer_key_p_test == "use_raw") & (layer_key_np_test == "use_raw")
-    obs = adata.raw.obs if use_raw else adata.obs
-    cells = (
-        adata.raw.obs.index.values.astype(str) if use_raw else adata.obs_names.values.astype(str)
-    )
+    # Cell metadata/obs_names never differ between `adata` and `adata.raw`,
+    # and `Raw` has no `.obs` attribute to read them from regardless.
+    obs = adata.obs
+    cells = adata.obs_names.values.astype(str)
 
     sample_specific = "sample_key" in adata.uns
 
@@ -336,7 +337,9 @@ def run_ct_cell_communication_analysis(
         Wtot2 = torch.sparse.sum(weights_sq, dim=(1, 2)).to_dense()
 
         # Load counts
-        counts = counts_from_anndata(adata[cells, genes], layer_key_p_test, dense=True)
+        counts = counts_from_anndata_for_genes(
+            adata, genes, layer_key_p_test, dense=True, cells=cells
+        )
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
         num_umi = counts.sum(dim=0)
 
@@ -440,7 +443,9 @@ def run_ct_cell_communication_analysis(
         adata.uns["ct_ccc_results"]["np"] = {"gp": {}, "m": {}}
 
         # Load counts
-        counts = counts_from_anndata(adata[cells, genes], layer_key_np_test, dense=True)
+        counts = counts_from_anndata_for_genes(
+            adata, genes, layer_key_np_test, dense=True, cells=cells
+        )
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
 
         # Prepare counts_1 and counts_2
@@ -755,12 +760,11 @@ def compute_ct_interacting_cell_scores(
 
     layer_key_p_test = adata.uns.get("layer_key_p_test", None)
     layer_key_np_test = adata.uns.get("layer_key_np_test", None)
-    use_raw = (layer_key_p_test == "use_raw") and (layer_key_np_test == "use_raw")
 
-    obs = adata.raw.obs if use_raw else adata.obs
-    cells = (
-        adata.raw.obs.index.values.astype(str) if use_raw else adata.obs_names.values.astype(str)
-    )
+    # Cell metadata/obs_names never differ between `adata` and `adata.raw`,
+    # and `Raw` has no `.obs` attribute to read them from regardless.
+    obs = adata.obs
+    cells = adata.obs_names.values.astype(str)
 
     gene_pairs = adata.uns.get("gene_pairs", None)
     gene_pairs_per_ct_pair = adata.uns.get("gene_pairs_per_ct_pair", None)
@@ -942,7 +946,9 @@ def compute_ct_interacting_cell_scores(
         adata.uns["ct_interacting_cell_results"]["p"] = {"gp": {}, "m": {}}
 
         # Load counts
-        counts = counts_from_anndata(adata[cells, genes], layer_key_p_test, dense=True)
+        counts = counts_from_anndata_for_genes(
+            adata, genes, layer_key_p_test, dense=True, cells=cells
+        )
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
         num_umi = counts.sum(dim=0)
 
@@ -1050,7 +1056,9 @@ def compute_ct_interacting_cell_scores(
         adata.uns["ct_interacting_cell_results"]["np"] = {"gp": {}, "m": {}}
 
         # Load counts
-        counts = counts_from_anndata(adata[cells, genes], layer_key_np_test, dense=True)
+        counts = counts_from_anndata_for_genes(
+            adata, genes, layer_key_np_test, dense=True, cells=cells
+        )
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
 
         # Prepare counts_1 and counts_2
@@ -1266,7 +1274,7 @@ def get_ct_cell_communication_results(
         cell_com_df_gp["Z_pval"] = p_values.flatten()
         cell_com_df_gp["Z_FDR"] = fdr_values.flatten()
 
-        counts = counts_from_anndata(adata[:, genes], layer_key_p_test, dense=True)
+        counts = counts_from_anndata_for_genes(adata, genes, layer_key_p_test, dense=True)
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
         num_umi = counts.sum(dim=0)
         counts_std = standardize_ct_counts(
@@ -1299,7 +1307,7 @@ def get_ct_cell_communication_results(
         cell_com_df_gp[f"pval_{suffix}"] = p_values.flatten()
         cell_com_df_gp[f"FDR_{suffix}"] = fdr_values.flatten()
 
-        counts = counts_from_anndata(adata[:, genes], layer_key_np_test, dense=True)
+        counts = counts_from_anndata_for_genes(adata, genes, layer_key_np_test, dense=True)
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
         if adata.uns.get("center_counts_for_np_test", False):
             num_umi = counts.sum(dim=0)

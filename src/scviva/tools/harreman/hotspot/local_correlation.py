@@ -8,7 +8,7 @@ from scipy.stats import norm
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
+from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata_for_genes
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
 from scviva.utils import resolve_device
 
@@ -77,7 +77,7 @@ def compute_local_correlation(
     sample_specific = "sample_key" in adata.uns.keys()
 
     # Load counts
-    counts = counts_from_anndata(adata[:, genes], layer_key, dense=True)
+    counts = counts_from_anndata_for_genes(adata, genes, layer_key, dense=True)
 
     # UMI counts
     num_umi = adata.uns["umi_counts"]
