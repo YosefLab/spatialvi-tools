@@ -14,7 +14,7 @@ from scvi.data import AnnDataManager
 from scvi.data.fields import CategoricalObsField, LayerField, ObsmField
 from scvi.model.base import BaseModelClass, UnsupervisedTrainingMixin, VAEMixin
 from scvi.module import VAE
-from scvi.utils import setup_anndata_dsp
+from scvi.utils import setup_anndata_dsp, track
 from statsmodels.stats.multitest import multipletests
 
 from scviva._constants import VIVS_REGISTRY_KEYS
@@ -532,6 +532,7 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         clustering_method: str = "complete",
         use_vmap: Literal["auto", True, False] = "auto",
         n_mc_samples: int = 500,
+        silent: bool = False,
     ) -> xr.Dataset:
         """Hierarchical CRT: gene importance at multiple gene-group resolutions.
 
@@ -539,6 +540,11 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         pre-computed groupings are given), then re-runs the CRT with group-level knockoff
         substitution at each resolution. See ``docs/user_guide/models/vivs.md`` for the
         full statistical description.
+
+        Parameters
+        ----------
+        silent
+            If ``True``, disables the progress bar tracking MC-sample/batch iterations.
         """
         adata = self._validate_anndata(adata)
         n_genes = self.summary_stats.n_vars
@@ -569,6 +575,14 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
         ]
         n_obs = 0
 
+        n_batches = len(dataloader)
+        pbar = track(
+            range(n_batches * n_mc_samples),
+            description="Computing hierarchical importance",
+            disable=silent,
+        )
+        pbar_iter = iter(pbar)
+
         for tensors in dataloader:
             x = tensors[REGISTRY_KEYS.X_KEY].to(device)
             y = tensors[VIVS_REGISTRY_KEYS.Y_KEY].to(device)
@@ -587,6 +601,7 @@ class VIVS(VAEMixin, UnsupervisedTrainingMixin, SpatialBaseModel):
                         x, x_tilde, group_oh, batch_index, y, use_vmap
                     )
                     tilde_t_totals[res_idx][k] += stat
+                next(pbar_iter, None)
 
         obs_t = (obs_t_total / n_obs).cpu().numpy()
         tilde_t = [(t / n_obs).cpu().numpy() for t in tilde_t_totals]
