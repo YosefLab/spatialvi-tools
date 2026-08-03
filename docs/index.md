@@ -1,6 +1,6 @@
 # scVIVA-Tools
 
-**scVIVA-Tools** is a consolidated spatial transcriptomics analysis toolkit built on top of [scvi-tools](https://scvi-tools.org), exposing ResolVI, DestVI, scVIVA, DiagVI, Harreman, gimVI, Stereoscope, and Tangram through a clean, unified API.
+**scVIVA-Tools** is a consolidated spatial transcriptomics analysis toolkit built on top of [scvi-tools](https://scvi-tools.org), exposing ResolVI, DestVI, scVIVA, DiagVI, Harreman, gimVI, Stereoscope, Tangram, and VIVS through a clean, unified API.
 
 ```{toctree}
 :maxdepth: 1
@@ -78,6 +78,13 @@ Two-stage deconvolution of cell type proportions in spatial transcriptomics spot
 :link-type: doc
 
 Mapping single-cell RNA-seq data onto spatial transcriptomics via optimal transport.
+:::
+
+:::{grid-item-card} VIVS
+:link: user_guide/models/vivs
+:link-type: doc
+
+Conditional randomization testing for gene-level variable selection against niche composition or protein expression.
 :::
 
 ::::
