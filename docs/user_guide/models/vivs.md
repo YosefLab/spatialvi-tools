@@ -2,14 +2,14 @@
 
 **VIVS** {cite:p}`Boyeau24` (Variational Inference for Variable Selection; Python class {class}`~scviva.model.VIVS`) identifies which genes in a count matrix `X` are conditionally dependent on an external response `Y` — protein expression, niche composition, or any other `obsm` feature — using a conditional randomization test (CRT).
 
-VIVS fits two components: a generative VAE over `X` (reusing scvi-tools' standard `VAE` module, or an already-trained scviva-tools spatial model such as {class}`~scviva.model.SCVIVA`, {class}`~scviva.model.DestVI`, {class}`~scviva.model.ResolVI`, or {class}`~scviva.model.GIMVI`), used only to sample conditional "knockoff" replacements of each gene; and an importance-score network predicting `Y` from `X`, whose per-cell negative log-likelihood is the CRT test statistic. For each gene (or, in the hierarchical variant, each cluster of correlated genes), the statistic is recomputed after substituting in a knockoff sample, yielding a calibrated, BH-corrected p-value for that gene's/cluster's conditional importance to `Y`.
+VIVS fits two components: a generative VAE over `X` (reusing scvi-tools' standard `VAE` module, or an already-trained model passed via `x_model` — see "Compatible knockoff-sampler models" below), used only to sample conditional "knockoff" replacements of each gene; and an importance-score network predicting `Y` from `X`, whose per-cell negative log-likelihood is the CRT test statistic. For each gene (or, in the hierarchical variant, each cluster of correlated genes), the statistic is recomputed after substituting in a knockoff sample, yielding a calibrated, BH-corrected p-value for that gene's/cluster's conditional importance to `Y`.
 
 The advantages of VIVS are:
 
 -   Conditional (not marginal) dependence testing — controls for the rest of the transcriptome when assessing each gene's relevance to `Y`.
 -   Calibrated false-discovery-rate control via the CRT + Benjamini-Hochberg correction.
 -   A hierarchical variant (`get_hier_importance`) that tests at multiple resolutions of correlated gene clusters, improving power for co-regulated genes.
--   Can reuse an already-trained spatial model (e.g. a niche-aware {class}`~scviva.model.SCVIVA` model) as the knockoff sampler, directly integrating with the rest of this toolkit.
+-   Can reuse an already-trained model (e.g. a niche-aware {class}`~scviva.model.SCVIVA` model) as the knockoff sampler, directly integrating with the rest of this toolkit — see the compatibility table below for which models qualify.
 
 The limitations of VIVS include:
 
@@ -25,3 +25,25 @@ The limitations of VIVS include:
 ## Preliminaries
 
 VIVS takes as input a raw-count gene expression matrix `X` and a response matrix `Y` (registered via `y_obsm_key` in {meth}`~scviva.model.VIVS.setup_anndata`). Training proceeds in two sequential phases: first the generative VAE over `X` is fit to convergence (or supplied pretrained via `x_model`), then it is frozen and the importance-score network is fit to predict `Y` from `X`. This order is required for CRT validity — the knockoff sampler must not be contaminated by information about `Y`.
+
+## Compatible knockoff-sampler models
+
+`VIVS(..., x_model=...)` requires `x_model.module` to be an instance of `scvi.module.VAE` (or a subclass), because the knockoff sampler calls `module.inference(x=x, batch_index=batch_index)` expecting a dict with `z`/`library`, then `module.generative(z=z, library=library, batch_index=batch_index)` expecting a dict with a `px` distribution supporting `.sample()`. Most non-`VAE` scvi-tools/scviva-tools modules diverge from this signature (extra required arguments, or a different output-dict shape), so they fail either the `isinstance` check up front or the first knockoff-sampling call. Verified directly against both codebases' module source (`src/scvi/module/`, `src/scviva/module/`):
+
+| Model | `.module` class | Works as `x_model` today? | Notes |
+|---|---|---|---|
+| {class}`~scvi.model.SCVI` | `VAE` | ✅ Yes | Reference case; `x_module_kwargs` map onto `VAE.__init__`. |
+| {class}`~scviva.model.SCVIVA` | `nicheVAE(VAE)` | ✅ Yes | Only overrides `__init__`/encoder-decoder wiring, not `inference`/`generative`. |
+| {class}`~scvi.model.LinearSCVI` | `LDVAE(VAE)` | ✅ Yes | `inference`/`generative` fully inherited, unchanged. |
+| {class}`~scvi.model.AUTOZI` | `AutoZIVAE(VAE)` | ✅ Yes | `generative` override only adds optional kwargs (dropout rescaling); `z`/`library`/`batch_index` call still works, still returns `px`. |
+| {class}`~scvi.model.SCANVI` | `SCANVAE(SupervisedModuleClass, VAE)` | ✅ Yes | Same as `LinearSCVI` — no `inference`/`generative` override. |
+| {class}`~scviva.model.GIMVI` | `JVAE(BaseModuleClass)` | ⚠️ Blocked only by the `isinstance` check | Not a `VAE` subclass, so `VIVS.__init__` currently rejects it — but its `inference()`/`generative()` happen to be duck-type compatible (`z`/`library` in, `px` out, `mode` defaults to `0`). Relaxing the `isinstance` gate to a duck-type/allowlist check would likely make this work with no other changes; untested. |
+| {class}`~scviva.model.DestVI` / {class}`~scvi.model.DestVI` | `MRDeconv(EmbeddingModuleMixin, BaseModuleClass)` | ❌ No | `generative(self, z, ind_x, library, batch_index)` — `ind_x` is a required positional argument VIVS never supplies; fails on the first knockoff call, not just the `isinstance` check. |
+| {class}`~scviva.model.ResolVI` / `scvi.external.resolvi.ResolVI` | `RESOLVAE(PyroBaseModuleClass)` | ❌ No | Pyro-based, no `inference()`/`generative()` VAE API at all. |
+| {class}`~scvi.model.TOTALVI` | `TOTALVAE(BaseMinifiedModeModuleClass)` | ❌ No | `generative` needs `library_gene` (not `library`) and a required `label`; output dict has no `px` key (`px_`/`py_` nested dicts instead). |
+| {class}`~scvi.model.MULTIVI` | `MULTIVAE(BaseMinifiedModeModuleClass)` | ❌ No | `generative` needs a required `qz_m` positional arg; output dict has no `px` key (`px_scale`/`px_rate`/`px_dropout` separately). |
+| {class}`~scvi.model.PEAKVI` | `PEAKVAE(BaseModuleClass)` | ❌ No | `generative` needs a required `qz_m` positional arg (not produced by VIVS's `_encode_for_knockoffs`), though it does return `px`. |
+| {class}`~scvi.model.CondSCVI` | `VAEC(EmbeddingModuleMixin, BaseModuleClass)` | ❌ No | `generative` requires a cell-type-label `y` positional arg — semantically unrelated to (and would collide with) VIVS's own `y` (the response `Y`). |
+| {class}`~scvi.model.AmortizedLDA` | `AmortizedLDAPyroModule(PyroBaseModuleClass)` | ❌ No | Pyro-based, no VAE-style `inference`/`generative`. |
+
+Practical takeaway: today, the safest `x_model` choices are a plain {class}`~scvi.model.SCVI`, an {class}`~scviva.model.SCVIVA` model, or (with less real-world precedent) `LinearSCVI`/`AUTOZI`/`SCANVI`. Deconvolution (`DestVI`), Pyro-based (`ResolVI`, `AmortizedLDA`), and paired/multimodal (`TOTALVI`, `MULTIVI`, `PEAKVI`, `CondSCVI`) models need either a model-specific adapter or a relaxed compatibility check before they can serve as VIVS's knockoff sampler — this is tracked as an open question in `docs/superpowers/plans/2026-07-23-vivs-torch-port.md` and was independently flagged in [PR #32](https://github.com/YosefLab/scviva-tools/pull/32)'s review.
