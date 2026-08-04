@@ -127,8 +127,15 @@ class VIVSModule(BaseModuleClass):
 
     @staticmethod
     def normalize_log_cpm(x: torch.Tensor) -> torch.Tensor:
-        """Log-CPM normalization shared by every CRT statistic computation."""
-        return torch.log1p(1e6 * x / x.sum(dim=-1, keepdim=True))
+        """Log-CPM normalization shared by every CRT statistic computation.
+
+        Clamps the per-cell library size away from 0: group-level knockoff substitution
+        (in ``get_hier_importance``) can zero out a sparse cell's entire count vector when
+        the knockoff draw for a whole gene-cluster happens to sample all zeros, which would
+        otherwise produce a 0/0 NaN here and crash the downstream ``Normal(...).log_prob``.
+        """
+        library = x.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+        return torch.log1p(1e6 * x / library)
 
     def xy_input(self, x: torch.Tensor, batch_index: torch.Tensor) -> torch.Tensor:
         """Build the importance-score net's input: normalized X, optionally + one-hot batch."""
