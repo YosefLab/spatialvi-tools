@@ -7,10 +7,14 @@ default_stages:
   - pre-push
 minimum_pre_commit_version: 2.16.0
 repos:
-  - repo: https://github.com/biomejs/pre-commit
-    rev: v2.5.6
+  - repo: local
     hooks:
       - id: biome-format
+        name: biome format
+        entry: npx --yes @biomejs/biome@2.5.6 format --write --files-ignore-unknown=true --no-errors-on-unmatched
+        language: system
+        types: [text]
+        files: "\\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$"
         exclude: ^\.cruft\.json$ # inconsistent indentation with cruft - file never to be modified manually.
   - repo: https://github.com/tox-dev/pyproject-fmt
     rev: v2.26.0
