@@ -11,7 +11,7 @@ repos:
     hooks:
       - id: biome-format
         name: biome format
-        entry: npx --yes @biomejs/biome@2.5.6 format --write --files-ignore-unknown=true --no-errors-on-unmatched
+        entry: scripts/biome-format.sh
         language: system
         types: [text]
         files: "\\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$"
