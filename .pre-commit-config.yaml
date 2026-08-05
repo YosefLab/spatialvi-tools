@@ -1,27 +1,23 @@
 fail_fast: false
 default_language_version:
   python: python3
-  node: 22.23.1
+  node: 22.20.0
 default_stages:
   - pre-commit
   - pre-push
 minimum_pre_commit_version: 2.16.0
 repos:
-  - repo: local
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v2.5.4
     hooks:
       - id: biome-format
-        name: biome format
-        entry: scripts/biome-format.sh
-        language: system
-        types: [text]
-        files: "\\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$"
         exclude: ^\.cruft\.json$ # inconsistent indentation with cruft - file never to be modified manually.
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.26.0
+    rev: v2.25.3
     hooks:
       - id: pyproject-fmt
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
+    rev: v0.15.22
     hooks:
       - id: ruff-check
         types_or: [python, pyi, jupyter]
@@ -41,12 +37,6 @@ repos:
       - id: check-yaml
       - id: check-merge-conflict
         args: [--assume-in-merge]
-
-  - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.29.0
-    hooks:
-      - id: zizmor
-        args: [--no-progress, --fix]
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.3
