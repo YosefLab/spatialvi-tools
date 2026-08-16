@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from math import isfinite
 from typing import TYPE_CHECKING
 
 import torch
@@ -14,7 +15,13 @@ from scvi.module.base import (
 )
 from torch.nn.functional import one_hot
 
-from scviva._constants import SCVIVA_MODULE_KEYS, SCVIVA_REGISTRY_KEYS
+from scviva._constants import (
+    SCVIVA_CONTIGUITY_EDGE_INDEX_KEY,
+    SCVIVA_CONTIGUITY_REPLACEMENT_KEY,
+    SCVIVA_MODULE_KEYS,
+    SCVIVA_REGISTRY_KEYS,
+    SCVIVA_SEED_COUNT_KEY,
+)
 from scviva.module.utils._nichevae_components import DirichletDecoder, Encoder, NicheDecoder
 
 if TYPE_CHECKING:
@@ -25,6 +32,17 @@ if TYPE_CHECKING:
     from torch.distributions import Distribution
 
 logger = logging.getLogger(__name__)
+
+
+def _latent_contiguity_loss(latent_mean: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
+    """Return mean squared latent-mean distance over sampled spatial edges."""
+    if edge_index.numel() == 0:
+        return latent_mean.new_zeros(())
+    if edge_index.ndim != 2 or edge_index.shape[0] != 2:
+        raise ValueError("Contiguity edge index must have shape (2, n_edges).")
+    if int(edge_index.min()) < 0 or int(edge_index.max()) >= latent_mean.shape[0]:
+        raise IndexError("Contiguity edge refers to a missing local node.")
+    return (latent_mean[edge_index[0]] - latent_mean[edge_index[1]]).square().mean()
 
 
 class nicheVAE(VAE):
@@ -197,6 +215,7 @@ class nicheVAE(VAE):
         cell_rec_weight: float = 1.0,
         latent_kl_weight: float = 1.0,
         spatial_weight: float = 10,
+        contiguity_lambda: float = 0.0,
         ##############################
         prior_mixture: bool = False,
         prior_mixture_k: int = 20,
@@ -250,6 +269,7 @@ class nicheVAE(VAE):
         self.latent_kl_weight = latent_kl_weight
         self.cell_rec_weight = cell_rec_weight
         self.spatial_weight = spatial_weight
+        self.set_contiguity_lambda(contiguity_lambda)
         self.n_output_niche = n_output_niche
         self.niche_likelihood = niche_likelihood
         self.prior_mixture = prior_mixture
@@ -355,6 +375,13 @@ class nicheVAE(VAE):
             )
         else:
             self.classifier = None
+
+    def set_contiguity_lambda(self, value: float) -> None:
+        """Set the effective nonnegative contiguity weight."""
+        value = float(value)
+        if not isfinite(value) or value < 0:
+            raise ValueError("Effective contiguity lambda must be finite and nonnegative.")
+        self.contiguity_lambda = value
 
     @auto_move_data
     def generative(
@@ -516,6 +543,14 @@ class nicheVAE(VAE):
         from torch.distributions import kl_divergence
 
         x = tensors[REGISTRY_KEYS.X_KEY]
+        seed_count_tensor = tensors.get(SCVIVA_SEED_COUNT_KEY)
+        seed_count = (
+            x.shape[0] if seed_count_tensor is None else int(seed_count_tensor.detach().cpu())
+        )
+        if seed_count <= 0 or seed_count > x.shape[0]:
+            raise ValueError("Invalid scVIVA seed count in contiguity-aware batch.")
+
+        classification_loss = y = y_ct = None
         if self.semisupervised:
             y = tensors[REGISTRY_KEYS.LABELS_KEY].ravel().long()
             z_mean = inference_outputs[MODULE_KEYS.QZ_KEY].loc
@@ -586,28 +621,57 @@ class nicheVAE(VAE):
         _weighted_composition_loss = self.spatial_weight * composition_loss
         _weighted_kl_local = self.latent_kl_weight * weighted_kl_local
 
-        loss = torch.mean(
+        standard_per_cell = (
             _weighted_reconst_loss_cell
             + _weighted_reconst_loss_niche
             + _weighted_kl_local
             + _weighted_composition_loss
         )
+        ordinary_loss = standard_per_cell[:seed_count].mean()
+
+        edge_index = tensors.get(SCVIVA_CONTIGUITY_EDGE_INDEX_KEY)
+        if edge_index is None:
+            edge_index = torch.empty((2, 0), dtype=torch.long, device=x.device)
+        else:
+            edge_index = edge_index.long()
+        contiguity_loss = _latent_contiguity_loss(
+            inference_outputs[MODULE_KEYS.QZ_KEY].loc, edge_index
+        )
+        weighted_contiguity_loss = self.contiguity_lambda * contiguity_loss
+        loss = ordinary_loss + weighted_contiguity_loss
+
+        replacement = tensors.get(SCVIVA_CONTIGUITY_REPLACEMENT_KEY)
+        if replacement is None:
+            replacement = torch.tensor(False, device=x.device)
 
         return NicheLossOutput(
             loss=loss,
-            reconstruction_loss=reconst_loss_cell,
-            classification_loss=classification_loss.mean() if self.semisupervised else None,
-            true_labels=y if self.semisupervised else None,
-            logits=y_ct if self.semisupervised else None,
+            reconstruction_loss=reconst_loss_cell[:seed_count],
+            classification_loss=(
+                classification_loss[:seed_count].mean() if self.semisupervised else None
+            ),
+            true_labels=y[:seed_count] if self.semisupervised else None,
+            logits=y_ct[:seed_count] if self.semisupervised else None,
             kl_local={
-                MODULE_KEYS.KL_L_KEY: kl_divergence_l,
-                MODULE_KEYS.KL_Z_KEY: kl_divergence_z,
+                MODULE_KEYS.KL_L_KEY: kl_divergence_l[:seed_count],
+                MODULE_KEYS.KL_Z_KEY: kl_divergence_z[:seed_count],
             },
-            composition_loss=composition_loss,
-            niche_loss=masked_reconst_loss_niche,
+            composition_loss=composition_loss[:seed_count],
+            niche_loss=masked_reconst_loss_niche[:seed_count],
             extra_metrics={
-                SCVIVA_MODULE_KEYS.NLL_NICHE_COMPOSITION_KEY: torch.mean(composition_loss),
-                SCVIVA_MODULE_KEYS.NLL_NICHE_EXPRESSION_KEY: torch.mean(masked_reconst_loss_niche),
+                SCVIVA_MODULE_KEYS.NLL_NICHE_COMPOSITION_KEY: torch.mean(
+                    composition_loss[:seed_count]
+                ),
+                SCVIVA_MODULE_KEYS.NLL_NICHE_EXPRESSION_KEY: torch.mean(
+                    masked_reconst_loss_niche[:seed_count]
+                ),
+                "ordinary_loss": ordinary_loss.detach(),
+                "contiguity_loss": contiguity_loss.detach(),
+                "weighted_contiguity_loss": weighted_contiguity_loss.detach(),
+                "contiguity_edge_count": torch.tensor(
+                    edge_index.shape[1], dtype=torch.float32, device=x.device
+                ),
+                "contiguity_replacement": replacement.float(),
             },
         )
 
