@@ -197,5 +197,5 @@ ini_options.markers = [
 ini_options.xfail_strict = true
 
 [tool.coverage]
-run.omit = [ "**/test_*.py" ]
 run.source = [ "scviva" ]
+run.omit = [ "**/test_*.py" ]
