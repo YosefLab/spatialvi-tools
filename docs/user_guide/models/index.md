@@ -11,4 +11,5 @@ stereoscope
 tangram
 diagvi
 harreman
+csde
 ```

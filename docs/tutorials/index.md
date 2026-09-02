@@ -14,4 +14,5 @@ DiagVI_spatial_transcriptomics
 DiagVI_spatial_proteomics
 preprocessing
 Visium_colon_Harreman_pipeline
+CSDE_tutorial
 ```
