@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shared `CyclicMultiDataLoader` (`scviva.model.utils._dataloaders`), consolidating
   the near-identical cyclic-batch dataloader previously duplicated between GIMVI and
   DiagVI.
+- **scVIVA spatial-contiguity regularization**: optional same-cell-type spatial-edge
+  latent smoothing with `contiguity_lambda="auto"` calibration or an explicit numeric
+  weight, fitted calibration audit metadata, split-local ordinary PyTorch batching,
+  and save/load support. The feature defaults to disabled and does not require a PyG
+  graph dataloader.
 
 ### Changed
 

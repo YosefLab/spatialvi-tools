@@ -13,6 +13,11 @@ NEIGHBOR_INDEX_KEY = "index_neighbor"
 NEIGHBOR_DISTANCE_KEY = "distance_neighbor"
 NICHE_COMPOSITION_KEY = "neighborhood_composition"
 
+# Private batch metadata used by scVIVA's optional contiguity-aware loader.
+SCVIVA_SEED_COUNT_KEY = "_scviva_seed_count"
+SCVIVA_CONTIGUITY_EDGE_INDEX_KEY = "_scviva_contiguity_edge_index"
+SCVIVA_CONTIGUITY_REPLACEMENT_KEY = "_scviva_contiguity_replacement"
+
 
 # scVIVA-specific registry and module keys
 class _SCVIVA_REGISTRY_KEYS_NT(NamedTuple):

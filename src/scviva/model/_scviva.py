@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 import warnings
 from functools import partial
+from math import isfinite
+from numbers import Integral, Real
 from typing import TYPE_CHECKING
 
 import joblib
@@ -35,10 +37,15 @@ from scvi.model.base import (
 )
 from scvi.model.base._archesmixin import _get_loaded_data
 from scvi.model.base._de_core import _de_core
+from scvi.train._config import merge_kwargs
 from scvi.utils import de_dsp, setup_anndata_dsp, unsupported_if_adata_minified
 
 from scviva._constants import SCVIVA_REGISTRY_KEYS
 from scviva.model.base import SpatialBaseModel, SpatialNeighborhoodMixin, SpatialPredictiveMixin
+from scviva.model.utils._contiguity import (
+    ContiguityDataSplitter,
+    build_same_label_edges,
+)
 from scviva.model.utils._scviva_de import _niche_de_core
 from scviva.module._nichevae import nicheVAE
 
@@ -58,6 +65,53 @@ _SCVI_LATENT_QZV = "_scvi_latent_qzv"
 _SCVI_OBSERVED_LIB_SIZE = "_scvi_observed_lib_size"
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_contiguity_lambda(value: float | str) -> float | str:
+    """Validate and normalize the public contiguity weight mode."""
+    if isinstance(value, str):
+        if value != "auto":
+            raise ValueError('contiguity_lambda must be 0, a positive float, or "auto".')
+        return value
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise TypeError('contiguity_lambda must be 0, a positive float, or "auto".')
+    value = float(value)
+    if not isfinite(value) or value < 0:
+        raise ValueError("contiguity_lambda must be finite and nonnegative.")
+    return value
+
+
+def _validate_contiguity_target_fraction(value: float) -> float:
+    """Validate the positive automatic-calibration target fraction."""
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise TypeError("contiguity_target_fraction must be a positive finite float.")
+    value = float(value)
+    if not isfinite(value) or value <= 0:
+        raise ValueError("contiguity_target_fraction must be a positive finite float.")
+    return value
+
+
+def _validate_contiguity_edge_budget(value: int) -> int:
+    """Validate the positive auxiliary edge budget."""
+    if isinstance(value, bool) or not isinstance(value, Integral):
+        raise TypeError("contiguity_edge_budget must be a positive integer.")
+    value = int(value)
+    if value <= 0:
+        raise ValueError("contiguity_edge_budget must be a positive integer.")
+    return value
+
+
+def _calibrated_lambda(ordinary_loss: float, contiguity_loss: float, target: float) -> float:
+    """Return a finite positive weight that targets a loss fraction."""
+    values = np.asarray([ordinary_loss, contiguity_loss, target], dtype=float)
+    if not np.isfinite(values).all() or (values <= 0).any():
+        raise ValueError(
+            "Automatic contiguity calibration requires finite positive losses and target."
+        )
+    value = target * ordinary_loss / contiguity_loss
+    if not np.isfinite(value) or value <= 0:
+        raise ValueError("Automatic contiguity calibration produced an invalid lambda.")
+    return float(value)
 
 
 class SCVIVA(
@@ -105,6 +159,17 @@ class SCVIVA(
 
         * ``'normal'`` - Normal distribution
         * ``'ln'`` - Logistic normal distribution (Normal(0, I) transformed by softmax)
+    contiguity_lambda
+        Weight for same-cell-type spatial-neighbor latent contiguity. The default
+        ``0.0`` preserves standard scVIVA training. Use ``"auto"`` to calibrate a
+        positive weight before optimization, or provide a positive fitted value
+        directly for exact weight reuse.
+    contiguity_target_fraction
+        Fraction of the initial ordinary scVIVA loss targeted by automatic
+        calibration. Used only when ``contiguity_lambda="auto"``.
+    contiguity_edge_budget
+        Number of eligible spatial edges sampled independently for each seed-cell
+        minibatch when contiguity is enabled.
     **kwargs
         Additional keyword arguments for :class:`~scviva.module._nichevae.nicheVAE`.
 
@@ -121,13 +186,23 @@ class SCVIVA(
         **kwargs
     )
     >>> scviva.model.SCVIVA.setup_anndata(adata, batch_key="batch")
-    >>> vae = scviva.model.SCVIVA(adata)
+    >>> vae = scviva.model.SCVIVA(
+        adata,
+        contiguity_lambda="auto",
+        contiguity_target_fraction=0.05,
+        contiguity_edge_budget=1024,
+    )
     >>> vae.train()
+    >>> print(vae.contiguity_lambda_)
     >>> adata.obsm["X_scVIVA"] = vae.get_latent_representation()
     >>> adata.obsm["X_normalized_scVIVA"] = vae.get_normalized_expression()
 
     Notes
     -----
+    Spatial contiguity is opt-in. It regularizes only registered spatial-neighbor
+    pairs with the same cell-type label, and can strongly compress local latent
+    distances. Check boundary preservation and oversmoothing on each dataset.
+
     See further usage examples in the following tutorials:
 
     1. :doc:`/tutorials/scVIVA_tutorial`
@@ -149,11 +224,25 @@ class SCVIVA(
         dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene",
         gene_likelihood: Literal["zinb", "nb", "poisson"] = "poisson",
         latent_distribution: Literal["normal", "ln"] = "normal",
+        contiguity_lambda: float | Literal["auto"] = 0.0,
+        contiguity_target_fraction: float = 0.05,
+        contiguity_edge_budget: int = 1024,
         **kwargs,
     ):
         super().__init__(adata)
 
         self.n_labels = self.summary_stats.n_labels
+
+        contiguity_lambda = _validate_contiguity_lambda(contiguity_lambda)
+        contiguity_target_fraction = _validate_contiguity_target_fraction(
+            contiguity_target_fraction
+        )
+        contiguity_edge_budget = _validate_contiguity_edge_budget(contiguity_edge_budget)
+        self.contiguity_lambda_requested_ = contiguity_lambda
+        self.contiguity_lambda_ = 0.0 if contiguity_lambda == "auto" else float(contiguity_lambda)
+        self.contiguity_target_fraction_ = contiguity_target_fraction
+        self.contiguity_edge_budget_ = contiguity_edge_budget
+        self.contiguity_calibration_ = None
 
         self._module_kwargs = {
             "n_hidden": n_hidden,
@@ -163,13 +252,18 @@ class SCVIVA(
             "dispersion": dispersion,
             "gene_likelihood": gene_likelihood,
             "latent_distribution": latent_distribution,
+            "contiguity_lambda": self.contiguity_lambda_,
             **kwargs,
         }
         self._model_summary_string = (
             "scVIVA model with the following parameters: \n"
             f"n_hidden: {n_hidden}, n_latent: {n_latent}, n_layers: {n_layers}, "
             f"dropout_rate: {dropout_rate}, dispersion: {dispersion}, "
-            f"gene_likelihood: {gene_likelihood}, latent_distribution: {latent_distribution}."
+            f"gene_likelihood: {gene_likelihood}, latent_distribution: {latent_distribution}, "
+            f"contiguity_lambda: {contiguity_lambda}, "
+            f"effective_contiguity_lambda: {self.contiguity_lambda_}, "
+            f"contiguity_target_fraction: {contiguity_target_fraction}, "
+            f"contiguity_edge_budget: {contiguity_edge_budget}."
         )
 
         if self._module_init_on_train:
@@ -207,6 +301,7 @@ class SCVIVA(
                 dispersion=dispersion,
                 gene_likelihood=gene_likelihood,
                 latent_distribution=latent_distribution,
+                contiguity_lambda=self.contiguity_lambda_,
                 use_size_factor_key=use_size_factor_key,
                 library_log_means=library_log_means,
                 library_log_vars=library_log_vars,
@@ -215,6 +310,193 @@ class SCVIVA(
             self.module.minified_data_type = self.minified_data_type
 
         self.init_params_ = self._get_init_params(locals())
+
+    @property
+    def _contiguity_enabled(self) -> bool:
+        """Whether contiguity-aware training was requested."""
+        return self.contiguity_lambda_requested_ == "auto" or self.contiguity_lambda_ > 0
+
+    @property
+    def _contiguity_requires_calibration(self) -> bool:
+        """Whether an automatic request has not yet been calibrated."""
+        return self.contiguity_lambda_requested_ == "auto" and self.contiguity_calibration_ is None
+
+    def _set_effective_contiguity_lambda(self, value: float) -> None:
+        """Synchronize a fitted numeric lambda across model, module, and save metadata."""
+        self.module.set_contiguity_lambda(value)
+        self.contiguity_lambda_ = float(value)
+        self.init_params_["non_kwargs"]["contiguity_lambda"] = float(value)
+
+    def _make_contiguity_splitter(
+        self,
+        *,
+        train_size: float | None,
+        validation_size: float | None,
+        shuffle_set_split: bool,
+        load_sparse_tensor: bool,
+        batch_size: int,
+        datasplitter_kwargs: dict | None,
+    ) -> ContiguityDataSplitter:
+        """Create and set up one split-local contiguity data module."""
+        niche_indexes = self.adata_manager.get_from_registry(
+            SCVIVA_REGISTRY_KEYS.NICHE_INDEXES_KEY
+        )
+        labels = self.adata_manager.get_from_registry(REGISTRY_KEYS.LABELS_KEY)
+        eligible_edges = build_same_label_edges(niche_indexes, labels)
+        splitter = ContiguityDataSplitter(
+            self.adata_manager,
+            eligible_edges=eligible_edges,
+            loader_seed=0 if settings.seed is None else int(settings.seed),
+            edge_budget=self.contiguity_edge_budget_,
+            train_size=train_size,
+            validation_size=validation_size,
+            shuffle_set_split=shuffle_set_split,
+            load_sparse_tensor=load_sparse_tensor,
+            batch_size=batch_size or settings.batch_size,
+            **dict(datasplitter_kwargs or {}),
+        )
+        splitter.setup()
+        if splitter.train_edges.shape[1] == 0:
+            raise RuntimeError("The training split has no eligible same-cell-type spatial edges.")
+        return splitter
+
+    def _calibrate_contiguity_lambda(
+        self, splitter: ContiguityDataSplitter, classification_ratio: float
+    ) -> float:
+        """Calibrate lambda on one deterministic batch without updating parameters."""
+        batch = next(iter(splitter.calibration_dataloader()))
+        device = next(self.module.parameters()).device
+        batch = {
+            key: value.to(device) if torch.is_tensor(value) else value
+            for key, value in batch.items()
+        }
+        was_training = self.module.training
+        self.module.eval()
+        try:
+            with torch.inference_mode():
+                inference_inputs = self.module._get_inference_input(batch)
+                inference_outputs = self.module.inference(**inference_inputs)
+                generative_inputs = self.module._get_generative_input(batch, inference_outputs)
+                generative_outputs = self.module.generative(**generative_inputs)
+                loss_output = self.module.loss(
+                    batch,
+                    inference_outputs,
+                    generative_outputs,
+                    kl_weight=0.0,
+                    classification_ratio=classification_ratio,
+                )
+        finally:
+            self.module.train(was_training)
+
+        ordinary_loss = float(loss_output.extra_metrics["ordinary_loss"].cpu())
+        contiguity_loss = float(loss_output.extra_metrics["contiguity_loss"].cpu())
+        effective_lambda = _calibrated_lambda(
+            ordinary_loss,
+            contiguity_loss,
+            self.contiguity_target_fraction_,
+        )
+        self.contiguity_calibration_ = {
+            "ordinary_loss": ordinary_loss,
+            "contiguity_loss": contiguity_loss,
+            "target_fraction": self.contiguity_target_fraction_,
+            "effective_lambda": effective_lambda,
+            "edge_budget": self.contiguity_edge_budget_,
+            "training_cells": int(len(splitter.train_idx)),
+        }
+        self._set_effective_contiguity_lambda(effective_lambda)
+        return effective_lambda
+
+    def train(
+        self,
+        max_epochs: int | None = None,
+        accelerator: str = "auto",
+        devices: int | list[int] | str = "auto",
+        train_size: float | None = None,
+        validation_size: float | None = None,
+        shuffle_set_split: bool = True,
+        load_sparse_tensor: bool = False,
+        batch_size: int = 128,
+        early_stopping: bool = False,
+        datasplitter_kwargs: dict | None = None,
+        plan_config=None,
+        plan_kwargs=None,
+        datamodule=None,
+        trainer_config=None,
+        **trainer_kwargs,
+    ):
+        """Train scVIVA, optionally with split-local spatial contiguity."""
+        if not self._contiguity_enabled:
+            return super().train(
+                max_epochs=max_epochs,
+                accelerator=accelerator,
+                devices=devices,
+                train_size=train_size,
+                validation_size=validation_size,
+                shuffle_set_split=shuffle_set_split,
+                load_sparse_tensor=load_sparse_tensor,
+                batch_size=batch_size,
+                early_stopping=early_stopping,
+                datasplitter_kwargs=datasplitter_kwargs,
+                plan_config=plan_config,
+                plan_kwargs=plan_kwargs,
+                datamodule=datamodule,
+                trainer_config=trainer_config,
+                **trainer_kwargs,
+            )
+
+        if self.adata is None or datamodule is not None:
+            raise NotImplementedError(
+                "Contiguity-aware training requires an AnnData-backed SCVIVA model; "
+                "use contiguity_lambda=0.0 with a custom datamodule."
+            )
+        merged_trainer_kwargs = merge_kwargs(trainer_config, trainer_kwargs, name="trainer")
+        multiple_devices = (
+            (isinstance(devices, int) and devices != 1)
+            or (isinstance(devices, list) and len(devices) != 1)
+            or (isinstance(devices, str) and devices not in ("auto", "1"))
+        )
+        if multiple_devices or merged_trainer_kwargs.get("strategy") not in (
+            None,
+            "auto",
+        ):
+            raise NotImplementedError(
+                "Contiguity-aware training currently supports one device; "
+                "use contiguity_lambda=0.0 for distributed training."
+            )
+
+        splitter = self._make_contiguity_splitter(
+            train_size=train_size,
+            validation_size=validation_size,
+            shuffle_set_split=shuffle_set_split,
+            load_sparse_tensor=load_sparse_tensor,
+            batch_size=batch_size,
+            datasplitter_kwargs=datasplitter_kwargs,
+        )
+        merged_plan_kwargs = merge_kwargs(plan_config, plan_kwargs, name="plan")
+        loss_kwargs = merged_plan_kwargs.get("loss_kwargs") or {}
+        classification_ratio = merged_plan_kwargs.get(
+            "classification_ratio", loss_kwargs.get("classification_ratio", 50)
+        )
+        if self._contiguity_requires_calibration:
+            self._calibrate_contiguity_lambda(splitter, classification_ratio)
+
+        return super().train(
+            max_epochs=max_epochs,
+            accelerator=accelerator,
+            devices=devices,
+            train_size=train_size,
+            validation_size=validation_size,
+            shuffle_set_split=shuffle_set_split,
+            load_sparse_tensor=load_sparse_tensor,
+            batch_size=batch_size,
+            early_stopping=early_stopping,
+            datasplitter_kwargs=None,
+            plan_config=plan_config,
+            plan_kwargs=plan_kwargs,
+            datamodule=splitter,
+            trainer_config=trainer_config,
+            **trainer_kwargs,
+        )
 
     def get_latent_representation(
         self,

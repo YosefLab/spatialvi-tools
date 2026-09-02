@@ -164,3 +164,55 @@ model.train()
 # Get latent representation
 latent = model.get_latent_representation()
 ```
+
+## Spatial contiguity regularization
+
+scVIVA can optionally encourage spatially neighboring cells of the same annotated
+cell type to remain close in latent space. This feature is disabled by default, so
+`contiguity_lambda=0.0` retains the standard scVIVA objective and data-loading path.
+
+For most datasets, start with automatic calibration:
+
+```python
+model = scviva.SCVIVA(
+    adata,
+    contiguity_lambda="auto",
+    contiguity_target_fraction=0.05,
+    contiguity_edge_budget=1024,
+)
+model.train()
+
+{
+    "effective_lambda": model.contiguity_lambda_,
+    "calibration": model.contiguity_calibration_,
+}
+```
+
+Automatic mode measures the ordinary scVIVA loss and the unweighted contiguity
+loss on a deterministic batch from the training split before optimization. It then
+chooses an effective weight that targets `contiguity_target_fraction` of the
+ordinary loss. The fitted numeric value is available as `contiguity_lambda_`, while
+`contiguity_calibration_` records the losses and calibration settings used.
+
+To reuse the exact fitted weight in a later run, pass the numeric value directly:
+
+```python
+repeated_model = scviva.SCVIVA(
+    adata,
+    contiguity_lambda=model.contiguity_lambda_,
+    contiguity_edge_budget=1024,
+)
+```
+
+Eligible pairs are unique registered spatial-neighbor edges whose endpoints have
+the same cell-type label. Region labels are not used. The implementation uses the
+ordinary PyTorch/scvi training path with an independent auxiliary edge sampler; it
+does not require a PyTorch Geometric graph dataloader.
+
+```{warning}
+Spatial contiguity is opt-in because it can oversmooth tissue boundaries. In the
+definitive five-seed experiment, contiguity-enabled variants contracted spatial-edge
+latent distances by approximately 8–9x. Check boundary preservation and local
+latent-distance diagnostics on your own dataset rather than assuming that a smoother
+embedding is biologically better.
+```
