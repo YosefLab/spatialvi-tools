@@ -45,7 +45,7 @@ Pools = dict[str, list[str]]
 # ---------------------------------------------------------------------------
 
 
-def _louvain_cluster(data: np.ndarray, K: int = 30) -> list[list[int]]:
+def _louvain_cluster(data: np.ndarray, K: int = 30, random_state: int = 0) -> list[list[int]]:
     """Cluster cells via Louvain on an exponential-kernel KNN graph.
 
     Mirrors R VISION's ``louvainCluster``.  The per-cell bandwidth σ_i equals
@@ -59,6 +59,10 @@ def _louvain_cluster(data: np.ndarray, K: int = 30) -> list[list[int]]:
         Cell coordinates in latent space.
     K : int, optional
         Number of neighbors for the KNN graph, by default 30.
+    random_state : int, optional
+        Seed for the Louvain community detection, by default 0. igraph's
+        ``community_multilevel`` has no seed parameter of its own and is
+        otherwise non-deterministic between runs.
 
     Returns
     -------
@@ -70,6 +74,8 @@ def _louvain_cluster(data: np.ndarray, K: int = 30) -> list[list[int]]:
     ImportError
         If ``python-igraph`` is not installed.
     """
+    import random
+
     try:
         import igraph
     except ImportError as e:
@@ -100,6 +106,7 @@ def _louvain_cluster(data: np.ndarray, K: int = 30) -> list[list[int]]:
     # Mirror R's as.undirected(mode="each"): sum weights when i→j and j→i coexist
     g = g.as_undirected(combine_edges="sum")
 
+    igraph.set_random_number_generator(random.Random(random_state))
     cl = g.community_multilevel(weights=g.es["weight"])
     return [list(members) for members in cl]
 
@@ -113,6 +120,7 @@ def _readjust_clusters(
     clusters: list[list[int]],
     data: np.ndarray,
     cells_per_partition: int = 100,
+    random_state: int = 0,
 ) -> list[list[int]]:
     """Refine Louvain clusters with K-means until target partition count is met.
 
@@ -130,6 +138,9 @@ def _readjust_clusters(
         Latent-space coordinates used for K-means splitting.
     cells_per_partition : int, optional
         Target cells per micro-cluster, by default 100.
+    random_state : int, optional
+        Seed for the K-means splitting, by default 0 (previously unseeded --
+        each split was non-deterministic between runs).
 
     Returns
     -------
@@ -146,7 +157,9 @@ def _readjust_clusters(
             sub_data = data[cell_idx]
             if len(cell_idx) > cells_per_partition:
                 n_sub = max(2, round(len(cell_idx) / cells_per_partition))
-                km = KMeans(n_clusters=n_sub, max_iter=100, n_init=1).fit(sub_data)
+                km = KMeans(
+                    n_clusters=n_sub, max_iter=100, n_init=1, random_state=random_state
+                ).fit(sub_data)
                 labels = km.labels_
             else:
                 labels = np.zeros(len(cell_idx), dtype=int)
@@ -172,6 +185,7 @@ def _internal_pca(
     filter_threshold: int,
     filter_num_mad: float,
     ncomp: int = 10,
+    random_state: int = 0,
 ) -> np.ndarray:
     """Compute a lightweight PCA for micro-clustering via randomized SVD.
 
@@ -212,7 +226,7 @@ def _internal_pca(
     k = min(ncomp, n_cells - 1, n_genes - 1)
 
     # Per-gene-mean centering (mirrors R's rowMeans(fexpr)) + randomized SVD.
-    U, S, _ = gene_centered_svd(X_sub, k)
+    U, S, _ = gene_centered_svd(X_sub, k, random_state=random_state)
     return U * S  # (n_cells, k) — cell scores
 
 
@@ -225,11 +239,12 @@ def apply_micro_clustering(
     adata: AnnData,
     cells_per_partition: int = 10,
     filter_input: bool = True,
-    filter_threshold: int = 10,
+    filter_threshold: int | None = None,
     filter_num_mad: float = 2.0,
     latent_space_key: str | None = None,
     K: int | None = None,
     uns_key: str = "micro_clusters",
+    random_state: int = 0,
 ) -> Pools:
     """Partition cells into micro-clusters (supercells) via Louvain + K-means.
 
@@ -249,7 +264,9 @@ def apply_micro_clustering(
         Apply threshold + fano gene filters before internal PCA,
         by default ``True``.  Ignored when *latent_space_key* is provided.
     filter_threshold : int, optional
-        Minimum expressing-cell count for the threshold filter, by default 10.
+        Minimum expressing-cell count for the threshold filter. Defaults to
+        ``round(0.05 * n_cells)`` (matching R VISION's ``applyMicroClustering``
+        default of 5% of cells) when ``None``.
     filter_num_mad : float, optional
         MAD multiplier for the fano filter, by default 2.0.
     latent_space_key : str, optional
@@ -257,10 +274,15 @@ def apply_micro_clustering(
         When ``None`` (default), coordinates are computed internally.
     K : int, optional
         Number of KNN neighbors for the Louvain graph.  Defaults to
-        ``min(max(round(sqrt(n_cells)), 10), 30)``, matching R VISION.
+        ``min(round(sqrt(n_cells)), 30)``, matching R VISION (no lower
+        floor -- R's own formula has none either).
     uns_key : str, optional
         Key under which the pool mapping is stored in ``adata.uns``,
         by default ``"micro_clusters"``.
+    random_state : int, optional
+        Seed for the internal PCA, Louvain clustering, and K-means
+        readjustment steps, by default 0. Passing the same value across runs
+        makes the whole micro-clustering pipeline reproducible.
 
     Returns
     -------
@@ -271,6 +293,9 @@ def apply_micro_clustering(
     n_cells = adata.n_obs
     obs_names = list(adata.obs_names)
 
+    if filter_threshold is None:
+        filter_threshold = max(1, round(0.05 * n_cells))
+
     # 1. Latent space
     if latent_space_key is not None and latent_space_key in adata.obsm:
         latent = np.asarray(adata.obsm[latent_space_key], dtype=float)
@@ -279,11 +304,13 @@ def apply_micro_clustering(
         )
     else:
         logger.info("Computing internal PCA for micro-clustering...")
-        latent = _internal_pca(adata, filter_input, filter_threshold, filter_num_mad)
+        latent = _internal_pca(
+            adata, filter_input, filter_threshold, filter_num_mad, random_state=random_state
+        )
 
     # 2. KNN → Louvain
     if K is None:
-        K = min(max(round(np.sqrt(n_cells)), 10), 30)
+        K = min(round(np.sqrt(n_cells)), 30)
 
     logger.info(
         "Louvain micro-clustering: n_cells=%d, K=%d, target ~%d cells/partition.",
@@ -291,10 +318,10 @@ def apply_micro_clustering(
         K,
         cells_per_partition,
     )
-    clusters = _louvain_cluster(latent, K=K)
+    clusters = _louvain_cluster(latent, K=K, random_state=random_state)
 
     # 3. K-means readjustment
-    clusters = _readjust_clusters(clusters, latent, cells_per_partition)
+    clusters = _readjust_clusters(clusters, latent, cells_per_partition, random_state=random_state)
     logger.info("Micro-clustering complete: %d micro-clusters.", len(clusters))
 
     # 4. Map indices → obs_names and store
@@ -421,7 +448,10 @@ def pool_metadata(
     - **Numeric columns**: per-pool mean.
     - **Categorical / string columns**: majority level when ≥ 50 % of cells
       agree; otherwise ``"~"``.  Per-level proportion columns
-      ``<Var>_<Level>`` are appended for each observed level.
+      ``<Var>_<Level>`` are appended for every level observed *anywhere in
+      ``obs``* (not just within that pool) -- a pool that happens not to
+      contain a given level gets an explicit ``0.0`` for it, matching R,
+      which always writes every ``levels(factor)`` entry for every pool.
 
     Parameters
     ----------
@@ -435,6 +465,9 @@ def pool_metadata(
     pd.DataFrame of shape (n_pools, ≥n_vars)
         Pooled metadata indexed by pool IDs.
     """
+    cat_cols = [c for c in obs.columns if not pd.api.types.is_numeric_dtype(obs[c])]
+    all_levels = {c: obs[c].unique() for c in cat_cols}
+
     rows = []
     for _pid, cell_names in pools.items():
         sub = obs.loc[cell_names]
@@ -447,7 +480,7 @@ def pool_metadata(
                 counts = sub[col].value_counts()
                 top_level = counts.index[0]
                 row[col] = top_level if counts.iloc[0] / len(sub) >= 0.5 else "~"
-                for level in sub[col].unique():
+                for level in all_levels[col]:
                     row[f"{col}_{level}"] = float((sub[col] == level).mean())
 
         rows.append(row)

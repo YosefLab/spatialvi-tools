@@ -73,6 +73,20 @@ def _pearson_cols(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return (b @ a) / (denom_b * denom_a)
 
 
+def _covariance_cols(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Sample covariance between each column of ``a`` (n x p) and vector ``b`` (n,).
+
+    Matches R VISION's ``evalSigGeneImportance``/``evalSigGeneImportanceSparse``
+    (and the compiled ``sigGeneInner``), which use covariance -- not
+    correlation -- so that highly-variable genes register as more
+    "important", rather than a scale-free [-1, 1] statistic.
+    """
+    n = a.shape[0]
+    a = a - a.mean(axis=0)
+    b = b - b.mean()
+    return (b @ a) / (n - 1)
+
+
 def _linkage_to_newick(z: np.ndarray, labels: list) -> str:
     """Convert a scipy linkage matrix to a newick string."""
     n = len(labels)
@@ -100,9 +114,18 @@ class VisionAnalysis:
     adata
         Annotated data object.
     norm_data_key
-        Key in ``adata.layers`` for log-library-size-normalised counts. Use
-        ``"use_raw"`` to pull from ``adata.raw``. ``None`` (default) uses
-        ``adata.X`` directly.
+        Key in ``adata.layers`` for scaled/library-size-normalised
+        expression. Use ``"use_raw"`` to pull from ``adata.raw``. ``None``
+        (default) uses ``adata.X`` directly.
+
+        Matching R VISION's documented contract, this data should be
+        **normalized but not log-transformed** -- VISION log-transforms it
+        internally wherever needed (:func:`~scviva.tools.vision._utils.log2p1`).
+        If it looks already log-transformed (small, non-integer values),
+        that internal step is skipped automatically and a warning is logged
+        the first time it would otherwise have double-transformed your data;
+        pass genuinely non-log-transformed data to avoid relying on that
+        detection.
     protein_obsm_key
         Key in ``adata.obsm`` for CITE-seq protein (ADT) data, if any.
 
@@ -232,6 +255,7 @@ class VisionAnalysis:
         tree: str | None = None,
         lca_knn: bool = False,
         lca_min_size: int = 20,
+        random_state: int = 0,
     ) -> None:
         """Build the VISION neighbor-weight graph and Louvain cell clusters.
 
@@ -256,6 +280,10 @@ class VisionAnalysis:
             of cophenetic-distance-based weights.
         lca_min_size
             Minimum clade size for the LCA-based tree KNN weights.
+        random_state
+            Seed for the Louvain clustering used to build ``VISION_Clusters``
+            (``igraph``'s ``community_multilevel`` has no seed parameter of
+            its own and is otherwise non-deterministic between runs).
         """
         from scviva.tools.vision.phylo import cluster_cells_tree
         from scviva.tools.vision.tools.knn import (
@@ -323,7 +351,10 @@ class VisionAnalysis:
 
         if neighbors_key is not None:
             self._cluster_cells(
-                obsm_key=neighbors_key, num_neighbors=num_neighbors, exact_knn=exact_knn
+                obsm_key=neighbors_key,
+                num_neighbors=num_neighbors,
+                exact_knn=exact_knn,
+                random_state=random_state,
             )
 
         # Invalidate downstream steps so re-running setup with new params
@@ -337,12 +368,15 @@ class VisionAnalysis:
         obsm_key: str | None = None,
         num_neighbors: int | None = None,
         exact_knn: bool = False,
+        random_state: int = 0,
     ) -> None:
         """Louvain clustering matching R VISION's ``clusterCells()``.
 
         Recomputes a fresh KNN with ``K = min(num_neighbors, 30)`` — separate
         from the ``K = sqrt(n)`` weight matrix used for Geary's C.
         """
+        import random
+
         import igraph as ig
 
         from scviva.tools.vision.tools.knn import find_knn
@@ -363,6 +397,12 @@ class VisionAnalysis:
             g = ig.Graph(n=adata.n_obs, edges=edges, directed=True)
 
         g = g.as_undirected(mode="each")
+        # igraph's community_multilevel() has no seed parameter of its own;
+        # it draws from whatever generator igraph.set_random_number_generator()
+        # last installed (a plain `random.Random` instance by default). Swap
+        # in a freshly-seeded instance so this call is reproducible without
+        # touching the global `random` module state used elsewhere.
+        ig.set_random_number_generator(random.Random(random_state))
         membership = g.community_multilevel().membership
         adata.obs[CLUSTERS_OBS_KEY] = pd.Categorical([str(m) for m in membership])
 
@@ -507,6 +547,7 @@ class VisionAnalysis:
         sig_norm_method: str = "znorm_columns",
         device: str = "auto",
         batch_size: int = 1200,
+        random_state: int = 0,
     ) -> None:
         """Score loaded signatures per-cell and compute their graph autocorrelation.
 
@@ -521,8 +562,15 @@ class VisionAnalysis:
             :func:`~scviva.tools.vision.tools.signature.compute_signatures_anndata`.
         device
             Compute device: ``"auto"``, ``"cuda"``, ``"mps"``, or ``"cpu"``.
+            ``"cpu"`` forces the deterministic scipy sparse path (a dense
+            torch CPU tensor path is not offered, since its multi-threaded
+            matmul is not run-to-run bit-reproducible).
         batch_size
             Number of signatures scored per device batch.
+        random_state
+            Seed for the Geary's C permutation-null background signature
+            generation (see
+            :func:`~scviva.tools.vision.tools.signature.generate_permutations_null`).
         """
         self._require(STEP_SIGNATURES)
         if self._signature_varm_key is None:
@@ -543,7 +591,11 @@ class VisionAnalysis:
             batch_size=batch_size,
         )
         self._adata.uns[SIGNATURE_SCORES_UNS_KEY] = compute_signature_scores(
-            self._adata, self._norm_data_key, self._signature_varm_key
+            self._adata,
+            self._norm_data_key,
+            self._signature_varm_key,
+            sig_norm_method=sig_norm_method,
+            random_state=random_state,
         )
         self._completed_steps.add(STEP_SIGNATURES)
 
@@ -576,6 +628,7 @@ class VisionAnalysis:
         if self._protein_obsm_key is not None:
             self._compute_protein_autocorrelation()
             self._compute_protein_differential()
+            self._persist_protein_differential()
 
         if SIGNATURES_OBSM_KEY in adata.obsm:
             self._compute_one_vs_all_signatures()
@@ -584,8 +637,12 @@ class VisionAnalysis:
             self._persist_gene_importance()
             self._annotate_latent_components()
             self._compute_signature_dendrogram()
-            self._compute_signature_clusters()
+            # Joint FDR must run before signature clustering: R VISION's
+            # clusterSignatures() significance gate (FDR < 0.05 & C' > 0.2)
+            # reads the *jointly*-corrected FDR (signatures + numeric meta
+            # pooled), not each block's independent correction.
             self._recompute_joint_fdr()
+            self._compute_signature_clusters()
 
         self._completed_steps.add(STEP_DE)
 
@@ -695,7 +752,40 @@ class VisionAnalysis:
             except ValueError:
                 continue
         self._protein_adata = prot_adata
-        adata.uns[PROTEIN_DIFFERENTIAL_UNS_KEY] = self._protein_obsm_key
+
+    def _persist_protein_differential(self) -> None:
+        """Persist one-vs-all Wilcoxon protein results to ``adata.uns``.
+
+        Mirrors :meth:`_persist_signature_differential`. Previously this step
+        was skipped entirely: the differential was computed into
+        ``self._protein_adata`` but never written to ``adata.uns`` -- only
+        the protein obsm key string ended up under
+        ``PROTEIN_DIFFERENTIAL_UNS_KEY``, so the actual stat/pval results
+        were silently discarded. R VISION's ``ClusterComparisons$Proteins``
+        is a fully populated stat/pValue/FDR table per group.
+        """
+        import scanpy as sc
+
+        if self._protein_adata is None:
+            return
+        result = {}
+        for c in self._cat_obs_cols:
+            key = f"rank_genes_groups_{c}"
+            if key not in self._protein_adata.uns:
+                continue
+            groups = list(self._protein_adata.obs[c].astype("category").cat.categories)
+            frames = []
+            for g in groups:
+                try:
+                    df = sc.get.rank_genes_groups_df(self._protein_adata, group=str(g), key=key)
+                    df.insert(0, "group", str(g))
+                    frames.append(df)
+                except Exception:  # noqa: BLE001
+                    continue
+            if frames:
+                result[c] = pd.concat(frames, ignore_index=True)
+        if result:
+            self._adata.uns[PROTEIN_DIFFERENTIAL_UNS_KEY] = result
 
     def _compute_one_vs_all_signatures(self) -> None:
         import anndata as ad
@@ -752,12 +842,16 @@ class VisionAnalysis:
                     try:
                         stat, pval, _, _ = chi2_contingency(freqs.to_numpy())
                     except ValueError:
-                        stat, pval = grand_total, 0
+                        # Degenerate contingency table (e.g. a category confined
+                        # to a single group) -- mirrors R's matrix_chisq, which
+                        # reports "not significant" here, not "maximally
+                        # significant".
+                        stat, pval = 0.0, 1.0
                     if math.isinf(pval) or math.isnan(pval):
                         pval = 1
                     v = (
-                        1.0
-                        if (math.isinf(stat) or math.isnan(stat))
+                        0.0
+                        if (math.isinf(stat) or math.isnan(stat) or grand_total == 0)
                         else np.sqrt(stat / grand_total)
                     )
                     obs_adata.uns[f"chi_sq_{j}_{g}"] = {"stat": v, "pval": pval}
@@ -779,7 +873,7 @@ class VisionAnalysis:
             expr = self.get_gene_expression(gene_names)
             sign = df.to_numpy().ravel()
             sig_scores = adata.obsm[SIGNATURES_OBSM_KEY][s].to_numpy().ravel()
-            corrs = _pearson_cols(expr, sig_scores)
+            corrs = _covariance_cols(expr, sig_scores)
             values = (sign * corrs).tolist()
             gene_score_sig[s] = {
                 "genes": gene_names.tolist(),
@@ -817,8 +911,19 @@ class VisionAnalysis:
             self._adata.uns[SIGNATURE_DIFFERENTIAL_UNS_KEY] = result
 
     def _persist_meta_differential(self) -> None:
-        """Persist one-vs-all metadata differential results to ``adata.uns``."""
+        """Persist one-vs-all metadata differential results to ``adata.uns``.
+
+        Adds a joint BH-FDR ``"fdr"`` column, pooled per group across both
+        the numeric (Wilcoxon) and categorical (chi-squared) blocks --
+        mirrors R VISION's ``clusterSigScores()``, which runs one
+        ``p.adjust(c(numeric_pvals, factor_pvals), "BH")`` per level rather
+        than correcting each block independently. The categorical block
+        previously had no FDR correction at all (only a raw ``pval``); the
+        numeric block's scanpy-native ``pvals_adj`` (corrected only within
+        that group's genes) is left in place alongside the new joint ``fdr``.
+        """
         import scanpy as sc
+        from statsmodels.stats.multitest import multipletests
 
         if self._obs_adata is None:
             return
@@ -856,6 +961,36 @@ class VisionAnalysis:
                         )
             if cat_rows:
                 col_result["categorical"] = pd.DataFrame(cat_rows)
+
+            numeric_df = col_result.get("numeric")
+            categorical_df = col_result.get("categorical")
+            if numeric_df is not None:
+                numeric_df["fdr"] = np.nan
+            if categorical_df is not None:
+                categorical_df["fdr"] = np.nan
+            for g in groups:
+                g = str(g)
+                num_mask = numeric_df["group"] == g if numeric_df is not None else None
+                cat_mask = categorical_df["group"] == g if categorical_df is not None else None
+                num_pvals = (
+                    numeric_df.loc[num_mask, "pvals"].to_numpy()
+                    if numeric_df is not None
+                    else np.array([])
+                )
+                cat_pvals = (
+                    categorical_df.loc[cat_mask, "pval"].to_numpy()
+                    if categorical_df is not None
+                    else np.array([])
+                )
+                if len(num_pvals) + len(cat_pvals) == 0:
+                    continue
+                joint_fdr = multipletests(np.concatenate([num_pvals, cat_pvals]), method="fdr_bh")[
+                    1
+                ]
+                if numeric_df is not None:
+                    numeric_df.loc[num_mask, "fdr"] = joint_fdr[: len(num_pvals)]
+                if categorical_df is not None:
+                    categorical_df.loc[cat_mask, "fdr"] = joint_fdr[len(num_pvals) :]
 
             if col_result:
                 result[c] = col_result
@@ -929,13 +1064,31 @@ class VisionAnalysis:
         adata.uns[DENDROGRAM_UNS_KEY] = _linkage_to_newick(z, sig_names)
 
     def _compute_signature_clusters(self) -> None:
-        """Cut the signature dendrogram into groups."""
+        """Cluster signatures via a BIC-selected Gaussian mixture.
+
+        Mirrors R VISION's ``clusterSignatures()``. Only signatures with
+        joint FDR < 0.05 *and* Geary's C' > 0.2 are
+        clustered; everything else is placed in one extra "non-significant"
+        cluster (R: ``compcls[!significant] <- maxcls + 1``). Numeric
+        metadata columns meeting the same significance gate are folded into
+        the same clustering pass purely to shape the cluster structure (as
+        R does, combining ``sigMatrix`` and numeric ``metaData``), but are
+        not themselves reported in the output -- only signature -> cluster
+        assignments are, matching this key's existing contract.
+
+        R uses ``mclustBIC(..., modelNames="EII")`` -- a Gaussian mixture
+        with one *shared* spherical variance across all components.
+        scikit-learn has no exact "tied + spherical" option, so this uses
+        ``GaussianMixture(covariance_type="spherical")`` (one spherical
+        variance *per* component) as the closest available approximation.
+        """
+        from sklearn.mixture import GaussianMixture
+
         from scviva.tools.vision._constants import SIG_CLUSTERS_UNS_KEY
 
         adata = self._adata
         if SIGNATURES_OBSM_KEY not in adata.obsm:
             return
-        from scipy.cluster.hierarchy import fcluster, linkage
 
         sig_df = adata.obsm[SIGNATURES_OBSM_KEY]
         sig_names = sig_df.columns.tolist()
@@ -943,10 +1096,80 @@ class VisionAnalysis:
         if n_sigs < 3:
             adata.uns[SIG_CLUSTERS_UNS_KEY] = dict.fromkeys(sig_names, 1)
             return
-        z = linkage(sig_df.T.to_numpy(), method="ward", metric="euclidean")
-        n_groups = min(max(2, int(np.sqrt(n_sigs))), 10)
-        labels = fcluster(z, t=n_groups, criterion="maxclust")
-        adata.uns[SIG_CLUSTERS_UNS_KEY] = {s: int(labels[i]) for i, s in enumerate(sig_names)}
+
+        def _is_significant(name: str, table) -> bool:
+            if table is None or name not in table.index:
+                return False
+            row = table.loc[name]
+            return bool(row["fdr"] < 0.05 and row["c_prime"] > 0.2)
+
+        sig_scores_table = adata.uns.get(SIGNATURE_SCORES_UNS_KEY)
+        obs_scores_table = adata.uns.get(OBS_DF_SCORES_UNS_KEY)
+
+        numeric_data = (
+            adata.obs[self._numeric_obs_cols]
+            if self._numeric_obs_cols
+            else pd.DataFrame(index=adata.obs_names)
+        )
+        numeric_data = numeric_data.loc[:, numeric_data.notna().all(axis=0)]
+
+        # variable name -> (per-cell score vector, is a real signature?)
+        candidate_vars: dict[str, tuple[np.ndarray, bool]] = {
+            s: (sig_df[s].to_numpy(dtype=float), True) for s in sig_names
+        }
+        for col in numeric_data.columns:
+            candidate_vars[col] = (numeric_data[col].to_numpy(dtype=float), False)
+
+        significant_vars = [
+            v
+            for v, (_, is_sig_col) in candidate_vars.items()
+            if _is_significant(v, sig_scores_table if is_sig_col else obs_scores_table)
+        ]
+
+        if len(significant_vars) > 5:
+            mat = np.column_stack([candidate_vars[v][0] for v in significant_vars])
+            means = mat.mean(axis=0)
+            stds = mat.std(axis=0)
+            stds[stds == 0] = 1.0
+            mat_z = (mat - means) / stds
+
+            n_cells = mat_z.shape[0]
+            if n_cells > 5000:
+                rng = np.random.default_rng(0)
+                cell_idx = rng.choice(n_cells, 5000, replace=False)
+                mat_z = mat_z[cell_idx]
+
+            points = mat_z.T  # (n_vars, n_cells_sub) -- one "sample" per variable
+
+            best_bic = np.inf
+            best_labels = None
+            max_components = min(15, points.shape[0])
+            for k in range(1, max_components + 1):
+                try:
+                    gmm = GaussianMixture(
+                        n_components=k, covariance_type="spherical", random_state=0, n_init=1
+                    ).fit(points)
+                except ValueError:
+                    continue
+                bic = gmm.bic(points)
+                if bic < best_bic:
+                    best_bic = bic
+                    best_labels = gmm.predict(points)
+
+            if best_labels is None:
+                labels_by_var = dict.fromkeys(significant_vars, 1)
+                max_label = 1
+            else:
+                labels_by_var = {
+                    v: int(lbl) + 1 for v, lbl in zip(significant_vars, best_labels, strict=False)
+                }
+                max_label = max(labels_by_var.values())
+        else:
+            labels_by_var = dict.fromkeys(significant_vars, 1)
+            max_label = 1
+
+        junk_label = max_label + 1
+        adata.uns[SIG_CLUSTERS_UNS_KEY] = {s: labels_by_var.get(s, junk_label) for s in sig_names}
 
     def _recompute_joint_fdr(self) -> None:
         """BH-correct p-values for signatures and metadata jointly.

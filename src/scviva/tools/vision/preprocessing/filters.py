@@ -115,6 +115,17 @@ def filter_genes_fano(
     Genes with zero mean expression have their Fano factor set to 0 so they
     fall below any reasonable within-bin threshold; they are effectively
     excluded without producing NaN values.
+
+    This is a **deliberate deviation from R VISION's actual behavior**, not
+    an oversight: R's ``filterGenesFano`` computes ``fano <- var/mu`` with no
+    zero-mean guard, so a single unexpressed gene produces ``0/0 = NaN``,
+    which (via R's ``median()`` having no ``na.rm``) silently zeroes out
+    *every gene in that gene's expression-level bin*, not just the
+    zero-mean one -- R's own attempted fix for this (``mu_quant[mu_quant ==
+    0] <- 1``) is itself dead code, since ``mu_quant`` is never read again
+    afterwards. This implementation intentionally does not reproduce that
+    bug: only the zero-mean gene itself is excluded, so Python can retain
+    genes that R would silently (and unintentionally) drop.
     """
     n_cells, n_genes = X.shape
 

@@ -397,6 +397,19 @@ def apply_rbfpca(
     Returns
     -------
     ndarray of shape (n_cells, n_components)
+
+    Notes
+    -----
+    The row z-scoring step is a **deliberate deviation from what R VISION
+    actually executes**, not from what it appears to intend. R's line reads
+    ``kMat <- as.matrix(kMat, 1, function(x) (x - mean(x)) / sd(x))``, which
+    looks like an ``apply()``-style per-row z-score -- but ``kMat`` is
+    already a matrix, so ``as.matrix.default()`` returns it unchanged and
+    silently discards the extra arguments. R's RBFPCA therefore never
+    actually z-scores its kernel matrix. This implementation performs the
+    z-score for real, matching the evident intent of that R line rather than
+    R's actual (apparently unintentional) runtime behavior; the two
+    projections are not numerically equivalent as a result.
     """
     from sklearn.metrics import pairwise_distances
     from sklearn.utils.extmath import randomized_svd

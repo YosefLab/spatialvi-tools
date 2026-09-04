@@ -12,13 +12,64 @@ imports ``apply_filters`` from ``preprocessing/filters.py``.
 
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 from scipy import sparse
 from sklearn.utils.extmath import randomized_svd
 
+logger = logging.getLogger(__name__)
+
+
+def _looks_log_transformed(X: np.ndarray | sparse.spmatrix, max_value: float = 30.0) -> bool:
+    """Heuristically decide whether *X* already looks log-transformed.
+
+    Two signals are used; either one calling the data "not yet
+    log-transformed" is enough to say so:
+
+    1. The maximum value exceeds *max_value*. ``log2(x + 1)`` compresses even
+       a very highly expressed gene (raw counts in the hundreds of
+       thousands, or CPM/TPM-style normalized values up to ~1e6) down to
+       roughly 15-20; genuinely log-transformed expression data essentially
+       never exceeds this range.
+    2. The stored (non-zero) values are, within floating-point tolerance,
+       integers -- the signature of raw or lightly-processed counts, which
+       are never what R VISION's ``matLog2``/this port's ``log2p1`` produce.
+
+    This is a heuristic, not a guarantee: it can be fooled by, e.g.,
+    already-log-transformed data with one pathologically large outlier, or
+    by raw counts from extremely shallow sequencing that happen to stay
+    below *max_value*. Pass ``check_log_transformed=False`` to :func:`log2p1`
+    to bypass it when you know better.
+
+    Parameters
+    ----------
+    X : array-like of shape (n_cells, n_genes)
+        Expression matrix, cells × genes.
+    max_value : float, optional
+        Values above this are assumed to be on a pre-log scale, by default 30.
+
+    Returns
+    -------
+    bool
+        ``True`` if *X* already looks log-transformed (``log2p1`` should be
+        a no-op), ``False`` if it looks like it still needs the transform.
+    """
+    data = X.data if sparse.issparse(X) else np.asarray(X)
+    if data.size == 0:
+        return True  # nothing to transform either way
+
+    max_val = float(np.max(data))
+    if max_val > max_value:
+        return False
+
+    return not np.allclose(data, np.round(data), atol=1e-6)
+
 
 def log2p1(
     X: np.ndarray | sparse.spmatrix,
+    *,
+    check_log_transformed: bool = True,
 ) -> np.ndarray | sparse.spmatrix:
     """Sparse-preserving log2(x + 1) transform.
 
@@ -30,12 +81,44 @@ def log2p1(
     ----------
     X : array-like of shape (n_cells, n_genes)
         Expression matrix, cells × genes.  Not modified in-place.
+    check_log_transformed : bool, optional
+        If ``True`` (default), first check whether *X* already looks
+        log-transformed (:func:`_looks_log_transformed`) and skip the
+        transform if so. A warning is logged whenever the transform *is*
+        applied, since it mutates the caller's data.
+
+        R VISION's documented contract (and this port's, everywhere else
+        that calls ``log2p1``) is that expression data should be
+        scaled/normalized but **not** log-transformed -- VISION applies the
+        log step itself. This check exists so that data following the
+        opposite convention (already log-transformed, as is common
+        after standard ``sc.pp.normalize_total`` + ``sc.pp.log1p``
+        preprocessing) isn't silently log-transformed a second time.
+        Pass ``False`` to always apply the transform unconditionally.
 
     Returns
     -------
     array-like of shape (n_cells, n_genes)
-        Log-transformed matrix in the same format as the input.
+        Log-transformed matrix in the same format as the input (or an
+        unchanged copy, if *X* was detected as already log-transformed).
     """
+    if check_log_transformed:
+        if _looks_log_transformed(X):
+            logger.debug(
+                "log2p1: input already looks log-transformed (small, "
+                "non-integer values) -- not applying log2(x + 1) again."
+            )
+            return X.copy() if sparse.issparse(X) else np.asarray(X, dtype=float)
+        logger.warning(
+            "log2p1: input does not look log-transformed (large and/or "
+            "integer-valued values found) -- applying log2(x + 1) "
+            "internally. VISION expects scaled/library-size-normalized but "
+            "NOT log-transformed expression data; pass "
+            "check_log_transformed=False to always apply this transform "
+            "without the check, or pre-transform your data and this "
+            "message will stop appearing."
+        )
+
     if sparse.issparse(X):
         X = X.copy()
         X.data = np.log2(X.data + 1)

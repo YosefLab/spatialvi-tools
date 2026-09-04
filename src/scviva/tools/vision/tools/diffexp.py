@@ -359,7 +359,18 @@ class _RankGenes:
 
                 z_scores = (scores - (n_active * ((n_active + m_active + 1) / 2.0))) / std_dev
                 z_scores[np.isnan(z_scores)] = 0
-                pvals = 2 * stats.distributions.norm.sf(np.abs(z_scores))
+
+                # Continuity correction, matching R VISION's matrix_wilcox /
+                # wilcox_subset (Utilities.R:220-224 / Utilities.cpp:203-205):
+                # z <- -abs(z); z <- z + .5/sd_u; p <- pnorm(z)*2. Applied
+                # after the NaN guard above so already-zeroed (zero-variance)
+                # genes keep the neutral p=1 they'd get either way. R's own
+                # uncorrected formula can push p slightly over 1 for tiny
+                # samples; clip defensively rather than reproducing that.
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    cc = np.where(std_dev > 0, 0.5 / std_dev, 0.0)
+                z_cc = -np.abs(z_scores) + cc
+                pvals = np.minimum(2 * stats.distributions.norm.cdf(z_cc), 1.0)
 
                 # auc
                 auc = scores / (n_active * m_active)
@@ -397,7 +408,12 @@ class _RankGenes:
                     scores[group_index, :] - (n_active * (n_cells + 1) / 2.0)
                 ) / std_dev
                 z_scores[group_index, np.isnan(z_scores[group_index, :])] = 0
-                pvals = 2 * stats.distributions.norm.sf(np.abs(z_scores[group_index, :]))
+
+                # Continuity correction -- see the with-reference branch above.
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    cc = np.where(std_dev > 0, 0.5 / std_dev, 0.0)
+                z_cc = -np.abs(z_scores[group_index, :]) + cc
+                pvals = np.minimum(2 * stats.distributions.norm.cdf(z_cc), 1.0)
                 # auc
                 auc = scores[group_index, :] / (n_active * (n_cells - n_active))
 

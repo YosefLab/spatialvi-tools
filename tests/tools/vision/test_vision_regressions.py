@@ -95,7 +95,7 @@ def test_compute_signature_scores_restores_signature_varm_key(monkeypatch):
     def fake_gearys_c(_weights, ranked):
         return np.zeros(ranked.shape[0], dtype=float)
 
-    def fake_generate_null(_adata, _norm_data_key, _signature_varm_key):
+    def fake_generate_null(_adata, _norm_data_key, _signature_varm_key, random_state=0):
         random_sig = pd.DataFrame(
             {"RANDOM_BG_0_0": [1.0, 1.0, 0.0, 0.0, 0.0, 0.0]},
             index=_adata.var_names,
@@ -182,7 +182,13 @@ def test_harreman_analyze_vision_runs_full_signature_pipeline_without_de(monkeyp
     adata.obsp["weights"] = _row_normalized_complete_graph(adata.n_obs)
     adata.varm["signatures"] = _signature_matrix(adata)
 
-    def fake_signature_scores(_adata, _norm_data_key, _signature_varm_key):
+    def fake_signature_scores(
+        _adata,
+        _norm_data_key,
+        _signature_varm_key,
+        sig_norm_method="znorm_columns",
+        random_state=0,
+    ):
         return pd.DataFrame(
             {"c_prime": [0.0, 0.0], "pvals": [1.0, 1.0], "fdr": [1.0, 1.0]},
             index=["sig0", "sig1"],

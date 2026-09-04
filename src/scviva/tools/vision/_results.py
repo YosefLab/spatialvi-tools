@@ -38,7 +38,7 @@ class VisionResults:
     signature_clusters: dict | None
     signature_dendrogram: str | None
     protein_autocorrelation: Any | None
-    protein_differential: str | None
+    protein_differential: dict | None
 
     @classmethod
     def from_adata_uns(cls, uns: dict, obsm: dict) -> VisionResults:

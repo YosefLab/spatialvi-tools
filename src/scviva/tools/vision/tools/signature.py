@@ -24,7 +24,7 @@ from scipy.stats import chi2_contingency, rankdata
 from sklearn.cluster import KMeans
 from statsmodels.stats.multitest import multipletests
 
-from scviva.tools.vision._utils import _get_mean_var
+from scviva.tools.vision._utils import _get_mean_var, log2p1
 from scviva.tools.vision.preprocessing.normalization import get_normalized_copy_sparse
 
 from ._gearys_c import _gearys_c
@@ -125,10 +125,12 @@ _UP_SIG_KEY = "UP"
 
 
 def _resolve_torch_device(device: str) -> str | None:
-    """Return a torch device string if a GPU path is available, else ``None``.
+    """Return a torch GPU device string if one should be used, else ``None``.
 
     ``"auto"`` selects CUDA if available, then MPS (Apple Silicon), then
     falls back to ``None`` so the scipy path is used for pure-CPU runs.
+    ``"cpu"`` always resolves to ``None`` (deterministic scipy path) rather
+    than a dense torch CPU tensor path -- see the note in the body.
 
     Parameters
     ----------
@@ -139,13 +141,22 @@ def _resolve_torch_device(device: str) -> str | None:
     Returns
     -------
     str or None
-        A resolved torch device string, or ``None`` when no GPU path is
-        available (or torch is not installed) and the scipy path should be
-        used instead.
+        A resolved torch GPU device string, or ``None`` when no GPU path
+        should be used (torch not installed, ``device="cpu"``, or ``"auto"``
+        found no GPU) and the scipy path should be used instead.
     """
     try:
         import torch
     except ImportError:
+        return None
+
+    if device == "cpu":
+        # Do *not* route plain "cpu" through the torch tensor path: torch's
+        # CPU matmul uses multi-threaded MKL/oneDNN kernels whose reduction
+        # (summation) order is not guaranteed identical across runs, so the
+        # same call can return results that differ after the 3rd-4th decimal
+        # from one run to the next. The scipy sparse path below is both
+        # deterministic and (for these sparse inputs) not slower.
         return None
 
     if device == "auto":
@@ -155,7 +166,7 @@ def _resolve_torch_device(device: str) -> str | None:
             return "mps"
         return None  # no GPU -> caller will use scipy path
 
-    return device  # honour explicit override ("cpu", "cuda", "cuda:1", "mps", ...)
+    return device  # honour explicit GPU override ("cuda", "cuda:1", "mps", ...)
 
 
 def _sig_to_dense_f32(sig_matrix) -> np.ndarray:
@@ -306,8 +317,12 @@ def _batch_sig_eval_norm(
         Signature weight matrix (+1 up, -1 down, 0 absent).
     device : str, optional
         Compute device.  ``"auto"`` (default) selects CUDA when available,
-        then MPS (Apple Silicon), then falls back to scipy on CPU.  Pass
-        ``"cuda"``, ``"cuda:1"``, ``"mps"``, or ``"cpu"`` to override.
+        then MPS (Apple Silicon), then falls back to the scipy sparse path
+        on CPU.  Pass ``"cuda"`` / ``"cuda:1"`` / ``"mps"`` to force a GPU
+        tensor path, or ``"cpu"`` to force the deterministic scipy sparse
+        path explicitly (a dense torch CPU tensor path is deliberately not
+        offered: torch's multi-threaded CPU matmul is not run-to-run
+        bit-reproducible).
     batch_size : int, optional
         Signatures per batch (bounds peak GPU/RAM usage), by default 1200.
 
@@ -452,16 +467,15 @@ def compute_obs_df_scores(adata: AnnData) -> pd.DataFrame:
             except ValueError:
                 # Degenerate contingency table (e.g. a zero expected-frequency
                 # cell, common with many small categories relative to n_obs).
-                # Same fallback convention as _compute_one_vs_all_obs_cols:
-                # treat as maximal association / maximally significant rather
-                # than crashing.
-                chi_sq, pval = n, 0.0
+                # Mirrors R's matrix_chisq, which reports "not significant"
+                # here (pval=1.0, stat=0), not "maximally significant".
+                chi_sq, pval = 0.0, 1.0
             if math.isinf(pval) or math.isnan(pval):
                 pval = 1.0
             min_dim = min(x_lm.shape) - 1
             v = (
-                1.0
-                if (math.isinf(chi_sq) or math.isnan(chi_sq))
+                0.0
+                if (math.isinf(chi_sq) or math.isnan(chi_sq) or n == 0 or min_dim == 0)
                 else np.sqrt((chi_sq / n) / min_dim)
             )
             cramers_v.append(v)
@@ -481,6 +495,8 @@ def compute_signature_scores(
     adata: AnnData,
     norm_data_key: Literal["use_raw"] | str | None,
     signature_varm_key: str,
+    sig_norm_method: str = "znorm_columns",
+    random_state: int = 0,
 ) -> pd.DataFrame:
     """Compute Geary's C spatial/graph autocorrelation for all signatures.
 
@@ -507,6 +523,15 @@ def compute_signature_scores(
     signature_varm_key : str
         Key in ``adata.varm`` for the (n_genes x n_sigs) signature weight
         matrix used to derive the random background signature sizes/balance.
+    sig_norm_method : str, optional
+        Normalisation method used to score the random background signatures.
+        Must match the ``sig_norm_method`` used to compute the *real* scores
+        in ``adata.obsm["vision_signatures"]`` -- scoring the null background
+        under a different normalisation than the real statistic invalidates
+        the permutation test. Default ``"znorm_columns"``.
+    random_state : int, optional
+        Seed forwarded to :func:`generate_permutations_null` for the random
+        background signature generation, by default 0.
 
     Returns
     -------
@@ -530,22 +555,22 @@ def compute_signature_scores(
     logger.info("Generating the null distribution...")
 
     random_sig_df, clusters, random_clusters = generate_permutations_null(
-        adata, norm_data_key, signature_varm_key
+        adata, norm_data_key, signature_varm_key, random_state=random_state
     )
 
     use_raw = norm_data_key == "use_raw"
     if use_raw:
         # random_sig_df is indexed on raw.var_names which doesn't match
         # adata.var_names; storing in adata.varm would fail. Score directly
-        # from raw expression instead.
+        # from raw expression instead -- always through the same normalised,
+        # deterministic path as the sparse branch below (previously a dense
+        # raw_X fell through to a bare, unnormalised matmul).
         raw_X = adata.raw.X
-        if issparse(raw_X):
-            norm_data = get_normalized_copy_sparse(raw_X, method="znorm_columns")
-            random_scores = _batch_sig_eval_norm(
-                norm_data, random_sig_df.to_numpy(), device="cpu", batch_size=1200
-            )
-        else:
-            random_scores = np.asarray(raw_X, dtype=float) @ random_sig_df.to_numpy()
+        raw_X = raw_X if issparse(raw_X) else csr_matrix(raw_X)
+        norm_data = get_normalized_copy_sparse(raw_X, method=sig_norm_method)
+        random_scores = _batch_sig_eval_norm(
+            norm_data, random_sig_df.to_numpy(), device="cpu", batch_size=1200
+        )
         random_df = pd.DataFrame(
             random_scores, columns=random_sig_df.columns, index=adata.obs_names
         )
@@ -556,6 +581,7 @@ def compute_signature_scores(
             norm_data_key,
             "random_signatures",
             None,
+            sig_norm_method=sig_norm_method,
         )
         del adata.varm["random_signatures"]
         adata.obsm["vision_signatures"] = df  # restore real scores overwritten by random run
@@ -1116,7 +1142,8 @@ def compute_signatures_anndata(
         ``"znorm_columns"`` (z-normalise each cell across genes).
     device : str, optional
         Compute device for :func:`_batch_sig_eval_norm`; ``"auto"`` by
-        default.
+        default. ``"cpu"`` forces the deterministic scipy sparse path (see
+        :func:`_resolve_torch_device`).
     batch_size : int, optional
         Signatures processed per batch, by default 1200.
 
@@ -1165,7 +1192,13 @@ def compute_signatures_anndata(
         sig_df = pd.DataFrame(data=scores, columns=cols, index=adata.obs_names)
     else:
         # -- dense path: existing VISION z-score formula --------------------
-        gene_expr = np.asarray(gene_expr, dtype=float)
+        # log2p1 first, matching the sparse path above (via
+        # get_normalized_copy_sparse) and every other consumer of
+        # norm_data_key in this package -- this branch previously skipped
+        # the log step entirely, so whether input got log-transformed once
+        # depended on whether adata.X/the chosen layer happened to be a
+        # sparse or dense array, not on what the data actually was.
+        gene_expr = log2p1(np.asarray(gene_expr, dtype=float))
         sig_matrix = csr_matrix(
             sig_mat_raw.to_numpy()
             if isinstance(sig_mat_raw, pd.DataFrame)
@@ -1182,9 +1215,18 @@ def compute_signatures_anndata(
         denom = n + m
         sig_df = sig_df / np.where(denom > 0, denom, 1.0)
         sig_mean = np.outer(mean, np.where(denom > 0, (n - m) / denom, 0.0))
-        sig_std = np.sqrt(np.outer(var, np.where(denom > 0, 1.0 / denom, 1.0)))
-        sig_std[sig_std == 0] = 1.0
-        sig_df = (sig_df - sig_mean) / sig_std
+        # Per-cell standard deviation only -- *not* divided by `denom`. The
+        # signature score is (raw_score - mean*(n-m)) / (denom * std); the
+        # `denom` division is already applied to `sig_df`/`sig_mean` above,
+        # so folding another `1/denom` in here under the square root (i.e.
+        # dividing `var` by `denom` before taking sqrt) inflates every
+        # multi-gene signature's z-score by an extra factor of sqrt(denom)
+        # relative to R VISION's innerEvalSignatureBatchNorm (and this
+        # module's own sparse path, which both apply `denom` exactly once).
+        # This bug predates scviva-tools -- it was already present,
+        # byte-for-byte, in visionpy's signature.py before this port.
+        std = np.where(var > 0, np.sqrt(var), 1.0)
+        sig_df = (sig_df - sig_mean) / std[:, None]
 
     adata.obsm["vision_signatures"] = sig_df
     logger.info("Signatures computed in %.3f s.", time.time() - t0)
@@ -1195,6 +1237,7 @@ def generate_permutations_null(
     adata: AnnData,
     norm_data_key: Literal["use_raw"] | str | None,
     signature_varm_key: str,
+    random_state: int = 0,
 ) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     """Generate a null distribution of random background signatures.
 
@@ -1215,6 +1258,12 @@ def generate_permutations_null(
         Key in ``adata.varm`` (or ``adata.raw.varm`` when
         ``norm_data_key == "use_raw"``) for the (n_genes x n_sigs) signature
         weight matrix used to derive per-signature size/balance.
+    random_state : int, optional
+        Seed for the k-means clustering of signatures and the random gene
+        sampling used to build background signatures, by default 0. Using a
+        dedicated, locally-scoped RNG (rather than the global ``random``
+        module / ``np.random`` state) makes this function's output
+        reproducible regardless of what else has touched global RNG state.
 
     Returns
     -------
@@ -1227,6 +1276,11 @@ def generate_permutations_null(
         Cluster label of each random background signature, indexed by its
         column name in *random_sig_df*.
     """
+    # Dedicated, locally-scoped RNG: never touches the global `random`/
+    # `np.random` state, so this function's output is reproducible on its
+    # own regardless of what else runs before or after it.
+    rng = random.Random(random_state)
+
     use_raw = norm_data_key == "use_raw"
     exp_genes = adata.raw.var.index if use_raw else adata.var_names
 
@@ -1261,7 +1315,7 @@ def generate_permutations_null(
         if sig_vars.drop_duplicates().shape[0] <= n_components:
             n_components = sig_vars.drop_duplicates().shape[0]
 
-        kmeans = KMeans(init="random", n_clusters=n_components, random_state=42)
+        kmeans = KMeans(init="random", n_clusters=n_components, random_state=random_state)
         kmeans.fit(sig_vars)
 
         centers = kmeans.cluster_centers_
@@ -1289,11 +1343,11 @@ def generate_permutations_null(
         balance = centers.loc[cluster_i, "sig_balance"]
 
         for j in range(num):
-            new_sig_genes = random.sample(gene_list, int(min(size, n_genes)))
+            new_sig_genes = rng.sample(gene_list, int(min(size, n_genes)))
 
             up_genes = round(balance * size)
             remainder = (balance * size) % 1
-            if np.random.uniform(low=0, high=1, size=1) < remainder:
+            if rng.random() < remainder:
                 up_genes = up_genes + 1
             new_sig_signs = [1] * up_genes + [-1] * int(size - up_genes)
 
