@@ -710,23 +710,3 @@ def rank_genes_groups(
         ),
     )
     return adata if copy else None
-
-
-def _calc_frac(X) -> np.ndarray:
-    """Compute the fraction of cells with nonzero expression per gene.
-
-    Parameters
-    ----------
-    X : array-like of shape (n_cells, n_genes)
-        Dense or sparse expression matrix.
-
-    Returns
-    -------
-    np.ndarray of shape (n_genes,)
-        Fraction of cells expressing each gene.
-    """
-    if issparse(X):
-        n_nonzero = X.getnnz(axis=0)
-    else:
-        n_nonzero = np.count_nonzero(X, axis=0)
-    return n_nonzero / X.shape[0]

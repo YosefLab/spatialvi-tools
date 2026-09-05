@@ -9,19 +9,28 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 from anndata import AnnData
 from scipy.sparse import csr_matrix
 
 os.environ.setdefault("NUMBA_CACHE_DIR", os.path.join(tempfile.gettempdir(), "numba_cache"))
 
 from scviva.tools.harreman._analysis import HarremanAnalysis
+from scviva.tools.vision import phylo as vision_phylo
 from scviva.tools.vision._analysis import VisionAnalysis
 from scviva.tools.vision._constants import (
     CLUSTERS_OBS_KEY,
     META_DIFFERENTIAL_UNS_KEY,
     SIGNATURE_SCORES_UNS_KEY,
     STEP_SETUP,
+    STEP_SIGNATURES,
 )
+from scviva.tools.vision._results import VisionResults
+from scviva.tools.vision.preprocessing.normalization import get_normalized_copy
+from scviva.tools.vision.tools import diffexp as vision_diffexp
+from scviva.tools.vision.tools import knn as vision_knn
+from scviva.tools.vision.tools import microclusters as vision_microclusters
+from scviva.tools.vision.tools import projections as vision_projections
 from scviva.tools.vision.tools import signature as vision_signature
 
 
@@ -259,3 +268,123 @@ def test_compute_obs_df_scores_ignores_constant_numeric_column():
     assert result.loc["in_tissue", "pvals"] == 1.0
     assert result.loc["in_tissue", "c_prime"] == 0.0
     assert np.isfinite(result.loc["score", "c_prime"])
+
+
+def test_has_signatures_reflects_completed_steps():
+    va = VisionAnalysis(_make_adata())
+
+    assert va.has_signatures is False
+
+    va._completed_steps.add(STEP_SIGNATURES)
+
+    assert va.has_signatures is True
+
+
+def test_norm_data_key_property_returns_constructor_value():
+    adata = _make_adata(n_vars=4)
+    adata.layers["mylayer"] = adata.X.copy()
+
+    va = VisionAnalysis(adata, norm_data_key="mylayer")
+
+    assert va.norm_data_key == "mylayer"
+    assert VisionAnalysis(adata).norm_data_key is None
+
+
+def test_results_property_requires_setup_first():
+    adata = _make_adata()
+    va = VisionAnalysis(adata)
+
+    with pytest.raises(RuntimeError, match="setup"):
+        _ = va.results
+
+    va._completed_steps.add(STEP_SETUP)
+
+    results = va.results
+
+    assert isinstance(results, VisionResults)
+    assert results.signature_scores is None
+
+
+def test_repr_reflects_setup_state():
+    va = VisionAnalysis(_make_adata())
+
+    assert repr(va) == "VisionAnalysis(is_set_up=False, completed_steps=[])"
+
+    va._completed_steps.add(STEP_SETUP)
+
+    assert repr(va) == f"VisionAnalysis(is_set_up=True, completed_steps=['{STEP_SETUP}'])"
+
+
+def test_get_normalized_copy_znorm_columns_produces_row_zscores():
+    rng = np.random.default_rng(0)
+    X = rng.poisson(5.0, size=(4, 10)).astype(float)
+
+    normalized = get_normalized_copy(X, method="znorm_columns")
+
+    assert normalized.shape == X.shape
+    np.testing.assert_allclose(normalized.mean(axis=1), 0.0, atol=1e-8)
+    np.testing.assert_allclose(normalized.std(axis=1, ddof=1), 1.0, atol=1e-8)
+
+
+def test_compute_one_vs_one_de_returns_wilcoxon_results_between_two_groups():
+    adata = _make_adata(n_obs=8, n_vars=6)
+    adata.obs["grp"] = pd.Categorical(["A", "A", "A", "A", "B", "B", "B", "B"])
+
+    result = VisionAnalysis(adata).compute_one_vs_one_de("grp", "A", "B")
+
+    assert isinstance(result, pd.DataFrame)
+    assert "names" in result.columns
+    assert set(result["names"]) == set(adata.var_names)
+
+
+def test_vision_tl_accessor_delegates_to_underlying_functions(monkeypatch):
+    adata = _make_adata()
+    va = VisionAnalysis(adata)
+    calls: dict[str, tuple] = {}
+
+    def _recorder(name):
+        def _fake(adata_arg, **kwargs):
+            calls[name] = (adata_arg, kwargs)
+            return f"{name}-result"
+
+        return _fake
+
+    monkeypatch.setattr(
+        vision_knn, "compute_knn_weights_anndata", _recorder("compute_knn_weights")
+    )
+    monkeypatch.setattr(
+        vision_phylo, "compute_plasticity_scores", _recorder("compute_plasticity_scores")
+    )
+    monkeypatch.setattr(vision_phylo, "cluster_cells_tree", _recorder("cluster_cells_tree"))
+    monkeypatch.setattr(
+        vision_microclusters, "apply_micro_clustering", _recorder("apply_micro_clustering")
+    )
+    monkeypatch.setattr(vision_microclusters, "pool_matrix_anndata", _recorder("pool_matrix"))
+    monkeypatch.setattr(vision_microclusters, "pool_metadata_anndata", _recorder("pool_metadata"))
+    monkeypatch.setattr(
+        vision_projections, "generate_projections", _recorder("generate_projections")
+    )
+    monkeypatch.setattr(vision_diffexp, "rank_genes_groups", _recorder("rank_genes_groups"))
+
+    va.tl.compute_knn_weights(K=5)
+    va.tl.compute_plasticity_scores(tree="newick")
+    va.tl.cluster_cells_tree(tree="newick")
+    va.tl.apply_micro_clustering(cells_per_partition=10)
+    va.tl.pool_matrix()
+    va.tl.pool_metadata()
+    va.tl.generate_projections(methods=["tSNE30"])
+    va.tl.rank_genes_groups(groupby="condition")
+
+    assert calls["compute_knn_weights"] == (adata, {"K": 5})
+    assert calls["compute_plasticity_scores"] == (adata, {"tree": "newick"})
+    assert calls["cluster_cells_tree"] == (adata, {"tree": "newick"})
+    assert calls["apply_micro_clustering"] == (adata, {"cells_per_partition": 10})
+    assert calls["pool_matrix"] == (adata, {})
+    assert calls["pool_metadata"] == (adata, {})
+    assert calls["generate_projections"] == (adata, {"methods": ["tSNE30"]})
+    assert calls["rank_genes_groups"] == (adata, {"groupby": "condition"})
+
+    # An explicit adata argument should override the session's own adata.
+    other_adata = _make_adata()
+    va.tl.compute_knn_weights(other_adata, K=3)
+    assert calls["compute_knn_weights"] == (other_adata, {"K": 3})

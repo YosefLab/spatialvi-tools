@@ -61,18 +61,6 @@ def _pearsonr_matrix(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return (a.T @ b) / np.outer(norm_a, norm_b)
 
 
-def _pearson_cols(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Pearson correlation between each column of ``a`` (n x p) and vector ``b`` (n,)."""
-    a = a - a.mean(axis=0)
-    b = b - b.mean()
-    denom_a = np.sqrt((a**2).sum(axis=0))
-    denom_b = float(np.sqrt((b**2).sum()))
-    denom_a[denom_a == 0] = 1.0
-    if denom_b == 0:
-        return np.zeros(a.shape[1])
-    return (b @ a) / (denom_b * denom_a)
-
-
 def _covariance_cols(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """Sample covariance between each column of ``a`` (n x p) and vector ``b`` (n,).
 
