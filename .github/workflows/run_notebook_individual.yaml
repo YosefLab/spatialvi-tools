@@ -32,7 +32,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    uses: ./.github/workflows/run_notebook.yaml
+    uses: $/.github/workflows/run_notebook.yaml
     with:
       notebook: ${{ inputs.notebook }}
       version: ${{ inputs.version }}
