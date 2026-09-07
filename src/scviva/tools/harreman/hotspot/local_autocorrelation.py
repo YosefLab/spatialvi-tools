@@ -12,7 +12,7 @@ from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
 from scviva.tools.harreman._data import harreman_data_hash, harreman_data_url
-from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
+from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata_for_genes
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
 from scviva.utils import resolve_device
 
@@ -145,7 +145,7 @@ def compute_local_autocorrelation(
         genes = pd.Index(genes)
 
     # Load counts
-    counts = counts_from_anndata(adata[:, genes], layer_key, dense=True)
+    counts = counts_from_anndata_for_genes(adata, genes, layer_key, dense=True)
 
     # Gene filtering
     if sample_specific:

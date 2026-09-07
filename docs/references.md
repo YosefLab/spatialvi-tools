@@ -48,6 +48,16 @@ Pyro-based probabilistic model with neighbor-aware decoders.
 Harreman infers spatially-resolved metabolic gene programs and cell-cell metabolic/ligand-receptor
 communication from spatial transcriptomics data using local autocorrelation and spatial proximity graphs.
 
+### VISION
+
+> **DeTomaso et al. (2019)**
+> *Functional interpretation of single cell similarity maps*
+> *Nature Communications*, 10, 4376. doi: [10.1038/s41467-019-12235-0](https://doi.org/10.1038/s41467-019-12235-0)
+> {cite:p}`DeTomaso19`
+
+VISION scores curated gene signatures on a per-cell basis and tests them for autocorrelation
+across a cell-cell neighbor graph, enabling interpretation of single-cell similarity maps.
+
 ---
 
 ## Foundation: scvi-tools

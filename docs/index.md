@@ -80,4 +80,11 @@ Two-stage deconvolution of cell type proportions in spatial transcriptomics spot
 Mapping single-cell RNA-seq data onto spatial transcriptomics via optimal transport.
 :::
 
+:::{grid-item-card} VISION
+:link: user_guide/models/vision
+:link-type: doc
+
+Interpretation of single-cell similarity maps via annotated gene signature scoring.
+:::
+
 ::::

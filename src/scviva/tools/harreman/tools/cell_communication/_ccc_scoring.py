@@ -9,7 +9,9 @@ from scipy.stats import norm, pearsonr, spearmanr
 from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 
-from scviva.tools.harreman.preprocessing.anndata import counts_from_anndata
+from scviva.tools.harreman.preprocessing.anndata import (
+    counts_from_anndata_for_genes,
+)
 from scviva.tools.harreman.tools.knn import make_weights_non_redundant
 from scviva.utils import resolve_device
 
@@ -161,11 +163,9 @@ def run_cell_communication_analysis(
     verbose: bool | None,
 ) -> None:
     """Run the cell-type-agnostic CCC score and significance workflow."""
-    use_raw = (layer_key_p_test == "use_raw") & (layer_key_np_test == "use_raw")
-
-    cells = (
-        adata.raw.obs.index.values.astype(str) if use_raw else adata.obs_names.values.astype(str)
-    )
+    # `obs_names` never differs between `adata` and `adata.raw`, and `Raw` has
+    # no `.obs`/`.obs_names.values` to read regardless.
+    cells = adata.obs_names.values.astype(str)
 
     sample_specific = "sample_key" in adata.uns
 
@@ -267,7 +267,9 @@ def run_cell_communication_analysis(
         Wtot2 = torch.tensor((weights.data**2).sum(), device=device)
 
         # Load counts
-        counts = counts_from_anndata(adata[cells, genes], layer_key_p_test, dense=True)
+        counts = counts_from_anndata_for_genes(
+            adata, genes, layer_key_p_test, dense=True, cells=cells
+        )
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
         num_umi = counts.sum(dim=0)
 
@@ -369,7 +371,9 @@ def run_cell_communication_analysis(
         adata.uns["ccc_results"]["np"] = {"gp": {}, "m": {}}
 
         # Load counts
-        counts = counts_from_anndata(adata[cells, genes], layer_key_np_test, dense=True)
+        counts = counts_from_anndata_for_genes(
+            adata, genes, layer_key_np_test, dense=True, cells=cells
+        )
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
 
         # Prepare counts_1 and counts_2
@@ -806,7 +810,9 @@ def compute_interacting_cell_scores(
         Wtot2 = torch.tensor((weights.data**2).sum(), device=device)
 
         # Load counts
-        counts = counts_from_anndata(adata[cells, genes], layer_key_p_test, dense=True)
+        counts = counts_from_anndata_for_genes(
+            adata, genes, layer_key_p_test, dense=True, cells=cells
+        )
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
         num_umi = counts.sum(dim=0)
 
@@ -914,7 +920,9 @@ def compute_interacting_cell_scores(
         adata.uns["interacting_cell_results"]["np"] = {"gp": {}, "m": {}}
 
         # Load counts
-        counts = counts_from_anndata(adata[cells, genes], layer_key_np_test, dense=True)
+        counts = counts_from_anndata_for_genes(
+            adata, genes, layer_key_np_test, dense=True, cells=cells
+        )
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
 
         # Prepare counts_1 and counts_2
@@ -1289,7 +1297,7 @@ def get_cell_communication_results(
         cell_com_df_gp["Z_pval"] = p_values
         cell_com_df_gp["Z_FDR"] = fdr_values
 
-        counts = counts_from_anndata(adata[:, genes], layer_key_p_test, dense=True)
+        counts = counts_from_anndata_for_genes(adata, genes, layer_key_p_test, dense=True)
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
         num_umi = counts.sum(dim=0)
         from scviva.tools.harreman.hotspot.local_autocorrelation import standardize_counts
@@ -1320,7 +1328,7 @@ def get_cell_communication_results(
         cell_com_df_gp[f"pval_{suffix}"] = p_values
         cell_com_df_gp[f"FDR_{suffix}"] = fdr_values
 
-        counts = counts_from_anndata(adata[:, genes], layer_key_np_test, dense=True)
+        counts = counts_from_anndata_for_genes(adata, genes, layer_key_np_test, dense=True)
         counts = torch.tensor(counts, dtype=torch.float64, device=device)
         if adata.uns.get("center_counts_for_np_test", False):
             num_umi = counts.sum(dim=0)

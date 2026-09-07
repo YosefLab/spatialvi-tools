@@ -19,6 +19,8 @@ on:
           - scVIVA_tutorial.ipynb
           - stereoscope_heart_LV_tutorial.ipynb
           - tangram_scvi_tools.ipynb
+          - Vision_tutorial.ipynb
+          - Visium_colon_Harreman_pipeline.ipynb
 
       version:
         description: "latest/stable/semver/branch"

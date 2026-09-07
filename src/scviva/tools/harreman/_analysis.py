@@ -620,7 +620,12 @@ class _HarremanHsAccessor:
         return compute_top_scoring_modules(self._resolve(adata), **kwargs)
 
     def integrate_vision_hotspot_results(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.harreman.hotspot.modules import integrate_vision_hotspot_results
+        """Deprecated alias for :meth:`_HarremanVsAccessor.integrate_vision_hotspot_results`.
+
+        Kept for backward compatibility with code written against the
+        ``ha.hs.`` accessor before this function moved to ``ha.vs.``.
+        """
+        from scviva.tools.harreman.vision._integration import integrate_vision_hotspot_results
 
         integrate_vision_hotspot_results(self._resolve(adata), **kwargs)
 
@@ -634,21 +639,47 @@ class _HarremanVsAccessor:
     def _resolve(self, adata: AnnData | None) -> AnnData:
         return adata if adata is not None else self._ha._adata
 
-    def load_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.harreman.vision.signature import load_signatures
+    def load_signatures(
+        self,
+        adata: AnnData | None = None,
+        split_signed: bool = True,
+        varm_key: str = "signatures",
+        use_raw: bool = False,
+        **kwargs,
+    ) -> None:
+        from scviva.tools.vision.tools.signature import load_signatures, split_signed_signatures
 
-        load_signatures(self._resolve(adata), **kwargs)
+        resolved = self._resolve(adata)
+        load_signatures(resolved, varm_key=varm_key, use_raw=use_raw, **kwargs)
+        if split_signed:
+            split_signed_signatures(resolved, varm_key=varm_key, use_raw=use_raw)
 
     def signatures_from_file(self, adata: AnnData | None = None, **kwargs) -> None:
         """Alias for :meth:`load_signatures`."""
-        from scviva.tools.harreman.vision.signature import load_signatures
+        self.load_signatures(adata, **kwargs)
 
-        load_signatures(self._resolve(adata), **kwargs)
+    def compute_vision_signatures(
+        self,
+        adata: AnnData | None = None,
+        norm_data_key: str | None = None,
+        signature_varm_key: str = "signatures",
+        signature_names_uns_key: str | None = None,
+        **kwargs,
+    ) -> None:
+        """Alias for :meth:`analyze_vision` with ``scores_only=True``."""
+        self.analyze_vision(
+            adata,
+            norm_data_key=norm_data_key,
+            signature_varm_key=signature_varm_key,
+            signature_names_uns_key=signature_names_uns_key,
+            scores_only=True,
+            **kwargs,
+        )
 
-    def compute_vision_signatures(self, adata: AnnData | None = None, **kwargs) -> None:
-        from scviva.tools.harreman.vision.signature import compute_vision_signatures
+    def integrate_vision_hotspot_results(self, adata: AnnData | None = None, **kwargs) -> None:
+        from scviva.tools.harreman.vision._integration import integrate_vision_hotspot_results
 
-        compute_vision_signatures(self._resolve(adata), **kwargs)
+        integrate_vision_hotspot_results(self._resolve(adata), **kwargs)
 
     def analyze_vision(
         self,
@@ -657,9 +688,16 @@ class _HarremanVsAccessor:
         signature_varm_key: str = "signatures",
         signature_names_uns_key: str | None = None,
         scores_only: bool = False,
+        with_differential_expression: bool = False,
+        setup_kwargs: dict | None = None,
         **kwargs,
     ) -> None:
         """Run VISION analysis on the AnnData object.
+
+        Delegates to :class:`~scviva.tools.vision.VisionAnalysis` so this
+        accessor and the standalone ``vision`` package share one
+        implementation of the neighbor-weight graph, signature scoring, and
+        autocorrelation logic.
 
         Parameters
         ----------
@@ -670,31 +708,63 @@ class _HarremanVsAccessor:
             uses ``adata.raw.X``, any other string is looked up in
             ``adata.layers``).
         signature_varm_key : str, default "signatures"
-            Key in ``adata.varm`` for the gene × signature weight matrix.
+            Key in ``adata.varm`` for the gene x signature weight matrix.
+            Signatures must already be loaded, e.g. via
+            :meth:`load_signatures`/:meth:`signatures_from_file`.
         signature_names_uns_key : str or None, default None
             Key in ``adata.uns`` for custom signature column names.
         scores_only : bool, default False
-            When ``True``, only per-cell signature scores are computed (no KNN
-            graph or spatial autocorrelation).  Pass ``True`` when the dataset
-            does not yet have a neighbourhood graph in ``adata.obsp``.
-        **kwargs
+            When ``True``, only per-cell signature scores are computed (no
+            KNN graph or graph autocorrelation) — equivalent to calling
+            :meth:`compute_vision_signatures` directly. Use this when the
+            dataset does not yet have a neighbor graph anywhere in
+            ``adata.obsp``.
+        with_differential_expression : bool, default False
+            When ``True`` (and ``scores_only=False``), also runs one-vs-all
+            differential expression of signatures/metadata across clusters,
+            per-signature gene importance, and the signature dendrogram
+            (:meth:`~scviva.tools.vision.VisionAnalysis.compute_differential_expression`).
+            This is the most expensive step; leave it off if you only need
+            signature scores and their autocorrelation.
+        setup_kwargs : dict, optional
             Forwarded to
-            :func:`~scviva.tools.harreman.vision.signature.compute_vision_signatures`.
+            :meth:`~scviva.tools.vision.VisionAnalysis.setup` (e.g.
+            ``compute_neighbors_on_key``, ``num_neighbors``, ``exact_knn``,
+            ``tree``, ``lca_knn``, ``lca_min_size``). If omitted and
+            ``adata.obsp["weights"]`` already exists — e.g. because
+            :meth:`~scviva.tools.harreman.HarremanAnalysis.setup` already
+            built a neighbor graph on this same ``adata`` — that existing
+            graph is reused as-is instead of being rebuilt (and instead of
+            silently overwriting it, since both tools happen to use the same
+            ``obsp`` key).
+        **kwargs
+            When ``scores_only=True``, forwarded to
+            :func:`~scviva.tools.vision.tools.signature.compute_signatures_anndata`
+            (e.g. ``device``, ``batch_size``, ``sig_norm_method``). Ignored
+            when ``scores_only=False`` — pass ``setup_kwargs`` instead.
         """
-        if not scores_only:
-            raise NotImplementedError(
-                "Full VISION analysis (scores_only=False) is not yet supported. "
-                "Pass scores_only=True to compute per-cell signature scores only."
-            )
-        from scviva.tools.harreman.vision.signature import compute_vision_signatures
+        resolved = self._resolve(adata)
 
-        compute_vision_signatures(
-            self._resolve(adata),
-            norm_data_key=norm_data_key,
-            signature_varm_key=signature_varm_key,
-            signature_names_uns_key=signature_names_uns_key,
-            **kwargs,
-        )
+        if scores_only:
+            from scviva.tools.vision.tools.signature import compute_signatures_anndata
+
+            compute_signatures_anndata(
+                resolved,
+                norm_data_key,
+                signature_varm_key,
+                signature_names_uns_key,
+                **kwargs,
+            )
+            return
+
+        from scviva.tools.vision import VisionAnalysis
+
+        va = VisionAnalysis(resolved, norm_data_key=norm_data_key)
+        va.attach_signatures(signature_varm_key)
+        va.setup(**(setup_kwargs or {}))
+        va.compute_signatures(signature_names_uns_key=signature_names_uns_key)
+        if with_differential_expression:
+            va.compute_differential_expression()
 
 
 class _HarremanTlAccessor:

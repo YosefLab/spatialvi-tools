@@ -18,9 +18,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Shared `CyclicMultiDataLoader` (`scviva.model.utils._dataloaders`), consolidating
   the near-identical cyclic-batch dataloader previously duplicated between GIMVI and
   DiagVI.
+- **VISION** signature-scoring and differential-expression toolkit
+  (`scviva.tools.vision.VisionAnalysis`), ported from `visionpy`/R VISION
+  :cite:p:`DeTomaso19` into scviva-tools with a subpackage layout mirroring
+  Harreman's (`preprocessing/`, `tools/`, `phylo/`): per-cell signature
+  scoring, KNN-graph autocorrelation (Geary's C), one-vs-all/one-vs-one
+  differential expression, gene-importance ranking, signature clustering, and
+  micro-clustering/meta-cluster pooling. Ships with a standalone
+  `Vision_tutorial` notebook, a new VISION section in `DestVI_tutorial`, and
+  a `docs/user_guide/models/vision.md` model page.
+- **Harreman-VISION integration** (`scviva.tools.harreman.vision`,
+  `HarremanAnalysis.vs`), letting VISION signature scores be computed on top
+  of an existing Harreman KNN graph and cross-referenced against Harreman's
+  Hotspot gene modules (`integrate_vision_hotspot_results`).
+- `scviva.plotting.vision`: VISION-specific plotting functions, split out of
+  `scviva.plotting.harreman` to mirror the `tools/vision` vs `tools/harreman`
+  split.
 
 ### Changed
 
+- **DiagVI** now built on `SpatialBaseModel` (`setup_spatialdata()`, RAPIDS
+  backend support) instead of a standalone `BaseModelClass`.
+- Docs theme: the default Read the Docs search panel was replaced with the
+  scviva-tools logo; project scaffolding updated to scverse cookiecutter v0.8.
+- CI: GitHub Actions workflows updated for Python 3.14; CUDA workflows no
+  longer cache pip installs, avoiding repeated 10GB cache-quota evictions.
 - **Docs builds now treat warnings as errors** (`sphinx-build -W`), enforced both on
   Read the Docs (`sphinx.fail_on_warning`) and in a new CI `docs` job, mirroring
   scvi-tools' own doc-build hardening. `myst_heading_anchors` enabled so in-page
@@ -29,6 +51,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **VISION R-fidelity audit**: correctness and reproducibility fixes found by
+  auditing the port against the original R VISION implementation:
+  - Protein one-vs-all differential results were computed but discarded (only
+    the storage key was written); now persisted
+  - Degenerate two-site contingency tables now report "not significant" like
+    R's `matrix_chisq`, instead of maximal significance
+  - Gene importance now uses covariance (matching R's
+    `evalSigGeneImportance`/`sigGeneInner`) instead of a scale-free Pearson
+    correlation
+  - Added R's Wilcoxon continuity correction to one-vs-all differential
+    expression, with a defensive `p<=1` clip
+  - Meta-variable one-vs-all differential now applies one joint BH-FDR across
+    numeric and categorical tests per group, matching `clusterSigScores`
+  - Signature clustering rewritten as a BIC-selected Gaussian mixture over
+    significant signatures (approximating R's `Mclust` "EII"), replacing
+    plain Ward/Euclidean clustering
+  - `sig_norm_method` now threads into the Geary's C permutation-null
+    background scoring (previously hardcoded), removing an unnormalized
+    raw-matmul code path
+  - Micro-clustering's `K`/`filter_threshold` defaults corrected to match R's
+    actual formulas (5% of cells, no artificial floor)
+  - `pool_metadata` now reports `0.0` (not `NaN`) for categorical levels a
+    pool doesn't contain, matching R's `poolMetaData`
+  - Fixed a `visionpy`-inherited bug in the dense-matrix path of
+    `compute_signatures_anndata`: the z-score denominator divided variance by
+    gene count before the square root, inflating scores by an extra
+    `sqrt(n_genes)` factor relative to R and this module's own sparse path
+  - `norm_data_key` input is now auto-detected as already log-transformed
+    (and left alone) instead of being re-transformed; docstring corrected (R's
+    actual contract is the opposite of what was documented)
+  - `device="cpu"` now forces the deterministic scipy sparse path instead of a
+    non-bit-reproducible multi-threaded dense PyTorch path; Louvain
+    clustering, K-means readjustment, and permutation-null background
+    generation are now all seeded via new `random_state` parameters (default
+    `0`, so existing calls are unaffected)
+- **VISION correctness**: fixed BH-FDR index scrambling and tie-correction/NaN
+  bugs in `diffexp`, KNN self-loop bias, and several silent
+  `use_raw`/signature-splitting regressions
+- **VISION**: `_infer_obs_columns()` no longer treats all-unique
+  non-categorical columns (e.g. barcode/identifier columns) as usable
+  metadata, which previously crashed differential expression on real
+  metadata; `compute_signature_scores()` now restores
+  `adata.uns["signature_varm_key"]` after the permutation-null step instead of
+  leaving it pointed at the transient random-signature set (which broke
+  `integrate_vision_hotspot_results()`); `VisionAnalysis` now tracks whether
+  it built `adata.obsp["weights"]` itself, so it correctly reuses an
+  externally-built graph (e.g. from Harreman) instead of silently overwriting
+  it
+- **VISION**: `import scviva` no longer eagerly pulls in `diffexp` (and
+  therefore scanpy); `rank_genes_groups` is now exposed lazily.
+  `HarremanAnalysis.vs.compute_vision_signatures()` now has explicit defaults
+  instead of forwarding `**kwargs`, fixing the no-arg legacy call path;
+  `load_signatures()` now accepts a `varm_key` and writes to
+  `adata.raw.varm[varm_key]` under `use_raw=True`, fixing a raw/non-raw
+  gene-count mismatch crash; small (`<=5`) signature sets now get correctly
+  aligned random-background cluster labels
+- **VISION**: `compute_obs_df_scores()`/`_gearysc_for_dataframe()` no longer
+  raise `ZeroDivisionError` on constant (zero-variance) numeric `obs`
+  columns; these are now skipped and reported as "no detectable
+  autocorrelation"
+- **Harreman**: fixed `use_raw` crashes and silent bugs (`.raw.obs`,
+  gene-subset views into `.raw.X`, a database-storage key mismatch) and
+  unseeded RNGs across the hotspot, cell-communication, and KNN modules
+- **DiagVI**: corrected reference-batch/libsize imputation, `mapping_df`
+  collisions, and unlabeled-cell leakage into the classifier loss
 - 31 pre-existing Sphinx warnings uncovered by the new `-W` build, all docs/type-hint
   only with no runtime behavior change:
   - Stale `:doc:` tutorial cross-refs in `DestVI`/`GIMVI`/`SCVIVA`/`RNAStereoscope`/
@@ -53,6 +140,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     missing from this repo; imported from upstream scvi-tools'
     `docs/user_guide/models/figures/` into the same path here. One broken ref to a
     never-written `counterfactual_prediction` background page dropped
+
+### Removed
+
+- Confirmed-dead VISION code with no remaining call sites, found via a
+  post-audit sweep: `tools/diffexp.py::_calc_frac()` (logic already computed
+  inline elsewhere) and `_analysis.py::_pearson_cols()` (orphaned by the
+  gene-importance fix above).
 
 ## [0.1.6] - 2026-07-08
 
