@@ -551,7 +551,7 @@ def compute_top_scoring_modules(
         columns=adata.obsm[MODULE_KEY].columns,
     )
 
-    top_scoring_modules = pd.Series(index=df.index)
+    top_scoring_modules = pd.Series(index=df.index, dtype=object)
     for mod_id, row in df.iterrows():
         above_threshold_low = row > 0
         above_threshold = row > sd

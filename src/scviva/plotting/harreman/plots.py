@@ -185,7 +185,7 @@ def average_local_correlation_plot(
     )
 
     avg_local_correlation_z = (
-        avg_local_correlation_z.groupby(level=1).mean().groupby(level=0, axis=1).mean()
+        avg_local_correlation_z.groupby(level=1).mean().T.groupby(level=0).mean().T
     )
     avg_local_correlation_z = avg_local_correlation_z.loc[
         avg_local_correlation_z.index != -1, avg_local_correlation_z.columns != -1
