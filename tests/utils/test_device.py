@@ -12,8 +12,15 @@ def test_resolve_device_auto_falls_back_when_cuda_unusable(monkeypatch):
 
 
 def test_resolve_device_auto_prefers_mps_over_cpu(monkeypatch):
+    """Only the availability *preference* is under test here, not real hardware:
+    `resolve_device` also probes the device with a real allocation
+    (`torch.tensor(..., device=...)`) before committing to it, which would fail on
+    any host without actual MPS (e.g. the ubuntu-latest CI matrix) and silently fall
+    back to cpu, defeating the assertion below. So the probe is mocked out too; its
+    return value is discarded by `resolve_device`, so a no-op stand-in is enough."""
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    monkeypatch.setattr(torch, "tensor", lambda *args, **kwargs: None)
     assert resolve_device("auto").type == "mps"
 
 
