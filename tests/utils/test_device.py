@@ -5,9 +5,18 @@ from scviva.utils import resolve_device, stats_dtype
 
 def test_resolve_device_auto_falls_back_when_cuda_unusable(monkeypatch):
     """`cuda.is_available()` can be True while torch has no working CUDA build;
-    `resolve_device` must fall back gracefully rather than raise."""
+    `resolve_device` must fall back gracefully rather than raise. The allocation
+    probe is forced to fail here rather than relying on the host genuinely lacking
+    CUDA: on the real test_cuda.yaml GPU runner the probe would otherwise succeed
+    (CUDA truly is usable there), making `resolve_device` correctly return "cuda"
+    and this assertion fail."""
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
+
+    def broken_probe(*args, **kwargs):
+        raise RuntimeError("simulated: CUDA reports available but is not usable")
+
+    monkeypatch.setattr(torch, "tensor", broken_probe)
     assert resolve_device("auto").type == "cpu"
 
 
