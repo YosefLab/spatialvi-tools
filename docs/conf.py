@@ -81,7 +81,7 @@ logging.getLogger("sphinx.sphinx_autodoc_typehints").addFilter(_scvi_pyro_type_h
 
 # -- HTML output -------------------------------------------------------------
 
-html_logo = "_static/logo.png"
+html_logo = "_static/logo.svg"
 
 html_theme = "sphinx_book_theme"
 html_title = "scVIVA-Tools"
