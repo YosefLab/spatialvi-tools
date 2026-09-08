@@ -651,6 +651,7 @@ def compute_interacting_cell_scores(
         Results are stored in ``adata.uns['interacting_cell_results']``.
     """
     start = time.time()
+    device = resolve_device(device)
     if verbose:
         print("Computing gene pair and metabolite scores...")
 

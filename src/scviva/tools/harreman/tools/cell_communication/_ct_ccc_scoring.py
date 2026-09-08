@@ -739,6 +739,7 @@ def compute_ct_interacting_cell_scores(
         Print detailed progress messages.
     """
     start = time.time()
+    device = resolve_device(device)
     if verbose:
         print("Computing cell type-aware gene pair and metabolite scores...")
 
